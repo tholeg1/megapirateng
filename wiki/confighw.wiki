@@ -23,3 +23,7 @@ you can define you R set in /libraries/APM_RC/APM_RC.cpp, but default is MultiWi
 || CH5 (AUX1)     || A12       ||
 
 = Motors =
+== Quad ==
+== Hexa ==
+== Octa ==
+== Tri and Y6 ==
