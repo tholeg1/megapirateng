@@ -1,0 +1,21 @@
+#summary Manual for porting ArduCopter2 to Arduino MEGA
+
+= Introduction =
+
+ArduCopter2 board looks like the same as Arduino MEGA, except aditional 328p chip
+
+
+= Add new libraries =
+  * APM_RC (we don't have 328 chip on arduino mega, so need new for rc)
+  * AP_ADC (we have another IMU board)
+
+= Existing AC2 libraries =
+
+= ArduCopter2 code to MegaPirateNG code =
+  * define.h
+  * Logging (we don't have flas)
+  * Serial (we use Serial2 for GPS)
+  * Sonar (we user another sonar)
+  * System.pde
+  * Setup.pde (we need some additional code for CLI parameters set)
+  * etc
