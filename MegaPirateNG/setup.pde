@@ -236,14 +236,14 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 
 	Serial.printf_P(PSTR("\nMove roll, pitch and yaw controls to center. Hit Enter to save trim: "));
 	while(1){
-    if(Serial.available() > 0){
-    		read_radio();
+        if(Serial.available() > 0){
+            read_radio();
             trim_radio();
-			delay(20);
-			Serial.flush();
+            delay(20);
+            Serial.flush();
 
-			print_done();
-			break;
+            print_done();
+            break;
 		}
     }
 	report_radio();
