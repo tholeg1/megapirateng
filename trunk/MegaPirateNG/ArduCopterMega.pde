@@ -7,6 +7,7 @@ Based on code and ideas from the Arducopter team: Jose Julio, Randy Mackay, Jani
 Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier
 
 porting by sovgvd@gmail.com and Syberian libraries from MegaPirate r741
+URL: http://code.google.com/p/megapirateng
 
 
 This firmware is free software; you can redistribute it and/or
