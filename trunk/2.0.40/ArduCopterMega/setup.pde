@@ -20,6 +20,7 @@ static int8_t	setup_esc				(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_optflow			(uint8_t argc, const Menu::arg *argv);
 #endif
 static int8_t	setup_show				(uint8_t argc, const Menu::arg *argv);
+static int8_t	setup_set				(uint8_t argc, const Menu::arg *argv);
 
 #if FRAME_CONFIG == HELI_FRAME
 	static int8_t	setup_heli				(uint8_t argc, const Menu::arg *argv);
@@ -50,7 +51,8 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
 	{"heli",			setup_heli},
 	{"gyro",			setup_gyro},
 #endif
-	{"show",			setup_show}
+	{"show",			setup_show},
+	{"set",			    setup_set}
 };
 
 // Create the setup menu object.
@@ -110,6 +112,16 @@ setup_show(uint8_t argc, const Menu::arg *argv)
 	AP_Var_menu_show(argc, argv);
 	return(0);
 }
+// Set AP variables
+// add by sovgvd@gmail.com 
+static int8_t
+setup_set(uint8_t argc, const Menu::arg *argv)
+{
+    AP_Var_menu_set(argc, argv);
+    AP_Var::save_all();
+    return(0);
+}
+
 
 // Initialise the EEPROM to 'factory' settings (mostly defined in APM_Config.h or via defaults).
 // Called by the setup menu 'factoryreset' command.
@@ -144,7 +156,7 @@ setup_factory(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_radio(uint8_t argc, const Menu::arg *argv)
 {
-	Serial.println("\n\nRadio Setup:");
+ 	Serial.println("\n\nRadio Setup:");
 	uint8_t i;
 
 	for(i = 0; i < 100;i++){
@@ -154,7 +166,7 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 
 	if(g.rc_1.radio_in < 500){
 		while(1){
-			//Serial.printf_P(PSTR("\nNo radio; Check connectors."));
+			Serial.printf_P(PSTR("\nNo radio; Check connectors."));
 			delay(1000);
 			// stop here
 		}
@@ -188,7 +200,7 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 	g.rc_8.radio_trim = 1500;
 
 
-	Serial.printf_P(PSTR("\nMove all controls to each extreme. Hit Enter to save: "));
+	Serial.printf_P(PSTR("\nMove all controls to each extreme. Hit Enter for next step: "));
 	while(1){
 
 		delay(20);
@@ -218,10 +230,22 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 			g.rc_7.save_eeprom();
 			g.rc_8.save_eeprom();
 
-			print_done();
 			break;
 		}
 	}
+
+	Serial.printf_P(PSTR("\nMove roll, pitch and yaw controls to center. Hit Enter to save trim: "));
+	while(1){
+        if(Serial.available() > 0){
+            read_radio();
+            trim_radio();
+            delay(20);
+            Serial.flush();
+
+            print_done();
+            break;
+		}
+    }
 	report_radio();
 	return(0);
 }
@@ -934,10 +958,10 @@ print_PID(PI * pid)
 static void
 print_radio_values()
 {
-	Serial.printf_P(PSTR("CH1: %d | %d\n"), (int)g.rc_1.radio_min, (int)g.rc_1.radio_max);
-	Serial.printf_P(PSTR("CH2: %d | %d\n"), (int)g.rc_2.radio_min, (int)g.rc_2.radio_max);
+	Serial.printf_P(PSTR("CH1: %d | %d | trim\n"), (int)g.rc_1.radio_min, (int)g.rc_1.radio_max, (int)g.rc_1.radio_trim);
+	Serial.printf_P(PSTR("CH2: %d | %d | trim\n"), (int)g.rc_2.radio_min, (int)g.rc_2.radio_max, (int)g.rc_2.radio_trim);
 	Serial.printf_P(PSTR("CH3: %d | %d\n"), (int)g.rc_3.radio_min, (int)g.rc_3.radio_max);
-	Serial.printf_P(PSTR("CH4: %d | %d\n"), (int)g.rc_4.radio_min, (int)g.rc_4.radio_max);
+	Serial.printf_P(PSTR("CH4: %d | %d | trim \n"), (int)g.rc_4.radio_min, (int)g.rc_4.radio_max, (int)g.rc_4.radio_trim);
 	Serial.printf_P(PSTR("CH5: %d | %d\n"), (int)g.rc_5.radio_min, (int)g.rc_5.radio_max);
 	Serial.printf_P(PSTR("CH6: %d | %d\n"), (int)g.rc_6.radio_min, (int)g.rc_6.radio_max);
 	Serial.printf_P(PSTR("CH7: %d | %d\n"), (int)g.rc_7.radio_min, (int)g.rc_7.radio_max);

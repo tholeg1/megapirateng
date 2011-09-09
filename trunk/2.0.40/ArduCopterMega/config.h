@@ -34,6 +34,11 @@
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
+// some config need for MegaPirateNG 2.0.30
+#define  SONAR_TYPE  MAX_SONAR_XL // don't change!!!
+#define HIL_MODE	HIL_MODE_DISABLED
+#define GCS_PROTOCOL  GCS_PROTOCOL_MAVLINK
+
 
 //////////////////////////////////////////////////////////////////////////////
 // FRAME_CONFIG
@@ -572,7 +577,7 @@
 //
 
 #ifndef LOGGING_ENABLED
-# define LOGGING_ENABLED               ENABLED
+# define LOGGING_ENABLED               DISABLED
 #endif
 
 #ifndef LOG_ATTITUDE_FAST
