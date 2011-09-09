@@ -10,12 +10,11 @@ ArduCopter2 board looks like the same as Arduino MEGA, except aditional 328p chi
   * AP_ADC (we have another IMU board)
 
 = Existing AC2 libraries =
+  * APM_BMP085 (comment all about BMP085_EOC)
 
 = ArduCopter2 code to MegaPirateNG code =
-  * define.h
-  * Logging (we don't have flas)
-  * Serial (we use Serial2 for GPS)
-  * Sonar (we user another sonar)
-  * System.pde
-  * Setup.pde (we need some additional code for CLI parameters set)
-  * etc
+  * ArduCopterMega.pde (comment SPI.h and DataFlash.h, GPS on Serial2)
+  * defines.h (comment AN5 59 we use it for CLI, change SLIDE_SWITCH_PIN to 59)
+  * config.h (define SONAR_TYPE, HIL_MODE and GCS_PROTOCOL and disable LOGGING_ENABLED)
+  * System.pde (comment data logging, enter in CLI, gps to Serial2)
+  * Setup.pde (we need some additional code for CLI parameters set, rc trim and gps)
