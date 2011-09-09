@@ -218,7 +218,7 @@ static void init_ardupilot()
 	// Logging:
 	// --------
 	// DataFlash log initialization
-	DataFlash.Init();
+	//DataFlash.Init();
 
 #if CLI_ENABLED == ENABLED
 	// If the switch is in 'menu' mode, run the main menu.
