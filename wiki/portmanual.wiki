@@ -14,11 +14,11 @@ ArduCopter2 board looks like the same as Arduino MEGA, except aditional 328p chi
 
 = ArduCopter2 code to MegaPirateNG code =
   * ArduCopterMega.pde (comment SPI.h and DataFlash.h, GPS on Serial2)
-  * defines.h (comment AN5 59 we use it for CLI, change SLIDE_SWITCH_PIN to 59)
+  * defines.h (comment AN5 59 we use it for CLI, change SLIDE_SWITCH_PIN to 59, A_LED_PIN 13, B_LED_PIN 31, C_LED_PIN 30)
   * config.h (define SONAR_TYPE, HIL_MODE and GCS_PROTOCOL and disable LOGGING_ENABLED)
   * System.pde (comment data logging, enter in CLI, gps to Serial2)
   * Setup.pde (we need some additional code for CLI parameters set, rc trim and gps)
 
 = New features =
-  * led.pde by Syberian's (review r741)
+  * led.pde by Syberian's (in ArduCopterMega.pde add sq_led_heartbeat(); in medium_loop)
   * sonar filter (2.0.39_TEST4, not test and work only in CLI for demo)
