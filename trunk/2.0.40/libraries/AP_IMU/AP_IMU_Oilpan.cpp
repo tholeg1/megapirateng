@@ -24,8 +24,8 @@
 
 // XXX secret knowledge about the APM/oilpan wiring
 //
-#define A_LED_PIN   37
-#define C_LED_PIN   35
+#define A_LED_PIN   13
+#define C_LED_PIN   31
 
 // Sensors: GYROX, GYROY, GYROZ, ACCELX, ACCELY, ACCELZ
 const uint8_t AP_IMU_Oilpan::_sensors[6]        = { 1, 2, 0, 4, 5, 6};	// Channel assignments on the APM oilpan

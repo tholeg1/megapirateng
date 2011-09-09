@@ -298,6 +298,11 @@ static void init_ardupilot()
 
 	//delay(100);
 	startup_ground();
+	
+	// Init LED sequencer
+	#if LED_SEQUENCER == ENABLED
+		sq_led_init();
+	#endif
 
 	//Serial.printf_P(PSTR("\nloiter: %d\n"), location_error_max);
 	Log_Write_Startup();
