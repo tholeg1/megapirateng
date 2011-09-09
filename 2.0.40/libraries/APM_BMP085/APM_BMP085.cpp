@@ -57,9 +57,9 @@ void APM_BMP085_Class::Init(int initialiseWireLib)
 	byte buff[22];
 	int i = 0;
 
-	pinMode(BMP085_EOC, INPUT);	 // End Of Conversion (PC7) input
+	//pinMode(BMP085_EOC, INPUT);	 // End Of Conversion (PC7) input
 
-	if( initialiseWireLib != 0 )
+	//if( initialiseWireLib != 0 )
 			Wire.begin();
 
 	oss = 3;					 // Over Sampling setting 3 = High resolution
@@ -103,29 +103,29 @@ uint8_t APM_BMP085_Class::Read()
 	uint8_t result = 0;
 
 	if (BMP085_State == 1){
-		if (digitalRead(BMP085_EOC)){
+		//if (digitalRead(BMP085_EOC)){
 			ReadTemp();						 // On state 1 we read temp
 			BMP085_State++;
 			Command_ReadPress();
-		}
+		//}
 	}else{
 		if (BMP085_State == 5){
-			if (digitalRead(BMP085_EOC)){
+			//if (digitalRead(BMP085_EOC)){
 				ReadPress();
 				Calculate();
 
 				BMP085_State = 1;			// Start again from state = 1
 				Command_ReadTemp();			// Read Temp
 				result = 1;					// New pressure reading
-			}
+			//}
 		}else{
-			if (digitalRead(BMP085_EOC)){
+			//if (digitalRead(BMP085_EOC)){
 				ReadPress();
 				Calculate();
 				BMP085_State++;
 				Command_ReadPress();
 				result = 1;					// New pressure reading
-			}
+			//}
 		}
 	}
 	return(result);

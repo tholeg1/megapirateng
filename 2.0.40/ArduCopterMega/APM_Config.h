@@ -2,9 +2,25 @@
 
 // GPS is auto-selected
 
-//#define MAG_ORIENTATION		AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
-//#define GCS_PROTOCOL			GCS_PROTOCOL_NONE
-//#define HIL_MODE				HIL_MODE_ATTITUDE
+#define MAG_ORIENTATION		ROTATION_YAW_270
+#define GPS_PROTOCOL GPS_PROTOCOL_NMEA
+	/*
+	options:
+	GPS_PROTOCOL_NONE 	without GPS
+	GPS_PROTOCOL_NMEA
+	GPS_PROTOCOL_SIRF
+	GPS_PROTOCOL_UBLOX
+	GPS_PROTOCOL_IMU
+	GPS_PROTOCOL_MTK
+	GPS_PROTOCOL_HIL
+	GPS_PROTOCOL_MTK16
+	GPS_PROTOCOL_AUTO	auto select GPS
+	*/
+#define SERIAL0_BAUD			115200	// If one want a wireless modem (like APC220) on the console port, lower that to 57600. Default is 115200 
+#define SERIAL2_BAUD			 38400	// GPS port bps
+#define SERIAL3_BAUD			 57600	// default telemetry BPS rate = 57600
+
+#define CLI_ENABLED ENABLED
 
 //#define BROKEN_SLIDER		0		// 1 = yes (use Yaw to enter CLI mode)
 

@@ -70,7 +70,7 @@ static void init_ardupilot()
 	// on the message set configured.
 	//
 	#if GPS_PROTOCOL != GPS_PROTOCOL_IMU
-	Serial1.begin(38400, 128, 16);
+	Serial2.begin(SERIAL2_BAUD, 128, 16);
 	#endif
 
 	Serial.printf_P(PSTR("\n\nInit ACM"
@@ -89,8 +89,12 @@ static void init_ardupilot()
 	pinMode(A_LED_PIN, OUTPUT);				// GPS status LED
 	pinMode(B_LED_PIN, OUTPUT);				// GPS status LED
 	pinMode(SLIDE_SWITCH_PIN, INPUT);		// To enter interactive mode
-	pinMode(PUSHBUTTON_PIN, INPUT);			// unused
-	DDRL |= B00000100;						// Set Port L, pin 2 to output for the relay
+    digitalWrite(SLIDE_SWITCH_PIN, HIGH);           // Pull-UP the switch port
+	//pinMode(PUSHBUTTON_PIN, INPUT);			// unused
+	//DDRL |= B00000100;						// Set Port L, pin 2 to output for the relay
+
+    pinMode(37, OUTPUT);		                // rc switch pin
+    DDRF&= B11011111;
 
 	// XXX set Analog out 14 to output
 	//  	   76543210

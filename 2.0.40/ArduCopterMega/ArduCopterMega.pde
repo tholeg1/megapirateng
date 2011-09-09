@@ -6,7 +6,9 @@ Authors:	Jason Short
 Based on code and ideas from the Arducopter team: Jose Julio, Randy Mackay, Jani Hirvinen
 Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier
 
-WARNING! it's original ArduCopter2.0.40 code! don't use in as MegaPirateNG!!!
+porting 2.0.40 by sovgvd@gmail.com and Syberian libraries from MegaPirate r741
+URL: http://code.google.com/p/megapirateng
+
 
 This firmware is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -51,8 +53,8 @@ And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
 #include <APM_RC.h>         // ArduPilot Mega RC Library
 #include <AP_GPS.h>         // ArduPilot GPS library
 #include <Wire.h>			// Arduino I2C lib
-#include <SPI.h>
-#include <DataFlash.h>      // ArduPilot Mega Flash Memory Library
+//#include <SPI.h>
+//#include <DataFlash.h>      // ArduPilot Mega Flash Memory Library
 #include <AP_ADC.h>         // ArduPilot Mega Analog to Digital Converter Library
 #include <APM_BMP085.h>     // ArduPilot Mega BMP085 Library
 #include <AP_Compass.h>     // ArduPilot Mega Magnetometer Library
@@ -85,7 +87,7 @@ And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
 // use.
 //
 FastSerialPort0(Serial);        // FTDI/console
-FastSerialPort1(Serial1);       // GPS port
+FastSerialPort2(Serial2);       // GPS port
 FastSerialPort3(Serial3);       // Telemetry port
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -134,22 +136,22 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 
 	// real GPS selection
 	#if   GPS_PROTOCOL == GPS_PROTOCOL_AUTO
-		AP_GPS_Auto     g_gps_driver(&Serial1, &g_gps);
+		AP_GPS_Auto     g_gps_driver(&Serial2, &g_gps);
 
 	#elif GPS_PROTOCOL == GPS_PROTOCOL_NMEA
-		AP_GPS_NMEA     g_gps_driver(&Serial1);
+		AP_GPS_NMEA     g_gps_driver(&Serial2);
 
 	#elif GPS_PROTOCOL == GPS_PROTOCOL_SIRF
-		AP_GPS_SIRF     g_gps_driver(&Serial1);
+		AP_GPS_SIRF     g_gps_driver(&Serial2);
 
 	#elif GPS_PROTOCOL == GPS_PROTOCOL_UBLOX
-		AP_GPS_UBLOX    g_gps_driver(&Serial1);
+		AP_GPS_UBLOX    g_gps_driver(&Serial2);
 
 	#elif GPS_PROTOCOL == GPS_PROTOCOL_MTK
-		AP_GPS_MTK      g_gps_driver(&Serial1);
+		AP_GPS_MTK      g_gps_driver(&Serial2);
 
 	#elif GPS_PROTOCOL == GPS_PROTOCOL_MTK16
-		AP_GPS_MTK16    g_gps_driver(&Serial1);
+		AP_GPS_MTK16    g_gps_driver(&Serial2);
 
 	#elif GPS_PROTOCOL == GPS_PROTOCOL_NONE
 		AP_GPS_None     g_gps_driver(NULL);
