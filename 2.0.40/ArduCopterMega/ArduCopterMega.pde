@@ -619,6 +619,11 @@ static void fast_loop()
 
 static void medium_loop()
 {
+	// LED Sequencer update at 50Hz
+	#if LED_SEQUENCER == ENABLED
+		sq_led_heartbeat(); 
+	#endif
+	
 	// This is the start of the medium (10 Hz) loop pieces
 	// -----------------------------------------
 	switch(medium_loopCounter) {

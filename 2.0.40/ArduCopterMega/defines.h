@@ -376,9 +376,9 @@
 #define SLIDE_SWITCH_PIN 59     // MegaPirate - 59=A5
 #define PUSHBUTTON_PIN 41
 
-#define A_LED_PIN 37			//36 = B,	37 = A,	35 = C
-#define B_LED_PIN 36
-#define C_LED_PIN 35
+#define A_LED_PIN 13			//Original ArduCopter: 36 = B,	37 = A,	35 = C
+#define B_LED_PIN 31
+#define C_LED_PIN 30
 
 
 // EEPROM addresses
