@@ -40,7 +40,7 @@ static volatile uint8_t			_filter_index;
 // #define SONARDEBUG
 //*******************************
 // sonar filter
-//#define SONARFILTER
+#define SONARFILTER
 #define SONAR_FILTER_SIZE 4
 
 
@@ -341,7 +341,7 @@ int AP_ADC_ADS7844::Ch(unsigned char ch_num)
 			pre_sonar_data=sonar_data;
 		#endif
 		#ifdef SONARDEBUG
-			sonic_range=sonar_data; //(its in cm)
+			sonic_range=sonar_data; //(its in parots)
 		#endif
 		return(sonic_range);
 	} else  { // channels 0..6
