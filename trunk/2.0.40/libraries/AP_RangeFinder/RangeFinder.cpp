@@ -36,22 +36,8 @@ void RangeFinder::set_orientation(int x, int y, int z)
 // Read Sensor data - only the raw_value is filled in by this parent class
 int RangeFinder::read()
 {
-	// read from the analog port or pitot tube
-    if( _ap_adc != NULL ){
-		//raw_value = _ap_adc->Ch_raw(AP_RANGEFINDER_PITOT_TUBE_ADC_CHANNEL) >> 2;  // values from ADC are twice as big as you'd expect
-		raw_value = _ap_adc->Ch(AP_RANGEFINDER_PITOT_TUBE_ADC_CHANNEL) ; // in MPNG we use ADC library for sonar value
-	}else{
-		// read raw sensor value and convert to distance
-    	raw_value = analogRead(_analogPort);
-	}
-
-	// convert analog value to distance in cm (using child implementation most likely)
-	raw_value = convert_raw_to_distance(raw_value);
-
-	// ensure distance is within min and max
-	raw_value = constrain(raw_value, min_distance, max_distance);
-
-	distance = _mode_filter->get_filtered_with_sample(raw_value);
-	return distance;
+	//raw_value = _ap_adc->Ch(7) ; // in MPNG we use ADC library for sonar value and custom made filter with blackjack and...(realy the same)
+	//distance = raw_value;
+	return _ap_adc->Ch(7);
 }
 
