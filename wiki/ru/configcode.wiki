@@ -1,0 +1,42 @@
+#summary Configure code before upload to Arduino MEGA
+
+= Supported IMU boards and sensors =
+in libraries/AP_ADC/AP_ADC_ADS7844.cpp
+  * AllInOne: #define ALLINONE
+  * FFIMU: #define FFIMU
+  * ITG3205+BMA020 (minimal sensors list): #define ALLINONE and #define BMA_020, then you need "nulled" barometer library (comment all about I2C (Wire.something))
+
+= Supported range finder sensors =
+in libraries/AP_ADC/AP_ADC_ADS7844.cpp
+  * DYP-ME007: DYPME007
+  * DYP-ME007v2: DYPME007v2
+
+= Supported frames=
+== frame configuration ==
+in APM_Config.h #define FRAME_CONFIG
+  * QUAD_FRAME
+  * TRI_FRAME
+  * HEXA_FRAME
+  * Y6_FRAME
+  * OCTA_FRAME
+== frame orientation ==
+in APM_Config.h #define FRAME_ORIENTATION
+  * for QUAD_FRAME: PLUS_FRAME, X_FRAME or V_FRAME (something between X and Y - good for FPV)
+  * for HEXA_FRAME: 
+  * for OCTA_FRAME:
+
+= Supported GPS protocols =
+in APM_Config.h #define GPS_PROTOCOL
+  * GPS_PROTOCOL_NONE - without GPS
+  * GPS_PROTOCOL_NMEA
+  * GPS_PROTOCOL_SIRF
+  * GPS_PROTOCOL_UBLOX
+  * GPS_PROTOCOL_IMU
+  * GPS_PROTOCOL_MTK
+  * GPS_PROTOCOL_HIL
+  * GPS_PROTOCOL_MTK16
+  * GPS_PROTOCOL_AUTO - auto select (not recommend)
+for change port speed: #define SERIAL2_BAUD 38400
+
+= Use APC220 =
+if you want use APC220 Wireless Communication Module for serial connection, change SERIAL0_BAUD from default 115200 to 57600 and use it speed in APM Planner
