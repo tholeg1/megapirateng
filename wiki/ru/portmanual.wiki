@@ -1,0 +1,26 @@
+#summary Manual for porting ArduCopter2 to Arduino MEGA
+
+= Introduction =
+
+ArduCopter2 board looks like the same as Arduino MEGA, except aditional 328p chip
+
+
+= Add new libraries =
+  * APM_RC (we don't have 328 chip on arduino mega, so need new for rc)
+  * AP_ADC (we have another IMU board and sonar)
+
+= Existing AC2 libraries =
+  * APM_BMP085 (comment all about BMP085_EOC)
+  * AP_IMU_Oilpan.cpp (#define A_LED_PIN 13, #define C_LED_PIN 31)
+  * RangeFinder.cpp (read() must return _ap_adc->Ch(7))
+
+= ArduCopter2 code to MegaPirateNG code =
+  * ArduCopterMega.pde (comment SPI.h and DataFlash.h, GPS on Serial2)
+  * defines.h (comment AN5 59 we use it for CLI, change SLIDE_SWITCH_PIN to 59, A_LED_PIN 13, B_LED_PIN 31, C_LED_PIN 30)
+  * config.h (define SONAR_TYPE, HIL_MODE and GCS_PROTOCOL and disable LOGGING_ENABLED)
+  * System.pde (comment data logging, enter in CLI, gps to Serial2)
+  * Setup.pde (we need some additional code for CLI parameters set, rc trim and gps)
+
+= New features =
+  * led.pde by Syberian's (in ArduCopterMega.pde add sq_led_heartbeat(); in medium_loop)
+  * sonar filter (2.0.40_TEST3)
