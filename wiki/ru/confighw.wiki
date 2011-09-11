@@ -1,20 +1,20 @@
-#summary Configuration hardware
+#summary Настройка оборудования
 
-= Sensors =
+= Сенсоры =
 == IMU ==
-connect you IMU board to I2C bus on Arduino MEGA
+подсоедените вашу плату сенсоров к шине I2C Arduino MEGA
 == GPS ==
-connect you GPS receiver to Serial2 port of Arduino GPS_TX->RX2
-== Sonar ==
-connect you DYP-ME007 sonar:
+подсоедените ваш GPS приемник к Serial2 порту Arduino GPS_TX в RX2
+== Сонар ==
+подсоедените ваш DYP-ME007 сонар согласно таблице:
 || *Sonar* || *Arduino*      ||
 || VCC     || +5v or ESC BEC ||
 || GND     || GND            ||
 || Trig    || D9             ||
 || Echo    || D10            ||
 
-= RC =
-you can define you R set in /libraries/APM_RC/APM_RC.cpp, but default is MultiWii style:
+= Пультр управления =
+вы можете задать ваш порядок подключения в /libraries/APM_RC/APM_RC.cpp, по умолчанию используется MultiWii:
 || *RC*           || *Arduino* ||
 || CH1 (Roll)     || A9        ||
 || CH2 (Pitch)    || A10       ||
@@ -22,8 +22,8 @@ you can define you R set in /libraries/APM_RC/APM_RC.cpp, but default is MultiWi
 || CH4 (Yaw)      || A11       ||
 || CH5 (AUX1)     || A12       ||
 
-= Motors =
-== Quad ==
-== Hexa ==
-== Octa ==
-== Tri and Y6 ==
+= Подключение моторов/регулей =
+== Квадрокоптер ==
+== Гексокоптер ==
+== Октокоптер ==
+== Трикоптер и Y6 ==
