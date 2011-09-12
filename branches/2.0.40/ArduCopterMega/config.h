@@ -38,6 +38,8 @@
 #define  SONAR_TYPE  MAX_SONAR_XL // don't change!!!
 #define HIL_MODE	HIL_MODE_DISABLED
 #define GCS_PROTOCOL  GCS_PROTOCOL_MAVLINK
+#define MAG_ORIENTATION		ROTATION_YAW_270
+#define MAG_PROTOCOL MAG_PROTOCOL_5883L
 
 
 //////////////////////////////////////////////////////////////////////////////

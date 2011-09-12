@@ -1,7 +1,5 @@
 // Example config file. Take a look at confi.h. Any term define there can be overridden by defining it here.
 
-#define MAG_ORIENTATION		ROTATION_YAW_270
-
 //#define LED_SEQUENCER ENABLED
 
 // GPS is auto-selected
