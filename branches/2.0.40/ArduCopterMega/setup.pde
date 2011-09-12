@@ -13,7 +13,7 @@ static int8_t	setup_flightmodes		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_batt_monitor		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_sonar				(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_compass			(uint8_t argc, const Menu::arg *argv);
-//static int8_t	setup_mag_offset		(uint8_t argc, const Menu::arg *argv);
+static int8_t	setup_mag_offset		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_declination		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_esc				(uint8_t argc, const Menu::arg *argv);
 #ifdef OPTFLOW_ENABLED
@@ -42,7 +42,7 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
 	{"battery",			setup_batt_monitor},
 	{"sonar",			setup_sonar},
 	{"compass",			setup_compass},
-//	{"offsets",			setup_mag_offset},
+	{"offsets",			setup_mag_offset},
 	{"declination",		setup_declination},
 #ifdef OPTFLOW_ENABLED
 	{"optflow",			setup_optflow},
@@ -219,7 +219,7 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 
 		if(Serial.available() > 0){
 			delay(20);
-			Serial.flush();
+			//Serial.flush();
 
 			g.rc_1.save_eeprom();
 			g.rc_2.save_eeprom();
@@ -229,19 +229,21 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 			g.rc_6.save_eeprom();
 			g.rc_7.save_eeprom();
 			g.rc_8.save_eeprom();
-
+            delay(20);
 			break;
 		}
 	}
 
 	Serial.printf_P(PSTR("\nMove roll, pitch and yaw controls to center. Hit Enter to save trim: "));
 	while(1){
+        delay(20);
         if(Serial.available() > 0){
+            delay(20);
             read_radio();
             trim_radio();
-            delay(20);
+            //delay(20);
             Serial.flush();
-
+            delay(20);
             print_done();
             break;
 		}
@@ -678,7 +680,7 @@ static void clear_offsets()
 	compass.save_offsets();
 }
 
-/*static int8_t
+static int8_t
 setup_mag_offset(uint8_t argc, const Menu::arg *argv)
 {
 	Vector3f _offsets;
@@ -740,7 +742,7 @@ setup_mag_offset(uint8_t argc, const Menu::arg *argv)
 	}
 	return 0;
 }
-*/
+
 
 #ifdef OPTFLOW_ENABLED
 static int8_t
@@ -958,10 +960,11 @@ print_PID(PI * pid)
 static void
 print_radio_values()
 {
-	Serial.printf_P(PSTR("CH1: %d | %d | trim\n"), (int)g.rc_1.radio_min, (int)g.rc_1.radio_max, (int)g.rc_1.radio_trim);
-	Serial.printf_P(PSTR("CH2: %d | %d | trim\n"), (int)g.rc_2.radio_min, (int)g.rc_2.radio_max, (int)g.rc_2.radio_trim);
+    // update by sovgvd@gmail.com to show trim
+	Serial.printf_P(PSTR("CH1: %d | %d | trim %d\n"), (int)g.rc_1.radio_min, (int)g.rc_1.radio_max, (int)g.rc_1.radio_trim);
+	Serial.printf_P(PSTR("CH2: %d | %d | trim %d\n"), (int)g.rc_2.radio_min, (int)g.rc_2.radio_max, (int)g.rc_2.radio_trim);
 	Serial.printf_P(PSTR("CH3: %d | %d\n"), (int)g.rc_3.radio_min, (int)g.rc_3.radio_max);
-	Serial.printf_P(PSTR("CH4: %d | %d | trim \n"), (int)g.rc_4.radio_min, (int)g.rc_4.radio_max, (int)g.rc_4.radio_trim);
+	Serial.printf_P(PSTR("CH4: %d | %d | trim %d\n"), (int)g.rc_4.radio_min, (int)g.rc_4.radio_max, (int)g.rc_4.radio_trim);
 	Serial.printf_P(PSTR("CH5: %d | %d\n"), (int)g.rc_5.radio_min, (int)g.rc_5.radio_max);
 	Serial.printf_P(PSTR("CH6: %d | %d\n"), (int)g.rc_6.radio_min, (int)g.rc_6.radio_max);
 	Serial.printf_P(PSTR("CH7: %d | %d\n"), (int)g.rc_7.radio_min, (int)g.rc_7.radio_max);
