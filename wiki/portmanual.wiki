@@ -8,11 +8,12 @@ ArduCopter2 board looks like the same as Arduino MEGA, except aditional 328p chi
 = Add new libraries =
   * APM_RC (we don't have 328 chip on arduino mega, so need new for rc)
   * AP_ADC (we have another IMU board and sonar)
+  * AP_Compass (better to use old and tested on MP lib)
 
 = Existing AC2 libraries =
   * APM_BMP085 (comment all about BMP085_EOC)
-  * AP_IMU_Oilpan.cpp (#define A_LED_PIN 13, #define C_LED_PIN 31)
-  * RangeFinder.cpp (read() must return _ap_adc->Ch(7))
+  * AP_IMU_Oilpan.cpp (`#define A_LED_PIN 13`, `#define C_LED_PIN 31`)
+  * RangeFinder.cpp (read() must return `_ap_adc->Ch(7)`)
 
 = ArduCopter2 code to MegaPirateNG code =
   * ArduCopterMega.pde (comment SPI.h and DataFlash.h, GPS on Serial2)
