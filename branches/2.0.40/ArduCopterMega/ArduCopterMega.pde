@@ -1362,7 +1362,7 @@ static void update_altitude()
 		// read barometer
 		baro_alt 			= read_barometer();
 
-		if(baro_alt < 1000){
+		if(baro_alt < BARO_TO_SONAR_VALUE){
 
 			#if SONAR_TILT_CORRECTION == 1
 				// correct alt for angle of the sonar

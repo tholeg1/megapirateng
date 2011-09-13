@@ -2,6 +2,8 @@
 
 //#define LED_SEQUENCER ENABLED
 
+#define BARO_TO_SONAR_VALUE 1000
+
 // GPS is auto-selected
 #define GPS_PROTOCOL GPS_PROTOCOL_NONE
 	/*
