@@ -2,7 +2,15 @@
 
 //#define LED_SEQUENCER ENABLED
 
-#define BARO_TO_SONAR_VALUE 1000
+#define BARO_TO_SONAR_VALUE 1000			// in test version sonar v2 can measure up to 150cm (need fix it!), so 1000cm is not good for it
+
+// some config need for MegaPirateNG 2.0.40
+#define SONAR_TYPE MAX_SONAR_XL // don't change!!!
+#define HIL_MODE HIL_MODE_DISABLED
+#define GCS_PROTOCOL GCS_PROTOCOL_MAVLINK
+#define MAG_ORIENTATION	ROTATION_YAW_270
+#define MAG_PROTOCOL MAG_PROTOCOL_5883L
+
 
 // GPS is auto-selected
 #define GPS_PROTOCOL GPS_PROTOCOL_NONE
