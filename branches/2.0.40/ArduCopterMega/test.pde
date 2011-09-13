@@ -809,7 +809,7 @@ test_baro(uint8_t argc, const Menu::arg *argv)
 	while(1){
 		delay(100);
 		baro_alt 		= read_barometer();
-		Serial.printf_P(PSTR("Baro: %dcm\n"), baro_alt);
+		Serial.printf_P(PSTR("Baro: %dcm, Sonar: %dcm\n"), baro_alt,sonar.read());
 		//Serial.printf_P(PSTR("Baro, %d, %ld, %ld, %ld, %ld\n"), baro_alt, barometer.RawTemp, barometer.RawTemp2, barometer.RawPress, barometer.RawPress2);
 		if(Serial.available() > 0){
 			return (0);
