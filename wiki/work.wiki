@@ -1,0 +1,11 @@
+#summary Our current work
+
+= Sensors =
+  * improve cheap sonar reading
+  * filter for sonar values
+
+= GPS =
+  * i2c GPS on AllInOne2 board
+
+= CLI =
+  * more features in CLI
