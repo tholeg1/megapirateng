@@ -13,7 +13,7 @@
 
 
 // GPS is auto-selected
-#define GPS_PROTOCOL GPS_PROTOCOL_NMEA
+#define GPS_PROTOCOL GPS_PROTOCOL_UBLOX_I2C
 	/*
 	options:
 	GPS_PROTOCOL_NONE 	without GPS
@@ -25,6 +25,7 @@
 	GPS_PROTOCOL_HIL
 	GPS_PROTOCOL_MTK16
 	GPS_PROTOCOL_AUTO	auto select GPS
+	GPS_PROTOCOL_UBLOX_I2C
 	*/
 #define SERIAL0_BAUD			115200	// If one want a wireless modem (like APC220) on the console port, lower that to 57600. Default is 115200 
 #define SERIAL2_BAUD			 38400	// GPS port bps

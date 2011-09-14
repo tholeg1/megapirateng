@@ -268,10 +268,11 @@ static void init_ardupilot()
 			break;
 		}
 
-		if (counter >= 2) {
+		if (counter >= 5) {
 			GPS_enabled = false;
 			break;
 	    }
+		delay(100);
 	}
 
 	// lengthen the idle timeout for gps Auto_detect
