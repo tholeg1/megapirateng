@@ -24,4 +24,5 @@ ArduCopter2 board looks like the same as Arduino MEGA, except aditional 328p chi
 
 = New features =
   * led.pde by Syberian's (in ArduCopterMega.pde add sq_led_heartbeat(); in medium_loop)
-  * sonar filter (2.0.40_TEST3)
+  * sonar filter (2.0.40_TEST5)
+  * I2C GPS for AllInOne2
