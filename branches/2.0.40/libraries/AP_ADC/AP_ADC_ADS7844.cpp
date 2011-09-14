@@ -35,20 +35,21 @@ static volatile uint8_t			_filter_index;
 
 //*******************************
 // Select sonar type
-// #define DYPME007
- #define DYPME007v2
-// #define SONARDEBUG
+//#define DYPME007
+#define DYPME007v2
+//#define SONARDEBUG
 //*******************************
 // sonar filter
-//#define SONARFILTER
-//#define SONAR_FILTER_SIZE 6
+#define SONARFILTER
+#define SONAR_FILTER_SIZE 6
+
 
 
 
 // *********************
 // I2C general functions
 // *********************
-  #define I2C_PULLUPS_DISABLE        PORTC &= ~(1<<4); PORTC &= ~(1<<5);
+#define I2C_PULLUPS_DISABLE        PORTC &= ~(1<<4); PORTC &= ~(1<<5);
 #ifdef ALLINONE
 #define BMA180_A 0x82
 #else
@@ -228,9 +229,8 @@ DDRB &=B11101111;
 
 // Sonar read interrupts
 volatile char sonar_meas=0;
-volatile int sonar_data=-1,sonic_range=-1,pre_sonic_range=0,pre_sonar_data=0;//,pre_sonic_min=3000;
-//long s_filter[(SONAR_FILTER_SIZE+1)];
-//long s_filter_sum=0;
+float sonar_middle=0; // float var for calculate middle value
+volatile int sonar_data=-1,sonic_range=-1,pre_sonar_data=-1,s_filter_index=0,s_filter[SONAR_FILTER_SIZE];
 ISR(TIMER5_COMPA_vect) // measurement is over, no edge detected, Set up Tx pin, offset 12 us
 {if (sonar_meas==0) sonar_data=0;PORTH|=B01000000;}
 ISR(TIMER5_OVF_vect) // next measurement, clear the Tx pin, 
@@ -296,32 +296,27 @@ static uint8_t i;
 int AP_ADC_ADS7844::Ch(unsigned char ch_num)         
 {char i;int flt;
 	if (ch_num==7) {
-		/*#ifdef SONARFILTER
+		#ifdef SONARFILTER
 			// simple filter
 			// don't use big value of SONAR_FILTER_SIZE
-			if (sonar_data==0 || (sonar_data==-1 && pre_sonar_data!=-1)) {
+			if (sonar_data==0 || (sonar_data==-1 && pre_sonar_data!=-1)){
 				sonar_data=pre_sonar_data;
 			} else {
-				s_filter_sum=0;
-				for(int i = 0;i<SONAR_FILTER_SIZE; i++){
-					s_filter[i]=s_filter[(i+1)];
-					s_filter_sum+=s_filter[i];
+				s_filter[s_filter_index] = sonar_data;
+				s_filter_index++;
+				sonar_middle=0;
+				if(s_filter_index >= SONAR_FILTER_SIZE) s_filter_index = 0;
+				for(byte i = 0; i < SONAR_FILTER_SIZE; i++){
+					sonar_middle += (float)s_filter[i];
 				}
-				s_filter[SONAR_FILTER_SIZE]=sonar_data;
-				s_filter_sum += s_filter[SONAR_FILTER_SIZE];
-				s_filter_sum/=SONAR_FILTER_SIZE;
-				sonar_data=s_filter_sum;
-				pre_sonar_data=s_filter[SONAR_FILTER_SIZE];
+				sonar_data = (int)(sonar_middle/SONAR_FILTER_SIZE);
 			}
-		#else*/
-			if (sonar_data==0 || (sonar_data==-1 && pre_sonar_data!=-1)) {	//wrong data from sonar, use preview (test with DYPME007v2)
-				sonar_data=pre_sonar_data;
-			} else {
-				pre_sonar_data=sonar_data;
-			}
-		//#endif
+		#else
+			if (sonar_data==0) sonar_data=pre_sonar_data;	//wrong data from sonar, use preview (test with DYPME007v2)
+		#endif
 		#ifdef DYPME007
-			// Syberian's version
+			
+			// Syberian version
 			/*if (sonar_data<80) return(32767);
 			if (sonar_data<2160) sonar_data=2160;
 			sonic_range=0.0081175*sonar_data;*/
@@ -333,7 +328,9 @@ int AP_ADC_ADS7844::Ch(unsigned char ch_num)
 			} else {
 				sonic_range=(sonar_data)*0.0078; //(its in cm)
 			}
+			pre_sonar_data=sonar_data;
 		#endif
+
 		#ifdef DYPME007v2
 			if (sonar_data>4900){
 				sonic_range=200;	// max_value of distance in cm
@@ -342,17 +339,11 @@ int AP_ADC_ADS7844::Ch(unsigned char ch_num)
 			} else {
 				sonic_range=(sonar_data+20100)*0.008; //(its in cm)
 			}
+			pre_sonar_data=sonar_data;
 		#endif
 		#ifdef SONARDEBUG
 			sonic_range=sonar_data; //(its in parots)
 		#endif
-		/*#ifdef SONARFILTER
-		if (sonic_range==0) {
-			sonic_range=pre_sonic_range;
-		}
-		if (pre_sonic_min>sonic_range) pre_sonic_min=sonic_range;
-		if (pre_sonic_min!=sonic_range) pre_sonic_range=sonic_range;
-		#endif*/
 		return(sonic_range);
 	} else  { // channels 0..6
 		if ( (millis()-adc_read_timeout )  > 2 )  //each read is spaced by 3ms else place old values
