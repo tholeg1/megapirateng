@@ -13,7 +13,7 @@
 
 
 // GPS is auto-selected
-#define GPS_PROTOCOL GPS_PROTOCOL_UBLOX_I2C
+#define GPS_PROTOCOL GPS_PROTOCOL_NMEA
 	/*
 	options:
 	GPS_PROTOCOL_NONE 	without GPS
