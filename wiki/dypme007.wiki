@@ -1,0 +1,26 @@
+#summary One-sentence summary of this page.
+
+= Introduction =
+
+DYP-ME007(v1 or v2) Ultrasonic Wave Detector Ranging Module Distance Sensor
+
+= Details =
+ * Probe Main Technical Parameters
+ * Center resonant frequency: *40kHz ± 2kHz*
+ * Static capacitance: *3300P ± 300P*
+ * Resonant impedance: *120Ω ± 20Ω*
+ * Frequency bandwidth (-3dB): *Δf-3dB ≥ 2kHz*
+ * Operation voltage: *300 ~ 500VP-P*
+ * Limit voltage ≤ *1000VP-P*
+ * Transmitting beam angle: *6O degrees*
+ * Operation temperature: *-40 ~ +80 ℃*
+ * Protection class: *IP65*
+= Module Performance =
+ * Voltage: *DC5V*;
+ * Static current: Less than *2mA*;
+ * Output signal: Electric frequency signal, high level *5V*, low level *0V*;
+ * Sensor angle: *Not more than 15 degrees*;
+ * Detection distance: *2cm-500cm* _(Actually up to 2.5m)_
+ * High precision: *Up to 0.3cm*
+= Board photo =
+http://megapirateng.googlecode.com/svn/me007v1.jpg
