@@ -1,11 +1,11 @@
-#summary Our current work
+#summary Our current work (ToDo list)
 
 = Sensors =
-  * improve cheap sonar reading
-  * filter for sonar values
+  * improve cheap sonar reading - ready, in testing
+  * filter for sonar values - ready, not needed anymore
 
 = GPS =
-  * i2c GPS on AllInOne2 board
+  * i2c GPS on AllInOne2 board - ready, in testing
 
 = CLI =
   * more features in CLI
