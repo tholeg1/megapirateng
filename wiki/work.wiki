@@ -9,3 +9,6 @@
 
 = CLI =
   * more features in CLI
+
+= WiKi =
+  * Add more technical information about hardware and software

@@ -3,13 +3,14 @@
 = Поддерживаемые платы и сенсоры =
 в libraries/AP_ADC/AP_ADC_ADS7844.cpp
   * AllInOne: #define ALLINONE
+  * AllInOne2: #define ALLINONE
   * FFIMU: #define FFIMU
   * ITG3205+BMA020 (минимальный набор сенсоров): #define ALLINONE and #define BMA_020, затем требуется закоментировать библиотеку барометра (закоментировать всё о I2C (Wire.something))
 
 = Поддержваемые сонары  =
 в libraries/AP_ADC/AP_ADC_ADS7844.cpp
-  * DYP-ME007: DYPME007
-  * DYP-ME007v2: DYPME007v2
+  * DYP-ME007: [dypme007 DYP-ME007]
+  * DYP-ME007v2: [dypme007 DYP-ME007]
 
 = Поддерживаемые рамы =
 == конфигурация рамы ==
@@ -35,6 +36,7 @@
   * GPS_PROTOCOL_MTK
   * GPS_PROTOCOL_HIL
   * GPS_PROTOCOL_MTK16
+  * GPS_PROTOCOL_UBLOX_I2C - Если у вас плата AllInOne2 с Ublox GPS и он подключен по шине i2c (При этом не надо подключать RX TX)
   * GPS_PROTOCOL_AUTO - авто выбор (не рекомендуется)
 чтобы изменить скорость порта: #define SERIAL2_BAUD 38400
 
