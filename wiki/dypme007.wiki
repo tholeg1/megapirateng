@@ -1,4 +1,4 @@
-#summary One-sentence summary of this page.
+#summary DYP-ME007 Ultrasonic range finder
 
 = Introduction =
 
@@ -26,7 +26,9 @@ DYP-ME007(v1 or v2) Ultrasonic Wave Detector Ranging Module Distance Sensor
 http://megapirateng.googlecode.com/svn/images/me007_diagram.gif
  # Send 12us pulse to pin Trig, to start measurement
  # The ultra sonic module will automatically send eight 40khz square waves, automatically detects whether there is a reflect signal
- # When there is an reflect signal back, the Echo pin will output a high level, the duration of the high-level signal is the time (Techo) from untral sonic launch to return. As a result, the Measured distance = (Techo * (Sound speed (340M/S))) / 2; (Suggested measure 
-period should >60ms to avoid the wrong echo signal)
+ # When there is an reflect signal back, the Echo pin will output a high level, the duration of the high-level signal is the time (Techo) from untral sonic launch to return. 
+*As a result, the Measured distance = (Techo `*` (Sound speed (340M/S))) / 2;*
+
+_(Suggested measure period should >60ms to avoid the wrong echo signal)_
 = Board photo =
 http://megapirateng.googlecode.com/svn/images/me007v1.jpg
