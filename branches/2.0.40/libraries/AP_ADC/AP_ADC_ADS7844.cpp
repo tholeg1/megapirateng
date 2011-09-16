@@ -211,16 +211,19 @@ DDRB &=B11101111;
 
 // Sonar read interrupts
 volatile char sonar_meas=0;
-volatile unsigned int sonar_data=0, sonar_data_start=0; // Variables for calculating length of Echo impulse
-volatile int sonic_range=-1,pre_sonic_range=0,pre_sonar_data=0;//,pre_sonic_min=3000;
+volatile unsigned int sonar_data=0, sonar_data_start=0, pre_sonar_data=0; // Variables for calculating length of Echo impulse
 ISR(TIMER5_COMPA_vect) // This event occurs when counter = 65510
 {
 		if (sonar_meas == 0) // sonar_meas=1 if we not found Echo pulse, so skip this measurement
 				sonar_data = 0;
 		PORTH|=B01000000; // set Sonar TX pin to 1 and after ~12us set it to 0 (below) to start new measurement
 } 
-ISR(TIMER5_OVF_vect)
-{PORTH&=B10111111;sonar_meas=0;} // Counter overflowed, 12us elapsed, set TX pin to 0, and wait for 1 on Echo pin (below)
+
+ISR(TIMER5_OVF_vect) // Counter overflowed, 12us elapsed
+{
+	PORTH&=B10111111; // set TX pin to 0, and wait for 1 on Echo pin (below)
+	sonar_meas=0; // Clean "Measurement finished" flag
+}
 
 ISR(PCINT0_vect)
 {
@@ -228,7 +231,7 @@ ISR(PCINT0_vect)
 		sonar_data_start = TCNT5; // We got 1 on Echo pin, remeber current counter value
 	} else {
 		sonar_data=TCNT5-sonar_data_start; // We got 0 on Echo pin, calculate impulse length in counter ticks
-		sonar_meas=1;
+		sonar_meas=1; // Set "Measurement finished" flag
 	}
 }
 
@@ -285,18 +288,16 @@ static uint8_t i;
 int AP_ADC_ADS7844::Ch(unsigned char ch_num)         
 {char i;int flt;
 	if (ch_num==7) {
-			if ( (sonar_data==0) && (pre_sonar_data > 0) ) {	//wrong data from sonar, use previous value
+			if ( (sonar_data < 354) && (pre_sonar_data > 0) ) {	//wrong data from sonar (3cm * 118 = 354), use previous value
 				sonar_data=pre_sonar_data;
 			} else {
 				pre_sonar_data=sonar_data;
 			}
-			
-			if (sonar_data > 22400){ // 2metres * 122 = 22400
-				sonic_range = 200;	// max_value of distance in cm (2m)
+			if (sonar_data > 23600){ // 2metres * 118 = 23600
+				return(200);	// max_value of distance in cm (2m)
 			} else {
-				sonic_range = sonar_data / 122; // Magic conversion sonar_data to cm
+				return(sonar_data / 118); // Magic conversion sonar_data to cm
 			}
-		return(sonic_range);
 	} else  { // channels 0..6
 		if ( (millis()-adc_read_timeout )  > 2 )  //each read is spaced by 3ms else place old values
 		{  adc_read_timeout = millis();

@@ -6,9 +6,13 @@ Full I2C sensors replacement:
 ITG3200, BMA180
 
 Integrated analog Sonar on the ADC channel 7 (in centimeters)
-//D10 (PORTL.1) = input from sonar
-//D9 (PORTL.2) = sonar Tx (trigger)
+//D48 (PORTL.1) = input from sonar
+//D47 (PORTL.2) = sonar Tx (trigger)
 //The smaller altitude then lower the cycle time
+
+	
+	
+	
 */
 extern "C" {
   // AVR LibC Includes
@@ -25,14 +29,20 @@ static volatile uint8_t			_filter_index;
 
 //*****************************
 // Select your IMU board type:
-// #define FFIMU
+//#define FFIMU
 #define ALLINONE
-// #define BMA_020 // do you have it?
+//#define BMA_020 // do you have it?
+
+//*******************************
+// Select sonar type
+// #define DYPME007
+#define DYPME007v2
+//*******************************
 
 // *********************
 // I2C general functions
 // *********************
-#define I2C_PULLUPS_DISABLE        PORTC &= ~(1<<4); PORTC &= ~(1<<5);
+  #define I2C_PULLUPS_DISABLE        PORTC &= ~(1<<4); PORTC &= ~(1<<5);
 #ifdef ALLINONE
 #define BMA180_A 0x82
 #else
@@ -51,7 +61,6 @@ static volatile uint8_t			_filter_index;
 #define TW_STATUS_MASK	(1<<TWS7) | (1<<TWS6) | (1<<TWS5) | (1<<TWS4) | (1<<TWS3)
 #define TW_STATUS       (TWSR & TW_STATUS_MASK)
 int neutralizeTime;
-
 
 void i2c_init(void) {
     I2C_PULLUPS_DISABLE
@@ -201,7 +210,8 @@ DDRB &=B11101111;
 //div64 = 0.5 us/bit
 //resolution =0.136cm
 //full range =11m 33ms
-// Using timer5, warning! Timer5 also share with RC PPM decoder
+ // Using timer5
+   //Remember the registers not declared here remains zero by default... 
   TCCR5A =0; //standard mode with overflow at A and OC B and C interrupts
   TCCR5B = (1<<CS11); //Prescaler set to 8, resolution of 0.5us
   TIMSK5=B00000111; // ints: overflow, capture, compareA
@@ -211,29 +221,16 @@ DDRB &=B11101111;
 
 // Sonar read interrupts
 volatile char sonar_meas=0;
-volatile unsigned int sonar_data=0, sonar_data_start=0, pre_sonar_data=0; // Variables for calculating length of Echo impulse
-ISR(TIMER5_COMPA_vect) // This event occurs when counter = 65510
-{
-		if (sonar_meas == 0) // sonar_meas=1 if we not found Echo pulse, so skip this measurement
-				sonar_data = 0;
-		PORTH|=B01000000; // set Sonar TX pin to 1 and after ~12us set it to 0 (below) to start new measurement
-} 
-
-ISR(TIMER5_OVF_vect) // Counter overflowed, 12us elapsed
-{
-	PORTH&=B10111111; // set TX pin to 0, and wait for 1 on Echo pin (below)
-	sonar_meas=0; // Clean "Measurement finished" flag
-}
-
+volatile int sonar_data=-1,sonic_range=-1,pre_sonar_data=-1;
+ISR(TIMER5_COMPA_vect) // measurement is over, no edge detected, Set up Tx pin, offset 12 us
+{if (sonar_meas==0) sonar_data=0;PORTH|=B01000000;}
+ISR(TIMER5_OVF_vect) // next measurement, clear the Tx pin, 
+{PORTH&=B10111111;sonar_meas=0;}
+//ISR(TIMER5_CAPT_vect) // measurement successful, next measurement
+//{sonar_data=ICR5;sonar_meas=1;}
 ISR(PCINT0_vect)
-{
-	if (PINB & B00010000) { 
-		sonar_data_start = TCNT5; // We got 1 on Echo pin, remeber current counter value
-	} else {
-		sonar_data=TCNT5-sonar_data_start; // We got 0 on Echo pin, calculate impulse length in counter ticks
-		sonar_meas=1; // Set "Measurement finished" flag
-	}
-}
+{if (!(PINB & B00010000)) {sonar_data=TCNT5;sonar_meas=1;}}
+
 
 void i2c_ACC_getADC () { // ITG3200 read data
 static uint8_t i;
@@ -270,6 +267,8 @@ static uint8_t i;
   for( i = 0; i < 5; i++) {
     rawADC_BMA180[i]=i2c_readAck();}
   rawADC_BMA180[5]= i2c_readNak();
+  
+
 #endif  
   
 #ifdef ALLINONE
@@ -288,16 +287,35 @@ static uint8_t i;
 int AP_ADC_ADS7844::Ch(unsigned char ch_num)         
 {char i;int flt;
 	if (ch_num==7) {
-			if ( (sonar_data==0) && (pre_sonar_data > 0) ) {	//wrong data from sonar, use previous value
-				sonar_data=pre_sonar_data;
+		if (sonar_data==0) sonar_data=pre_sonar_data;	//no data from sonar, use preview (test with DYPME007v2)
+		#ifdef DYPME007
+			
+			// Syberian version
+			if (sonar_data<80) return(32767);
+			if (sonar_data<2160) sonar_data=2160;
+			sonic_range=0.0081175*sonar_data;
+			
+			/*if (sonar_data<3000){
+				sonic_range=0;			// min_value of distance in cm
+			} else if (sonar_data>11000) {
+				sonic_range=150;		// max_value of distance in cm
 			} else {
-				pre_sonar_data=sonar_data;
+				sonic_range=(sonar_data)*0.011; //(its in cm)
 			}
-			if (sonar_data > 23600){ // 2metres * 118 = 23600
-				return(200);	// max_value of distance in cm (2m)
+			pre_sonar_data=sonar_data;*/
+		#endif
+
+		#ifdef DYPME007v2
+			if (sonar_data>-3000){
+				sonic_range=150;	// max_value of distance in cm
+			} else if (sonar_data<-19000) {
+				sonic_range=0;		// min_value of distance in cm
 			} else {
-				return(sonar_data / 118); // Magic conversion sonar_data to cm
+				sonic_range=(sonar_data+20000)*0.0083; //(its in cm)
 			}
+			pre_sonar_data=sonar_data;
+		#endif
+		return(sonic_range);
 	} else  { // channels 0..6
 		if ( (millis()-adc_read_timeout )  > 2 )  //each read is spaced by 3ms else place old values
 		{  adc_read_timeout = millis();
