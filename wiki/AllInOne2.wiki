@@ -21,4 +21,4 @@ Dimensions *55x16mm*
 All sensors connected to I2C bus.
 
 = Board Photo =
-http://megapirateng.googlecode.com/svn/AllInOne2.JPG
+http://megapirateng.googlecode.com/svn/images/AllInOne2.JPG

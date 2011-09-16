@@ -22,5 +22,11 @@ DYP-ME007(v1 or v2) Ultrasonic Wave Detector Ranging Module Distance Sensor
  * Sensor angle: *Not more than 15 degrees*;
  * Detection distance: *2cm-500cm* _(Actually up to 2.5m)_
  * High precision: *Up to 0.3cm*
+= How it's work =
+http://megapirateng.googlecode.com/svn/images/me007_diagram.gif
+ # Send 12us pulse to pin Trig, to start measurement
+ # The ultra sonic module will automatically send eight 40khz square waves, automatically detects whether there is a reflect signal
+ # When there is an reflect signal back, the Echo pin will output a high level, the duration of the high-level signal is the time (Techo) from untral sonic launch to return. As a result, the Measured distance = (Techo * (Sound speed (340M/S))) / 2; (Suggested measure 
+period should >60ms to avoid the wrong echo signal)
 = Board photo =
-http://megapirateng.googlecode.com/svn/me007v1.jpg
+http://megapirateng.googlecode.com/svn/images/me007v1.jpg

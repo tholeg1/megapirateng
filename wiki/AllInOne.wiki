@@ -18,6 +18,4 @@ Dimensions *30x16mm*
 All sensors connected to *I2C* bus.
 
 = AllInOne Photo =
-http://megapirateng.googlecode.com/svn/allinone.JPG
-
-
+http://megapirateng.googlecode.com/svn/images/allinone.JPG
