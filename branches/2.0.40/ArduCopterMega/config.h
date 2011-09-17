@@ -49,6 +49,13 @@
 //////////////////////////////////////////////////////////////////////////////
 // Sonar
 //
+#ifndef MAX_SONAR_RANGE
+	#define MAX_SONAR_RANGE 400 
+#endif
+#define BARO_TO_SONAR MAX_SONAR_RANGE+200 // Due to low baro accuracy
+#define SONAR_TO_BARO_FADE (MAX_SONAR_RANGE/3) // 33% of Max sonar range
+#define SONAR_TO_BARO_FADE_FROM (MAX_SONAR_RANGE - SONAR_TO_BARO_FADE) //4m-33% = 2.67m start value to fading from sonar to baro
+
 
 #ifndef SONAR_PORT
 # define SONAR_PORT		AP_RANGEFINDER_PITOT_TUBE

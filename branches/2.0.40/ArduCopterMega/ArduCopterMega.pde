@@ -1365,7 +1365,7 @@ static void update_altitude()
 		// read barometer
 		baro_alt 			= read_barometer();
 
-		if(baro_alt < BARO_TO_SONAR_VALUE){
+		if(baro_alt < BARO_TO_SONAR){
 
 			#if SONAR_TILT_CORRECTION == 1
 				// correct alt for angle of the sonar
@@ -1374,7 +1374,7 @@ static void update_altitude()
 				sonar_alt = (float)sonar_alt * temp;
 			#endif
 
-			scale = (sonar_alt - 400) / 200;
+			scale = (sonar_alt - SONAR_TO_BARO_FADE_FROM) / SONAR_TO_BARO_FADE;
 			scale = constrain(scale, 0, 1);
 			current_loc.alt = ((float)sonar_alt * (1.0 - scale)) + ((float)baro_alt * scale) + home.alt;
 		}else{
@@ -1516,5 +1516,3 @@ static long point_at_home_yaw()
 {
 	return get_bearing(&current_loc, &home);
 }
-
-

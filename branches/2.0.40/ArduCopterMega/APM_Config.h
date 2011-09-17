@@ -2,7 +2,7 @@
 
 //#define LED_SEQUENCER ENABLED
 
-#define BARO_TO_SONAR_VALUE 300
+#define MAX_SONAR_RANGE 400
 
 // some config need for MegaPirateNG 2.0.40
 #define SONAR_TYPE MAX_SONAR_XL // don't change!!!
@@ -13,7 +13,7 @@
 
 
 // GPS is auto-selected
-#define GPS_PROTOCOL GPS_PROTOCOL_NMEA
+#define GPS_PROTOCOL GPS_PROTOCOL_NONE
 	/*
 	options:
 	GPS_PROTOCOL_NONE 	without GPS

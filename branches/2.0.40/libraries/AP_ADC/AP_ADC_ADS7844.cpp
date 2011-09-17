@@ -293,11 +293,7 @@ int AP_ADC_ADS7844::Ch(unsigned char ch_num)
 			} else {
 				pre_sonar_data=sonar_data;
 			}
-			if (sonar_data > 23600){ // 2metres * 118 = 23600
-				return(200);	// max_value of distance in cm (2m)
-			} else {
-				return(sonar_data / 118); // Magic conversion sonar_data to cm
-			}
+			return(sonar_data / 118); // Magic conversion sonar_data to cm
 	} else  { // channels 0..6
 		if ( (millis()-adc_read_timeout )  > 2 )  //each read is spaced by 3ms else place old values
 		{  adc_read_timeout = millis();
