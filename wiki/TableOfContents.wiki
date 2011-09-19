@@ -1,4 +1,4 @@
-= !MegaPirateNG Wiki=
+= MegaPirateNG =
 
  * [GettingStarted Wiki Home]
  * [portmanual How to port ArduCopter]
