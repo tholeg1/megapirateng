@@ -105,17 +105,14 @@ static void handle_process_now()
 
 static void handle_no_commands()
 {
-	// we don't want to RTL yet. Maybe this will change in the future. RTL is kinda dangerous.
-	// use landing commands
 	/*
 	switch (control_mode){
 		default:
-			//set_mode(RTL);
+			set_mode(RTL);
 			break;
-	}
-	return;
-	*/
-	Serial.println("Handle No CMDs");
+	}*/
+	//return;
+	//Serial.println("Handle No CMDs");
 }
 
 /********************************************************************************/
@@ -314,13 +311,10 @@ static void do_loiter_turns()
 
 static void do_loiter_time()
 {
-	///*
 	wp_control = LOITER_MODE;
 	set_next_WP(&current_loc);
 	loiter_time 	= millis();
 	loiter_time_max = next_command.p1 * 1000; // units are (seconds)
-	//Serial.printf("dlt %ld, max %ld\n",loiter_time, loiter_time_max);
-	//*/
 }
 
 /********************************************************************************/
@@ -467,12 +461,8 @@ static void do_change_alt()
 {
 	Location temp	= next_WP;
 	condition_start = current_loc.alt;
-	if (next_command.options & WP_OPTION_ALT_RELATIVE) {
-		condition_value		= next_command.alt + home.alt;
-	} else {
 		condition_value		= next_command.alt;
-	}
-	temp.alt		= condition_value;
+	temp.alt		= next_command.alt;
 	set_next_WP(&temp);
 }
 
@@ -626,13 +616,15 @@ static void do_jump()
 	struct Location temp;
 	if(next_command.lat > 0) {
 
-		command_must_index	= NO_COMMAND;
-		command_may_index	= NO_COMMAND;
+		command_must_index 	= 0;
+		command_may_index 	= 0;
 		temp				= get_command_with_index(g.waypoint_index);
 		temp.lat			= next_command.lat - 1;					// Decrement repeat counter
 
 		set_command_with_index(temp, g.waypoint_index);
-		g.waypoint_index.set_and_save(next_command.p1 - 1);
+		g.waypoint_index 	= next_command.p1 - 1;
+	} else if (next_command.lat == -1) {
+	    g.waypoint_index 	= next_command.p1 - 1;
 	}
 }
 

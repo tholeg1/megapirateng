@@ -13,13 +13,13 @@ get_stabilize_roll(long target_angle)
 	error 		= constrain(error, -2500, 2500);
 
 	// desired Rate:
-	rate 		= g.pi_stabilize_roll.get_pi(error, delta_ms_fast_loop);
+	rate 		= g.pi_stabilize_roll.get_pi(error, G_Dt);
 	//Serial.printf("%d\t%d\t%d ", (int)target_angle, (int)error, (int)rate);
 
 #if FRAME_CONFIG != HELI_FRAME  // cannot use rate control for helicopters
 	// Rate P:
 	error 		= rate - (long)(degrees(omega.x) * 100.0);
-	rate 		= g.pi_rate_roll.get_pi(error, delta_ms_fast_loop);
+	rate 		= g.pi_rate_roll.get_pi(error, G_Dt);
 	//Serial.printf("%d\t%d\n", (int)error, (int)rate);
 #endif
 
@@ -40,13 +40,13 @@ get_stabilize_pitch(long target_angle)
 	error 		= constrain(error, -2500, 2500);
 
 	// desired Rate:
-	rate 		= g.pi_stabilize_pitch.get_pi(error, delta_ms_fast_loop);
+	rate 		= g.pi_stabilize_pitch.get_pi(error, G_Dt);
 	//Serial.printf("%d\t%d\t%d ", (int)target_angle, (int)error, (int)rate);
 
 #if FRAME_CONFIG != HELI_FRAME  // cannot use rate control for helicopters
 	// Rate P:
 	error 		= rate - (long)(degrees(omega.y) * 100.0);
-	rate 		= g.pi_rate_pitch.get_pi(error, delta_ms_fast_loop);
+	rate 		= g.pi_rate_pitch.get_pi(error, G_Dt);
 	//Serial.printf("%d\t%d\n", (int)error, (int)rate);
 #endif
 
@@ -66,19 +66,19 @@ get_stabilize_yaw(long target_angle)
 
 	// limit the error we're feeding to the PID
 	yaw_error 		= constrain(yaw_error, -YAW_ERROR_MAX, YAW_ERROR_MAX);
-	rate 			= g.pi_stabilize_yaw.get_pi(yaw_error, delta_ms_fast_loop);
+	rate 			= g.pi_stabilize_yaw.get_pi(yaw_error, G_Dt);
 	//Serial.printf("%u\t%d\t%d\t", (int)target_angle, (int)error, (int)rate);
 
 #if FRAME_CONFIG == HELI_FRAME  // cannot use rate control for helicopters
 	if( ! g.heli_ext_gyro_enabled ) {
 		// Rate P:
 		error 		= rate - (long)(degrees(omega.z) * 100.0);
-		rate 		= g.pi_rate_yaw.get_pi(error, delta_ms_fast_loop);
+		rate 		= g.pi_rate_yaw.get_pi(error, G_Dt);
 	}
 #else
 	// Rate P:
 	error 			= rate - (long)(degrees(omega.z) * 100.0);
-	rate 			= g.pi_rate_yaw.get_pi(error, delta_ms_fast_loop);
+	rate 			= g.pi_rate_yaw.get_pi(error, G_Dt);
 	//Serial.printf("%d\t%d\n", (int)error, (int)rate);
 #endif
 
@@ -91,7 +91,6 @@ static int
 get_nav_throttle(long z_error, int target_speed)
 {
 	int rate_error;
-	int throttle;
 	float scaler = (float)target_speed/(float)ALT_ERROR_MAX;
 
 	// limit error to prevent I term run up
@@ -101,10 +100,12 @@ get_nav_throttle(long z_error, int target_speed)
 	rate_error 		= target_speed - altitude_rate;
 	rate_error 		= constrain(rate_error, -110, 110);
 
-	throttle 		= g.pi_throttle.get_pi(rate_error, delta_ms_medium_loop);
-	return  		  g.throttle_cruise + rate_error;
-}
+	long timer			= micros();
+	delta_throttle		= (float)(timer - throttle_timer)/1000000.0;
+	throttle_timer    	= timer;
 
+	return g.pi_throttle.get_pi(rate_error, delta_throttle);
+}
 
 static int
 get_rate_roll(long target_rate)
@@ -113,7 +114,7 @@ get_rate_roll(long target_rate)
 	target_rate 		= constrain(target_rate, -2500, 2500);
 
 	error		= (target_rate * 4.5) - (long)(degrees(omega.x) * 100.0);
-	target_rate = g.pi_rate_roll.get_pi(error, delta_ms_fast_loop);
+	target_rate = g.pi_rate_roll.get_pi(error, G_Dt);
 
 	// output control:
 	return (int)constrain(target_rate, -2500, 2500);
@@ -126,7 +127,7 @@ get_rate_pitch(long target_rate)
 	target_rate 		= constrain(target_rate, -2500, 2500);
 
 	error		= (target_rate * 4.5) - (long)(degrees(omega.y) * 100.0);
-	target_rate = g.pi_rate_pitch.get_pi(error, delta_ms_fast_loop);
+	target_rate = g.pi_rate_pitch.get_pi(error, G_Dt);
 
 	// output control:
 	return (int)constrain(target_rate, -2500, 2500);
@@ -138,7 +139,7 @@ get_rate_yaw(long target_rate)
 	long error;
 
 	error		= (target_rate * 4.5) - (long)(degrees(omega.z) * 100.0);
-	target_rate = g.pi_rate_yaw.get_pi(error, delta_ms_fast_loop);
+	target_rate = g.pi_rate_yaw.get_pi(error, G_Dt);
 
 	// output control:
 	return (int)constrain(target_rate, -2500, 2500);
@@ -156,10 +157,16 @@ static void reset_hold_I(void)
 
 // Zeros out navigation Integrators if we are changing mode, have passed a waypoint, etc.
 // Keeps outdated data out of our calculations
-static void reset_nav_I(void)
+static void reset_nav(void)
 {
+	nav_throttle 		= 0;
+	invalid_throttle 	= true;
+
 	g.pi_nav_lat.reset_I();
 	g.pi_nav_lon.reset_I();
+
+	long_error = 0;
+	lat_error  = 0;
 }
 
 
@@ -169,11 +176,11 @@ throttle control
 
 // user input:
 // -----------
-static int get_throttle(int throttle_input)
-{
-	throttle_input = (float)throttle_input * angle_boost();
-	return  max(throttle_input, 0);
-}
+//static int get_throttle(int throttle_input)
+//{
+//	throttle_input = (float)throttle_input * angle_boost();
+//	return  max(throttle_input, 0);
+//}
 
 static long
 get_nav_yaw_offset(int yaw_input, int reset)
@@ -210,7 +217,7 @@ static int alt_hold_velocity()
 }
 */
 
-static float angle_boost()
+static float get_angle_boost()
 {
 	float temp = cos_pitch_x * cos_roll_x;
 	temp = 2.0 - constrain(temp, .5, 1.0);

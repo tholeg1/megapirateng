@@ -3,7 +3,7 @@
 static void init_commands()
 {
 	// zero is home, but we always load the next command (1), in the code.
-    g.waypoint_index.set_and_save(0);
+    g.waypoint_index = 0;
 
     // This are registers for the current may and must commands
     // setting to zero will allow them to be written to by new commands
@@ -20,18 +20,6 @@ static void clear_command_queue(){
 	next_command.id 	= NO_COMMAND;
 }
 
-static void init_auto()
-{
-	//if (g.waypoint_index == g.waypoint_total) {
-	//	Serial.println("ia_f");
-	//	do_RTL();
-	//}
-
-	// initialize commands
-	// -------------------
-	init_commands();
-}
-
 // Getters
 // -------
 static struct Location get_command_with_index(int i)
@@ -41,8 +29,6 @@ static struct Location get_command_with_index(int i)
 	// Find out proper location in memory by using the start_byte position + the index
 	// --------------------------------------------------------------------------------
 	if (i > g.waypoint_total) {
-		Serial.println("XCD");
-
 		// we do not have a valid command to load
 		// return a WP with a "Blank" id
 		temp.id = CMD_BLANK;
@@ -51,7 +37,6 @@ static struct Location get_command_with_index(int i)
 		return temp;
 
 	}else{
-		//Serial.println("LD");
 		// we can load a command, we don't process it yet
 		// read WP position
 		long mem = (WP_START_BYTE) + (i * WP_SIZE);
@@ -75,10 +60,9 @@ static struct Location get_command_with_index(int i)
 	}
 
 	// Add on home altitude if we are a nav command (or other command with altitude) and stored alt is relative
-	if((temp.id < MAV_CMD_NAV_LAST || temp.id == MAV_CMD_CONDITION_CHANGE_ALT) && temp.options & WP_OPTION_ALT_RELATIVE){
+	//if((temp.id < MAV_CMD_NAV_LAST || temp.id == MAV_CMD_CONDITION_CHANGE_ALT) && temp.options & WP_OPTION_ALT_RELATIVE){
 		//temp.alt += home.alt;
-	}
-	//Serial.println("ADD ALT");
+	//}
 
 	if(temp.options & WP_OPTION_RELATIVE){
 		// If were relative, just offset from home
@@ -117,8 +101,7 @@ static void set_command_with_index(struct Location temp, int i)
 static void increment_WP_index()
 {
     if (g.waypoint_index < g.waypoint_total) {
-        g.waypoint_index.set_and_save(g.waypoint_index + 1);
-		//SendDebug("MSG <increment_WP_index> WP index is incremented to ");
+        g.waypoint_index++;
 	}
 
     SendDebugln(g.waypoint_index,DEC);
@@ -190,7 +173,6 @@ static void set_next_WP(struct Location *wp)
 	wp_totalDistance 	= get_distance(&current_loc, &next_WP);
 	wp_distance 		= wp_totalDistance;
 	target_bearing 		= get_bearing(&current_loc, &next_WP);
-	nav_bearing 		= target_bearing;
 
 	// to check if we have missed the WP
 	// ----------------------------
@@ -198,7 +180,7 @@ static void set_next_WP(struct Location *wp)
 
 	// set a new crosstrack bearing
 	// ----------------------------
-	crosstrack_bearing 	= target_bearing;	// Used for track following
+	//crosstrack_bearing 	= target_bearing;	// Used for track following
 
 	gcs.print_current_waypoints();
 }
@@ -218,13 +200,11 @@ static void init_home()
 	home.lng 	= g_gps->longitude;				// Lon * 10**7
 	home.lat 	= g_gps->latitude;				// Lat * 10**7
 	//home.alt 	= max(g_gps->altitude, 0);		// we sometimes get negatives from GPS, not valid
-	home.alt 	= 0;							// this is a test
+	home.alt 	= 0;							// Home is always 0
 	home_is_set = true;
 
 	// to point yaw towards home until we set it with Mavlink
 	target_WP 	= home;
-
-	//Serial.printf_P(PSTR("gps alt: %ld\n"), home.alt);
 
 	// Save Home to EEPROM
 	// -------------------
@@ -234,8 +214,14 @@ static void init_home()
 
 	// Save prev loc this makes the calcs look better before commands are loaded
 	prev_WP = home;
+
 	// this is dangerous since we can get GPS lock at any time.
 	//next_WP = home;
+
+	// Load home for a default guided_WP
+	// -------------
+	guided_WP = home;
+	guided_WP.alt += g.RTL_altitude;
 }
 
 

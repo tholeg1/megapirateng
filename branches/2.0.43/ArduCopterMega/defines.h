@@ -14,8 +14,7 @@
 
 #define ROLL_PITCH_STABLE 	0
 #define ROLL_PITCH_ACRO 	1
-#define ROLL_PITCH_SIMPLE	2
-#define ROLL_PITCH_AUTO		3
+#define ROLL_PITCH_AUTO		2
 
 #define THROTTLE_MANUAL 	0
 #define THROTTLE_HOLD 		1
@@ -30,6 +29,7 @@
 // CH 7 control
 #define DO_SET_HOVER 0
 #define DO_FLIP 1
+#define SIMPLE_MODE_CONTROL 2
 
 // Frame types
 #define QUAD_FRAME 0
@@ -84,21 +84,6 @@
 #define MAX_SONAR_UNKNOWN	0
 #define MAX_SONAR_XL		1
 
-// Radio channels
-// Note channels are from 0!
-//
-// XXX these should be CH_n defines from RC.h at some point.
-#define CH_1 0
-#define CH_2 1
-#define CH_3 2
-#define CH_4 3
-#define CH_5 4
-#define CH_6 5
-#define CH_7 6
-#define CH_8 7
-#define CH_10 9    //PB5
-#define CH_11 10   //PE3
-
 #define CH_ROLL CH_1
 #define CH_PITCH CH_2
 #define CH_THROTTLE CH_3
@@ -130,21 +115,20 @@
 // ----------------
 #define STABILIZE 0			// hold level position
 #define ACRO 1				// rate control
-#define SIMPLE 2			//
-#define ALT_HOLD 3			// AUTO control
-#define AUTO 4				// AUTO control
-#define GUIDED 5			// AUTO control
-#define LOITER 6			// Hold a single location
-#define RTL 7				// AUTO control
-#define CIRCLE 8				// AUTO control
-#define NUM_MODES 9
+#define ALT_HOLD 2			// AUTO control
+#define AUTO 3				// AUTO control
+#define GUIDED 4			// AUTO control
+#define LOITER 5			// Hold a single location
+#define RTL 6				// AUTO control
+#define CIRCLE 7			// AUTO control
+#define NUM_MODES 8
 
-// YAW debug
-// ---------
-#define YAW_HOLD 0
-#define YAW_BRAKE 1
-#define YAW_RATE 2
-
+#define SIMPLE_1 1
+#define SIMPLE_2 2
+#define SIMPLE_3 4
+#define SIMPLE_4 8
+#define SIMPLE_5 16
+#define SIMPLE_6 32
 
 // CH_6 Tuning
 // -----------
@@ -153,20 +137,18 @@
 #define CH6_STABILIZE_KP 1
 #define CH6_STABILIZE_KI 2
 #define	CH6_YAW_KP 3
-#define	CH6_YAW_KD 4
 // Rate
-#define CH6_RATE_KP 5
-#define CH6_RATE_KI 6
-#define	CH6_YAW_RATE_KP 7
-#define	CH6_YAW_RATE_KD 8
+#define CH6_RATE_KP 4
+#define CH6_RATE_KI 5
+#define	CH6_YAW_RATE_KP 6
 // Altitude
-#define CH6_THROTTLE_KP 9
-#define CH6_THROTTLE_KD 10
+#define CH6_THROTTLE_KP 7
 // Extras
-#define CH6_TOP_BOTTOM_RATIO 11
-#define CH6_PMAX 12
-#define CH6_RELAY 13
-#define CH6_TRAVERSE_SPEED 14
+#define CH6_TOP_BOTTOM_RATIO 8
+#define CH6_RELAY 9
+#define CH6_TRAVERSE_SPEED 10
+
+#define CH6_NAV_P 11
 
 // nav byte mask
 // -------------
@@ -262,7 +244,6 @@
 #define MSG_ATTITUDE_CORRECT 0xb1
 #define MSG_POSITION_SET 0xb2
 #define MSG_ATTITUDE_SET 0xb3
-#define MSG_LOCAL_LOCATION 0xb4
 #define MSG_RETRY_DEFERRED 0xff
 
 #define SEVERITY_LOW 1
@@ -323,8 +304,8 @@
 #define	ALTITUDE_HISTORY_LENGTH 8	//Number of (time,altitude) points to regress a climb rate from
 
 
-#define BATTERY_VOLTAGE(x) (x*(INPUT_VOLTAGE/1024.0))*VOLT_DIV_RATIO
-#define CURRENT_AMPS(x) ((x*(INPUT_VOLTAGE/1024.0))-CURR_AMPS_OFFSET)*CURR_AMP_PER_VOLT
+#define BATTERY_VOLTAGE(x) (x*(g.input_voltage/1024.0))*VOLT_DIV_RATIO
+#define CURRENT_AMPS(x) ((x*(g.input_voltage/1024.0))-CURR_AMPS_OFFSET)*CURR_AMP_PER_VOLT
 //#define BARO_FILTER_SIZE 8
 
 /* ************************************************************** */

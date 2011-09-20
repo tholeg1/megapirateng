@@ -7,7 +7,6 @@
 // some config need for MegaPirateNG 2.0.40
 #define SONAR_TYPE MAX_SONAR_XL // don't change!!!
 #define HIL_MODE HIL_MODE_DISABLED
-#define GCS_PROTOCOL GCS_PROTOCOL_MAVLINK
 #define MAG_ORIENTATION	ROTATION_YAW_270
 #define MAG_PROTOCOL MAG_PROTOCOL_5883L
 
@@ -73,10 +72,15 @@
     CH6_TRAVERSE_SPEED
 	*/
 
+# define CH7_OPTION		DO_SET_HOVER
+	/*
+	DO_SET_HOVER
+	DO_FLIP
+	SIMPLE_MODE_CONTROL
+	*/
+
 // See the config.h and defines.h files for how to set this up!
 //
-// lets use SIMPLE mode for Roll and Pitch during Alt Hold
-#define ALT_HOLD_RP 		ROLL_PITCH_SIMPLE
 
 // lets use Manual throttle during Loiter
 //#define LOITER_THR			THROTTLE_MANUAL

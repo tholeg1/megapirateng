@@ -35,30 +35,6 @@ static void init_rc_in()
 	g.rc_7.set_range(0,1000);
 	g.rc_8.set_range(0,1000);
 
-	#if CHANNEL_6_TUNING == CH6_RATE_KP
-		g.rc_6.set_range(0,300); // 0 t0 .3
-
-	#elif CHANNEL_6_TUNING == CH6_RATE_KI
-		g.rc_6.set_range(0,300); // 0 t0 .3
-
-	#elif CHANNEL_6_TUNING == CH6_STABILIZE_KP
-		g.rc_6.set_range(0,8000); // 0 t0 .3
-
-	#elif CHANNEL_6_TUNING == CH6_STABILIZE_KI
-		g.rc_6.set_range(0,300); // 0 t0 .3
-
-	#elif CHANNEL_6_TUNING == CH6_THROTTLE_KP
-		g.rc_6.set_range(0,800); // 0 to .8
-
-	#elif CHANNEL_6_TUNING == CH6_THROTTLE_KD
-		g.rc_6.set_range(0,500);	// 0 to .5
-
-	#elif CHANNEL_6_TUNING == CH6_TOP_BOTTOM_RATIO
-		g.rc_6.set_range(800,1000); // .8 to 1
-
-/*        #elif CHANNEL_6_TUNING == CH6_RELAY
-                g.rc_6.set_range(0,1000);   // 0 to 1  */
-	#endif
 }
 
 static void init_rc_out()
@@ -125,7 +101,7 @@ void output_min()
 static void read_radio()
 {
 	if (APM_RC.GetState() == 1){
-
+		new_radio_frame = true;
 		g.rc_1.set_pwm(APM_RC.InputCh(CH_1));
 		g.rc_2.set_pwm(APM_RC.InputCh(CH_2));
 		g.rc_3.set_pwm(APM_RC.InputCh(CH_3));

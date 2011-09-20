@@ -45,7 +45,7 @@ Last record should end by 0,LED_OFF,   - this is mandatory!
 //#define SQ_LED1 51
 
 // Define RX channel to control 
-#define SQ_LED_CH 7 // numbers from 6 to 8
+#define SQ_LED_CH 8 // ch7 is used for SIMPLE MODE selection
 
 
 // LED program # 1

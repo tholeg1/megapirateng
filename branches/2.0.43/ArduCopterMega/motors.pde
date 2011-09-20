@@ -1,7 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define ARM_DELAY 10	// one secon
-#define DISARM_DELAY 10	// one secon
+#define ARM_DELAY 10	// one second
+#define DISARM_DELAY 10	// one second
 #define LEVEL_DELAY 120 // twelve seconds
 #define AUTO_LEVEL_DELAY 150 // twentyfive seconds
 
@@ -31,11 +31,17 @@ static void arm_motors()
 					motor_armed 	= true;
 					arming_counter 	= ARM_DELAY;
 
+					#if PIEZO_ARMING == 1
+					piezo_beep();
+					piezo_beep();
+					#endif
+
 					// Tune down DCM
 					// -------------------
 					#if HIL_MODE != HIL_MODE_ATTITUDE
 					dcm.kp_roll_pitch(0.030000);
-					dcm.ki_roll_pitch(0.000006);
+					  dcm.ki_roll_pitch(0.00001278),	// 50 hz I term
+					//dcm.ki_roll_pitch(0.000006);
 					#endif
 
 					// tune down compass
@@ -91,12 +97,15 @@ static void arm_motors()
 				arming_counter 	= DISARM_DELAY;
 				compass.save_offsets();
 
+				#if PIEZO_ARMING == 1
+				piezo_beep();
+				#endif
 
 				// Tune down DCM
 				// -------------------
 				#if HIL_MODE != HIL_MODE_ATTITUDE
-				dcm.kp_roll_pitch(0.12);		// higher for quads
-				dcm.ki_roll_pitch(0.00000319); 	// 1/4 of the normal rate for 200 hz loop
+				dcm.kp_roll_pitch(0.12);			// higher for fast recovery
+				//dcm.ki_roll_pitch(0.00000319); 	// 1/4 of the normal rate for 200 hz loop
 				#endif
 
 				// tune up compass
