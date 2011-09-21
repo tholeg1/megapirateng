@@ -77,19 +77,19 @@ AP_IMU_Oilpan::_init_gyro(void (*callback)(unsigned long t))
 	float prev[3] = {0,0,0};
 	float total_change;
 	float max_offset;
+  int adc_values[6];
 
 	// cold start
 	tc_temp = _adc->Ch(_gyro_temp_ch);
  	callback(500);
 	Serial.printf_P(PSTR("Init Gyro"));
 
-	for(int c = 0; c < 25; c++){				// Mostly we are just flashing the LED's here to tell the user to keep the IMU still
+	for(int c = 0; c < 5; c++){				// Mostly we are just flashing the LED's here to tell the user to keep the IMU still
 		digitalWrite(A_LED_PIN, LOW);
 		digitalWrite(C_LED_PIN, HIGH);
 		callback(20);
 
-		for (int i = 0; i < 6; i++)
-			adc_in = _adc->Ch(_sensors[i]);
+    _adc->Ch6(_sensors, adc_values);
 
 		digitalWrite(A_LED_PIN, HIGH);
 		digitalWrite(C_LED_PIN, LOW);
@@ -100,18 +100,21 @@ AP_IMU_Oilpan::_init_gyro(void (*callback)(unsigned long t))
 	    _sensor_cal[j] = 500;		// Just a large value to load prev[j] the first time
 
 	do {
+    // get 6 sensor values
+    _adc->Ch6(_sensors, adc_values);
+
 		for (int j = 0; j <= 2; j++){
 			prev[j]     = _sensor_cal[j];
-			adc_in      = _adc->Ch(_sensors[j]);
-			adc_in     -= _sensor_compensation(j, tc_temp);
-			_sensor_cal[j]	= adc_in;
+			_sensor_cal[j]	= adc_values[j];
 		}
 
 		for(int i = 0; i < 50; i++){
+
+      // get 6 sensor values
+      _adc->Ch6(_sensors, adc_values);
+
 			for (int j = 0; j < 3; j++){
-				adc_in = _adc->Ch(_sensors[j]);
-				// Subtract temp compensated typical gyro bias
-				adc_in -= _sensor_compensation(j, tc_temp);
+				adc_in = adc_values[j];
 				// filter
 				_sensor_cal[j] = _sensor_cal[j] * 0.9 + adc_in * 0.1;
 			}
@@ -126,7 +129,7 @@ AP_IMU_Oilpan::_init_gyro(void (*callback)(unsigned long t))
 			if(flashcount >= 10) {
 				flashcount = 0;
 				digitalWrite(C_LED_PIN, LOW);
-			    digitalWrite(A_LED_PIN, HIGH);
+			  digitalWrite(A_LED_PIN, HIGH);
 			}
 			flashcount++;
 		}
@@ -159,6 +162,7 @@ AP_IMU_Oilpan::_init_accel(void (*callback)(unsigned long t))
 	float prev[6] = {0,0,0};
 	float total_change;
 	float max_offset;
+  int adc_values[6];
 
 	// cold start
  	callback(500);
@@ -168,20 +172,21 @@ AP_IMU_Oilpan::_init_accel(void (*callback)(unsigned long t))
 	for (int j=3; j<=5; j++) _sensor_cal[j] = 500;		// Just a large value to load prev[j] the first time
 
 	do {
+        _adc->Ch6(_sensors, adc_values);
+
 		for (int j = 3; j <= 5; j++){
 			prev[j] = _sensor_cal[j];
-			adc_in 		    = _adc->Ch(_sensors[j]);
-			adc_in 		    -= _sensor_compensation(j, 0);  //  temperature ignored
-			_sensor_cal[j]	= adc_in;
+			_sensor_cal[j]	= adc_values[j];
 		}
 
 		for(int i = 0; i < 50; i++){		// We take some readings...
 
 			callback(20);
 
+            _adc->Ch6(_sensors, adc_values);
+
 			for (int j = 3; j < 6; j++){
-				adc_in 	    	= _adc->Ch(_sensors[j]);
-				adc_in 		    -= _sensor_compensation(j, 0);  //  temperature ignored
+				adc_in 	    	= adc_values[j];
 				_sensor_cal[j]	= _sensor_cal[j] * 0.9 + adc_in * 0.1;
 			}
 
@@ -222,7 +227,7 @@ AP_IMU_Oilpan::_sensor_compensation(uint8_t channel, int temperature) const
     // do gyro temperature compensation
     if (channel < 3) {
 
-		return 1658;
+		return 1658.0;
        /*
         return  _gyro_temp_curve[channel][0] +
                 _gyro_temp_curve[channel][1] * temperature +
@@ -231,17 +236,17 @@ AP_IMU_Oilpan::_sensor_compensation(uint8_t channel, int temperature) const
     }
 
     // do fixed-offset accelerometer compensation
-    return 2041;    // Average raw value from a 20 board sample
+    return 2041.0;    // Average raw value from a 20 board sample
 }
 
 float
-AP_IMU_Oilpan::_sensor_in(uint8_t channel, int temperature)
+AP_IMU_Oilpan::_sensor_in(uint8_t channel, int adc_value, int temperature)
 {
     float   adc_in;
 
     // get the compensated sensor value
     //
-    adc_in = _adc->Ch(_sensors[channel]) - _sensor_compensation(channel, temperature);
+    adc_in = adc_value;
 
     // adjust for sensor sign and apply calibration offset
     //
@@ -264,19 +269,23 @@ AP_IMU_Oilpan::_sensor_in(uint8_t channel, int temperature)
 bool
 AP_IMU_Oilpan::update(void)
 {
-	int tc_temp = _adc->Ch(_gyro_temp_ch);
+//	int tc_temp = _adc->Ch(_gyro_temp_ch);
+	int tc_temp = 0; // MPNG: Gyro temp not used to calibrate values
+  int adc_values[6];
+
+    _sample_time = _adc->Ch6(_sensors, adc_values);
 
 	// convert corrected gyro readings to delta acceleration
 	//
-	_gyro.x = ToRad(_gyro_gain_x) * _sensor_in(0, tc_temp);
-	_gyro.y = ToRad(_gyro_gain_y) * _sensor_in(1, tc_temp);
-	_gyro.z = ToRad(_gyro_gain_z) * _sensor_in(2, tc_temp);
+	_gyro.x = _gyro_gain_x * _sensor_in(0, adc_values[0], tc_temp);
+	_gyro.y = _gyro_gain_y * _sensor_in(1, adc_values[1], tc_temp);
+	_gyro.z = _gyro_gain_z * _sensor_in(2, adc_values[2], tc_temp);
 
 	// convert corrected accelerometer readings to acceleration
 	//
-	_accel.x = _accel_scale * _sensor_in(3, tc_temp);
-	_accel.y = _accel_scale * _sensor_in(4, tc_temp);
-	_accel.z = _accel_scale * _sensor_in(5, tc_temp);
+	_accel.x = _accel_scale * _sensor_in(3, adc_values[3], tc_temp);
+	_accel.y = _accel_scale * _sensor_in(4, adc_values[4], tc_temp);
+	_accel.z = _accel_scale * _sensor_in(5, adc_values[5], tc_temp);
 
 	_accel_filtered.x = _accel_filtered.x * .98 + _accel.x * .02;
 	_accel_filtered.y = _accel_filtered.y * .98 + _accel.y * .02;

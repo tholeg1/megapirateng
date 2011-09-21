@@ -8,8 +8,13 @@
 #define SONAR_TYPE MAX_SONAR_XL // don't change!!!
 #define HIL_MODE HIL_MODE_DISABLED
 #define MAG_ORIENTATION	ROTATION_YAW_270
-#define MAG_PROTOCOL MAG_PROTOCOL_5883L
+#define GCS_PROTOCOL			GCS_PROTOCOL_MAVLINK
 
+// New in 2.0.43, but unused in MegairateNG
+// Piezo uses AN5 pin in ArduCopter, we uses AN5 for CLI switch
+#define PIEZO	DISABLED	
+#define PIEZO_LOW_VOLTAGE	DISABLED
+#define PIEZO_ARMING		DISABLED
 
 // GPS is auto-selected
 #define GPS_PROTOCOL GPS_PROTOCOL_NONE

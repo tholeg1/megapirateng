@@ -1,6 +1,6 @@
 /*
 	APM_DCM_FW.cpp - DCM AHRS Library, fixed wing version, for Ardupilot Mega
-		Code by Doug Weibel, Jordi Muñoz and Jose Julio. DIYDrones.com
+		Code by Doug Weibel, Jordi Muï¿½oz and Jose Julio. DIYDrones.com
 
 	This library works with the ArduPilot Mega and "Oilpan"
 
@@ -10,7 +10,7 @@
     version 2.1 of the License, or (at your option) any later version.
 
         Methods:
-				update_DCM(_G_Dt)	: Updates the AHRS by integrating the rotation matrix over time _G_Dt using the IMU object data
+				update_DCM()	: Updates the AHRS by integrating the rotation matrix over time using the IMU object data
 				get_gyro()			: Returns gyro vector corrected for bias
 				get_accel()		: Returns accelerometer vector
 				get_dcm_matrix()	: Returns dcm matrix
@@ -41,21 +41,64 @@ AP_DCM::set_compass(Compass *compass)
 
 /**************************************************/
 void
-AP_DCM::update_DCM(float _G_Dt)
+AP_DCM::update_DCM_fast(void)
 {
+	float delta_t;
+
 	_imu->update();
 	_gyro_vector 	= _imu->get_gyro();			// Get current values for IMU sensors
 	_accel_vector 	= _imu->get_accel();			// Get current values for IMU sensors
 
-	matrix_update(_G_Dt); 	// Integrate the DCM matrix
+	delta_t = _imu->get_delta_time();
 
-	//if(_toggle){
+	matrix_update(delta_t); 	// Integrate the DCM matrix
+
+	switch(_toggle++){
+		case 0:
 		normalize();			// Normalize the DCM matrix
-	//}else{
-		drift_correction();		// Perform drift correction
-	//}
-	//_toggle = !_toggle;
+		break;
 
+		case 1:
+			//drift_correction();			// Normalize the DCM matrix
+			euler_rp();			// Calculate pitch, roll, yaw for stabilization and navigation
+		break;
+
+		case 2:
+			drift_correction();			// Normalize the DCM matrix
+		break;
+
+		case 3:
+			//drift_correction();			// Normalize the DCM matrix
+			euler_rp();			// Calculate pitch, roll, yaw for stabilization and navigation
+		break;
+
+		case 4:
+			euler_yaw();
+		break;
+
+		default:
+			euler_rp();			// Calculate pitch, roll, yaw for stabilization and navigation
+			_toggle = 0;
+			//drift_correction();			// Normalize the DCM matrix
+		break;
+	}
+}
+
+/**************************************************/
+void
+AP_DCM::update_DCM(void)
+{
+	float delta_t;
+
+	_imu->update();
+	_gyro_vector 	= _imu->get_gyro();			// Get current values for IMU sensors
+	_accel_vector 	= _imu->get_accel();			// Get current values for IMU sensors
+
+	delta_t = _imu->get_delta_time();
+
+	matrix_update(delta_t); 	// Integrate the DCM matrix
+	normalize();			// Normalize the DCM matrix
+	drift_correction();		// Perform drift correction
 	euler_angles();			// Calculate pitch, roll, yaw for stabilization and navigation
 }
 
@@ -83,11 +126,12 @@ AP_DCM::matrix_update(float _G_Dt)
 	Matrix3f	temp_matrix;
 
 	//Record when you saturate any of the gyros.
+	/*
 	if( (fabs(_gyro_vector.x) >= radians(300)) ||
 		(fabs(_gyro_vector.y) >= radians(300)) ||
 		(fabs(_gyro_vector.z) >= radians(300))){
 		gyro_sat_count++;
-	}
+	}*/
 
 	_omega_integ_corr 	= _gyro_vector 		+ _omega_I;		// Used for _centripetal correction (theoretically better than _omega)
 	_omega 				= _omega_integ_corr + _omega_P;		// Equation 16, adding proportional and integral correction terms
@@ -155,7 +199,7 @@ Numerical errors will gradually reduce the orthogonality conditions expressed by
 to approximations rather than identities. In effect, the axes in the two frames of reference no
 longer describe a rigid body. Fortunately, numerical error accumulates very slowly, so it is a
 simple matter to stay ahead of it.
-We call the process of enforcing the orthogonality conditions ÒrenormalizationÓ.
+We call the process of enforcing the orthogonality conditions ï¿½renormalizationï¿½.
 */
 void
 AP_DCM::normalize(void)
@@ -329,6 +373,25 @@ AP_DCM::euler_angles(void)
 
 	roll_sensor 	= degrees(roll)  * 100;
 	pitch_sensor 	= degrees(pitch) * 100;
+	yaw_sensor 		= degrees(yaw)   * 100;
+
+	if (yaw_sensor < 0)
+		yaw_sensor += 36000;
+}
+
+void
+AP_DCM::euler_rp(void)
+{
+	pitch 			= -asin(_dcm_matrix.c.x);
+	roll 			= atan2(_dcm_matrix.c.y, _dcm_matrix.c.z);
+	roll_sensor 	= degrees(roll)  * 100;
+	pitch_sensor 	= degrees(pitch) * 100;
+}
+
+void
+AP_DCM::euler_yaw(void)
+{
+	yaw 			= atan2(_dcm_matrix.b.x, _dcm_matrix.a.x);
 	yaw_sensor 		= degrees(yaw)   * 100;
 
 	if (yaw_sensor < 0)

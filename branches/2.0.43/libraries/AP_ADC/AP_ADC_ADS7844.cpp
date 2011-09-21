@@ -40,7 +40,7 @@ static volatile uint8_t			_filter_index;
 #endif
 
 #ifdef BMA_020
-#define ACC_DIV 33.49
+#define ACC_DIV 25.812
 #else
 #define ACC_DIV 28
 #endif
@@ -71,18 +71,15 @@ void waitTransmissionI2C() {
 void i2c_rep_start(uint8_t address) {
   TWCR = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN) | (1<<TWSTO); // send REAPEAT START condition
   waitTransmissionI2C(); // wait until transmission completed
- // checkStatusI2C(); // check value of TWI Status Register
   TWDR = address; // send device address
   TWCR = (1<<TWINT) | (1<<TWEN);
   waitTransmissionI2C(); // wail until transmission completed
- // checkStatusI2C(); // check value of TWI Status Register
 }
 
 void i2c_write(uint8_t data ) {	
   TWDR = data; // send data to the previously addressed device
   TWCR = (1<<TWINT) | (1<<TWEN);
   waitTransmissionI2C(); // wait until transmission completed
- // checkStatusI2C(); // check value of TWI Status Register
 }
 
 uint8_t i2c_readAck() {
@@ -98,10 +95,9 @@ uint8_t i2c_readNak(void) {
 }
 int     adc_value[8]   = { 0, 0, 0, 0, 0, 0, 0, 0 };
 float     adc_flt[8]   = { 0, 0, 0, 0, 0, 0, 0, 0 };
-int gyrozero[3]={0,0,0};
 int rawADC_ITG3200[6],rawADC_BMA180[6];
 long adc_read_timeout=0;
-
+static uint32_t last_ch6_micros;
 
 
 // Constructors ////////////////////////////////////////////////////////////////
@@ -113,8 +109,6 @@ AP_ADC_ADS7844::AP_ADC_ADS7844()
 void AP_ADC_ADS7844::Init(void)
 {
  int i;
-long gyrozeroL[3]={0,0,0};
-//      Wire.begin();
 i2c_init();
 //=== ITG3200 INIT
 for (i=0;i<8;i++) adc_flt[i]=0;
@@ -195,6 +189,7 @@ DDRH |=B01000000;
 PORTB&=B11101111; // B4 -d10 - sonar Echo
 DDRB &=B11101111;
 
+last_ch6_micros = micros(); 
 
 //PORTG|=B00000011; // buttons pullup
 
@@ -207,6 +202,7 @@ DDRB &=B11101111;
   TIMSK5=B00000111; // ints: overflow, capture, compareA
   OCR5A=65510; // approx 10m limit, 33ms period
   OCR5B=3000;
+  
 }
 
 // Sonar read interrupts
@@ -242,17 +238,17 @@ static uint8_t i;
   i2c_write(0X1D);         // Start multiple read
   i2c_rep_start(0XD0 +1);  // I2C read direction => 1
   for(i = 0; i< 5; i++) {
-  rawADC_ITG3200[i]=i2c_readAck();}
+  rawADC_ITG3200[i]= i2c_readAck();}
   rawADC_ITG3200[5]= i2c_readNak();
 #ifdef ALLINONE
-  adc_value[0] =  (((rawADC_ITG3200[4]<<8) | rawADC_ITG3200[5])-gyrozero[0]); //g yaw
-  adc_value[1] =  (((rawADC_ITG3200[2]<<8) | rawADC_ITG3200[3])-gyrozero[1]); //g roll
-  adc_value[2] =- (((rawADC_ITG3200[0]<<8) | rawADC_ITG3200[1])-gyrozero[2]); //g pitch
+  adc_value[0] =  ((rawADC_ITG3200[4]<<8) | rawADC_ITG3200[5]) /6; //g yaw
+  adc_value[1] =  ((rawADC_ITG3200[2]<<8) | rawADC_ITG3200[3]) /6; //g roll
+  adc_value[2] =- ((rawADC_ITG3200[0]<<8) | rawADC_ITG3200[1]) /6; //g pitch
 #endif
 #ifdef FFIMU
-  adc_value[0] =  (((rawADC_ITG3200[4]<<8) | rawADC_ITG3200[5])-gyrozero[0]); //g yaw
-  adc_value[2] =  (((rawADC_ITG3200[2]<<8) | rawADC_ITG3200[3])-gyrozero[2]); //g roll
-  adc_value[1] =  (((rawADC_ITG3200[0]<<8) | rawADC_ITG3200[1])-gyrozero[1]); //g pitch
+  adc_value[0] =  ((rawADC_ITG3200[4]<<8) | rawADC_ITG3200[5]); //g yaw
+  adc_value[2] =  ((rawADC_ITG3200[2]<<8) | rawADC_ITG3200[3]); //g roll
+  adc_value[1] =  ((rawADC_ITG3200[0]<<8) | rawADC_ITG3200[1]); //g pitch
 #endif
 
 #ifndef BMA_020
@@ -273,9 +269,9 @@ static uint8_t i;
 #endif  
   
 #ifdef ALLINONE
-  adc_value[4] =  ((rawADC_BMA180[3]<<8) | (rawADC_BMA180[2]))/ACC_DIV; //a pitch
-  adc_value[5] = -((rawADC_BMA180[1]<<8) | (rawADC_BMA180[0]))/ACC_DIV; //a roll
-  adc_value[6] =  ((rawADC_BMA180[5]<<8) | (rawADC_BMA180[4]))/ACC_DIV; //a yaw
+  adc_value[4] =  (((rawADC_BMA180[3]<<8) | (rawADC_BMA180[2])) >> 2) / 6.453; //a pitch
+  adc_value[5] = -(((rawADC_BMA180[1]<<8) | (rawADC_BMA180[0])) >> 2) / 6.453; //a roll
+  adc_value[6] =  (((rawADC_BMA180[5]<<8) | (rawADC_BMA180[4])) >> 2) / 6.453; //a yaw
 #endif
 #ifdef FFIMU
   adc_value[5] =  ((rawADC_BMA180[3]<<8) | (rawADC_BMA180[2]))/ACC_DIV; //a pitch
@@ -287,7 +283,7 @@ static uint8_t i;
 // Read one channel value
 int AP_ADC_ADS7844::Ch(unsigned char ch_num)         
 {char i;int flt;
-	if (ch_num==7) {
+	if (ch_num==7) { //ch7 is occupied by Differential pressure sensor
 			if ( (sonar_data < 354) && (pre_sonar_data > 0) ) {	//wrong data from sonar (3cm * 118 = 354), use previous value
 				sonar_data=pre_sonar_data;
 			} else {
@@ -299,13 +295,24 @@ int AP_ADC_ADS7844::Ch(unsigned char ch_num)
 		{  adc_read_timeout = millis();
 			i2c_ACC_getADC ();
 		}
-		if (ch_num<4)	return(adc_value[ch_num]/6);	// gyro
-		else		return(adc_value[ch_num]);	// acc
+		return(adc_value[ch_num]);
 	}
-}	
+}
 
-// Read one channel value
-int AP_ADC_ADS7844::Ch_raw(unsigned char ch_num)
+// Read 6 channel values
+uint32_t AP_ADC_ADS7844::Ch6(const uint8_t *channel_numbers, int *result)
 {
-	return _filter[ch_num][_filter_index]; // close enough
+		if ( (millis()-adc_read_timeout )  > 2 )  //each read is spaced by 3ms else place old values
+		{  adc_read_timeout = millis();
+			i2c_ACC_getADC ();
+		}
+		
+	for (uint8_t i=0; i<6; i++) {
+		result[i] = adc_value[channel_numbers[i]];
+	}
+	
+	uint32_t us = micros();
+	uint32_t ret = us - last_ch6_micros;
+	last_ch6_micros = us;
+	return 4000; // Sample rate 250Hz
 }

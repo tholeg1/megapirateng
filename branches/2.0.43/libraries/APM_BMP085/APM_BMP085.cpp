@@ -44,7 +44,8 @@ extern "C" {
 #include "APM_BMP085.h"
 
 #define BMP085_ADDRESS 0x77  //(0xEE >> 1)
-#define BMP085_EOC 30        // End of conversion pin PC7
+// Uncomment if you have connected INT Baro pin (AllInOne or FFIMU)
+//#define BMP085_EOC 30        // End of conversion pin PC7
 
 // Constructors ////////////////////////////////////////////////////////////////
 //APM_BMP085_Class::APM_BMP085_Class()
@@ -57,9 +58,11 @@ void APM_BMP085_Class::Init(int initialiseWireLib)
 	byte buff[22];
 	int i = 0;
 
-	//pinMode(BMP085_EOC, INPUT);	 // End Of Conversion (PC7) input
+	#ifdef BMP085_EOC 
+		pinMode(BMP085_EOC, INPUT);	 // End Of Conversion (PC7) input
+	#endif
 
-	//if( initialiseWireLib != 0 )
+	if( initialiseWireLib != 0 )
 			Wire.begin();
 
 	oss = 3;					 // Over Sampling setting 3 = High resolution
@@ -102,32 +105,55 @@ uint8_t APM_BMP085_Class::Read()
 {
 	uint8_t result = 0;
 
-	if (BMP085_State == 1){
-		//if (digitalRead(BMP085_EOC)){
-			ReadTemp();						 // On state 1 we read temp
-			BMP085_State++;
-			Command_ReadPress();
-		//}
-	}else{
-		if (BMP085_State == 5){
-			//if (digitalRead(BMP085_EOC)){
-				ReadPress();
-				Calculate();
-
-				BMP085_State = 1;			// Start again from state = 1
-				Command_ReadTemp();			// Read Temp
-				result = 1;					// New pressure reading
-			//}
-		}else{
-			//if (digitalRead(BMP085_EOC)){
-				ReadPress();
-				Calculate();
+	#ifdef BMP085_EOC 
+		if (BMP085_State == 1){
+			if (digitalRead(BMP085_EOC)){
+				ReadTemp();						 // On state 1 we read temp
 				BMP085_State++;
 				Command_ReadPress();
-				result = 1;					// New pressure reading
-			//}
+			}
+		}else{
+			if (BMP085_State == 5){
+				if (digitalRead(BMP085_EOC)){
+					ReadPress();
+					Calculate();
+	
+					BMP085_State = 1;			// Start again from state = 1
+					Command_ReadTemp();			// Read Temp
+					result = 1;					// New pressure reading
+				}
+			}else{
+				if (digitalRead(BMP085_EOC)){
+					ReadPress();
+					Calculate();
+					BMP085_State++;
+					Command_ReadPress();
+					result = 1;					// New pressure reading
+				}
+			}
 		}
-	}
+	#else
+		if (BMP085_State == 1){
+				ReadTemp();						 // On state 1 we read temp
+				BMP085_State++;
+				Command_ReadPress();
+		}else{
+			if (BMP085_State == 5){
+					ReadPress();
+					Calculate();
+	
+					BMP085_State = 1;			// Start again from state = 1
+					Command_ReadTemp();			// Read Temp
+					result = 1;					// New pressure reading
+			}else{
+					ReadPress();
+					Calculate();
+					BMP085_State++;
+					Command_ReadPress();
+					result = 1;					// New pressure reading
+			}
+		}
+	#endif
 	return(result);
 }
 

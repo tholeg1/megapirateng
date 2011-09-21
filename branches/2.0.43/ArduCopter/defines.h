@@ -321,7 +321,7 @@
 #define AN2  56  // resistor, vdiv use, divider 3
 #define AN3  57  // resistor, vdiv use, divider 4 closest to SW2
 #define AN4  58  // direct GPIO pin, default as analog input, next to SW2 switch
-//#define AN5  59  // direct GPIO pin, default as analog input, next to SW2 switch
+#define AN5  59  // direct GPIO pin, default as analog input, next to SW2 switch
 #define AN6  60  // direct GPIO pin, default as analog input, close to Pressure sensor, Expansion Ports
 #define AN7  61  // direct GPIO pin, default as analog input, close to Pressure sensor, Expansion Ports
 

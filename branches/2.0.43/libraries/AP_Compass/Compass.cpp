@@ -9,7 +9,8 @@ Compass::Compass(AP_Var::Key key) :
     _orientation_matrix	(&_group, 0),
     _offset				(&_group, 1),
     _declination		(&_group, 2, 0.0, PSTR("DEC")),
-    _null_init_done(false)
+    _null_init_done(false),
+	product_id(AP_COMPASS_TYPE_UNKNOWN)
 {
     // Default the orientation matrix to none - will be overridden at group load time
     // if an orientation has previously been saved.
@@ -74,7 +75,7 @@ Compass::calculate(float roll, float pitch)
     float sin_roll;
     float cos_pitch;
     float sin_pitch;
-    cos_roll = cos(roll);  
+    cos_roll = cos(roll);
 	sin_roll = sin(roll);
     cos_pitch = cos(pitch);
 	sin_pitch = sin(pitch);
@@ -117,7 +118,8 @@ Compass::calculate(const Matrix3f &dcm_matrix)
     // Tilt compensated magnetic field Y component:
     headY = mag_y*dcm_matrix.c.z/cos_pitch - mag_z*dcm_matrix.c.y/cos_pitch;
     // magnetic heading
-    heading = atan2(-headY,headX);
+    // 6/4/11 - added constrain to keep bad values from ruining DCM Yaw - Jason S.
+	heading = constrain(atan2(-headY,headX), -3.15, 3.15);
 
     // Declination correction (if supplied)
     if( fabs(_declination) > 0.0 )
