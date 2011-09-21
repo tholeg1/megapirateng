@@ -68,34 +68,33 @@ private:
     virtual void        _init_accel(void (*callback)(unsigned long t));  ///< no-save implementation
     virtual void        _init_gyro(void (*callback)(unsigned long t));   ///< no-save implementation
 
-    float				_sensor_in(uint8_t channel, int adc_value, int temperature);
-    float 		        _sensor_compensation(uint8_t channel, int temp) const;
+    float				_sensor_in(uint8_t channel, int adc_value);
 
 	// constants
 	static const uint8_t	_sensors[6];            ///< ADC channel mappings for the sensors
 	static const int8_t    	_sensor_signs[6];       ///< ADC result sign adjustment for sensors
 	static const uint8_t	_gyro_temp_ch = 3; 		///< ADC channel reading the gyro temperature
-	static const float 		_gyro_temp_curve[3][3]; ///< Temperature compensation curve for the gyro
 
 	// ADC : Voltage reference 3.3v / 12bits(4096 steps) => 0.8mV/ADC step
 	// ADXL335 Sensitivity(from datasheet) => 330mV/g, 0.8mV/ADC step => 330/0.8 = 412
 	// Tested value : 418
 	//
-	static const float      _gravity = 423.8;       ///< 1G in the raw data coming from the accelerometer
+	static const float      _gravity = 2730;       ///< 1G (For BMA180) in the raw data coming from the accelerometer
 													// Value based on actual sample data from 20 boards
 
-	static const float      _accel_scale = 9.80665 / 423.8; ///< would like to use _gravity here, but cannot
+	static const float      _accel_scale = 9.80665 / 2730; ///< would like to use _gravity here, but cannot
 
 	// IDG500 Sensitivity (from datasheet) => 2.0mV/degree/s, 0.8mV/ADC step => 0.8/3.33 = 0.4
 	// Tested values : 0.4026, ?, 0.4192
 	//
-	static const float      _gyro_gain_x = ToRad(0.4);     // X axis Gyro gain
-	static const float      _gyro_gain_y = ToRad(0.41);    // Y axis Gyro gain
-	static const float      _gyro_gain_z = ToRad(0.41);    // Z axis Gyro gain
+	// ITG-3200 14.375 LSB/degree/s
+	static const float      _gyro_gain_x = 0.0012141421;    // X axis Gyro gain ToRad(1/14.375)
+	static const float      _gyro_gain_y = 0.0012141421;    // Y axis Gyro gain
+	static const float      _gyro_gain_z = 0.0012141421;    // Z axis Gyro gain
 
 	// Maximum possible value returned by an offset-corrected sensor channel
 	//
-	static const float      _adc_constraint = 900;
+	static const float      _adc_constraint = 5100; // 360degree
 
 	// Gyro and Accelerometer calibration criterial
 	//

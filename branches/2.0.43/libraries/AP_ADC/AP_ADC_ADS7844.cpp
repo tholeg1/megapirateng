@@ -241,9 +241,9 @@ static uint8_t i;
   rawADC_ITG3200[i]= i2c_readAck();}
   rawADC_ITG3200[5]= i2c_readNak();
 #ifdef ALLINONE
-  adc_value[0] =  ((rawADC_ITG3200[4]<<8) | rawADC_ITG3200[5]) /6; //g yaw
-  adc_value[1] =  ((rawADC_ITG3200[2]<<8) | rawADC_ITG3200[3]) /6; //g roll
-  adc_value[2] =- ((rawADC_ITG3200[0]<<8) | rawADC_ITG3200[1]) /6; //g pitch
+  adc_value[0] =  ((rawADC_ITG3200[4]<<8) | rawADC_ITG3200[5]); //g yaw
+  adc_value[1] =  ((rawADC_ITG3200[2]<<8) | rawADC_ITG3200[3]); //g roll
+  adc_value[2] =- ((rawADC_ITG3200[0]<<8) | rawADC_ITG3200[1]); //g pitch
 #endif
 #ifdef FFIMU
   adc_value[0] =  ((rawADC_ITG3200[4]<<8) | rawADC_ITG3200[5]); //g yaw
@@ -269,9 +269,9 @@ static uint8_t i;
 #endif  
   
 #ifdef ALLINONE
-  adc_value[4] =  (((rawADC_BMA180[3]<<8) | (rawADC_BMA180[2])) >> 2) / 6.453; //a pitch
-  adc_value[5] = -(((rawADC_BMA180[1]<<8) | (rawADC_BMA180[0])) >> 2) / 6.453; //a roll
-  adc_value[6] =  (((rawADC_BMA180[5]<<8) | (rawADC_BMA180[4])) >> 2) / 6.453; //a yaw
+  adc_value[4] =  ((rawADC_BMA180[3]<<8) | (rawADC_BMA180[2])) >> 2; //a pitch
+  adc_value[5] = -((rawADC_BMA180[1]<<8) | (rawADC_BMA180[0])) >> 2; //a roll
+  adc_value[6] =  ((rawADC_BMA180[5]<<8) | (rawADC_BMA180[4])) >> 2; //a yaw
 #endif
 #ifdef FFIMU
   adc_value[5] =  ((rawADC_BMA180[3]<<8) | (rawADC_BMA180[2]))/ACC_DIV; //a pitch
@@ -302,17 +302,11 @@ int AP_ADC_ADS7844::Ch(unsigned char ch_num)
 // Read 6 channel values
 uint32_t AP_ADC_ADS7844::Ch6(const uint8_t *channel_numbers, int *result)
 {
-		if ( (millis()-adc_read_timeout )  > 2 )  //each read is spaced by 3ms else place old values
-		{  adc_read_timeout = millis();
-			i2c_ACC_getADC ();
-		}
+	i2c_ACC_getADC (); // Read sensors gyros each 4ms (because DCM called this method from fast_loop which run at 250Hz)
 		
 	for (uint8_t i=0; i<6; i++) {
 		result[i] = adc_value[channel_numbers[i]];
 	}
 	
-	uint32_t us = micros();
-	uint32_t ret = us - last_ch6_micros;
-	last_ch6_micros = us;
-	return 4000; // Sample rate 250Hz
+	return 4000; // Gyro sample rate 250Hz
 }
