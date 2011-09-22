@@ -58,7 +58,7 @@ mw: 0,1,3,4,5,6 - motors
 // Variable definition for Input Capture interrupt
 volatile unsigned int ICR4_old;
 volatile unsigned char PPM_Counter=0;
-volatile unsigned int PWM_RAW[8] = {2400,2400,2400,2400,2400,2400,2400,2400};
+volatile uint16_t PWM_RAW[8] = {2400,2400,2400,2400,2400,2400,2400,2400};
 volatile unsigned char radio_status=0;
 
 
@@ -328,14 +328,6 @@ switch (OCRstate>>1)
 	if(OCRstate&1)OCR5B+=5000-OCRxx1[OCRstate>>1]; else OCR5B+=OCRxx1[OCRstate>>1];
 }
 
-
-
-
-
-
-
-
-
 /*
 ch			3		4		1		2		7		8		10		11	
 motor mapping
@@ -371,23 +363,22 @@ Example: FLDW - front-left lower motor with clockwise rotation (Y6 or Y4)
 
 void APM_RC_Class::OutputCh(unsigned char ch, uint16_t pwm)
 {
-static uint16_t tempx;
-  tempx=constrain(pwm,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
-  tempx=tempx<<1;   // pwm*2;
+  pwm=constrain(pwm,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
+  pwm<<=1;   // pwm*2;
  
  switch(ch)
   {
-    case 0:  OCR3A=tempx; break; //5
-    case 1:  OCR4A=tempx; break; //6
-    case 2:  OCR3B=tempx; break; //2
-    case 3:  OCR3C=tempx; break; //3
-    case 4:  OCRxx1[1]=tempx;break;//OCRxx1[ch]=pwm;CAM PITCH
-    case 5:  OCRxx1[0]=tempx;break;//OCRxx1[ch]=pwm;CAM ROLL
-    case 6:  OCR4B=tempx; break; //7
-    case 7:  OCR4C=tempx; break; //8
+    case 0:  OCR3A=pwm; break; //5
+    case 1:  OCR4A=pwm; break; //6
+    case 2:  OCR3B=pwm; break; //2
+    case 3:  OCR3C=pwm; break; //3
+    case 4:  OCRxx1[1]=pwm;break;//OCRxx1[ch]=pwm;CAM PITCH
+    case 5:  OCRxx1[0]=pwm;break;//OCRxx1[ch]=pwm;CAM ROLL
+    case 6:  OCR4B=pwm; break; //7
+    case 7:  OCR4C=pwm; break; //8
 
-    case 9:  OCR1A=tempx;break;// d11
-    case 10: OCR1B=tempx;break;// d12
+    case 9:  OCR1A=pwm;break;// d11
+    case 10: OCR1B=pwm;break;// d12
     case 8:  //2nd group
     case 11:
     case 12:
@@ -399,8 +390,8 @@ static uint16_t tempx;
 
 uint16_t APM_RC_Class::InputCh(unsigned char ch)
 {
-  int result;
-  int result2;
+  uint16_t result;
+  uint16_t result2;
   
   // Because servo pulse variables are 16 bits and the interrupts are running values could be corrupted.
   // We dont want to stop interrupts to read radio channels so we have to do two readings to be sure that the value is correct...
@@ -444,16 +435,36 @@ void APM_RC_Class::Force_Out6_Out7(void)
 // allow HIL override of RC values
 // A value of -1 means no change
 // A value of 0 means no override, use the real RC values
-void APM_RC_Class::setHIL(int16_t v[NUM_CHANNELS])
+bool APM_RC_Class::setHIL(int16_t v[NUM_CHANNELS])
 {
-/*	for (unsigned char i=0; i<NUM_CHANNELS; i++) {
+/*
+	uint8_t sum = 0;
+	for (unsigned char i=0; i<NUM_CHANNELS; i++) {
 		if (v[i] != -1) {
 			_HIL_override[i] = v[i];
 		}
+		if (_HIL_override[i] != 0) {
+			sum++;
+		}
+	}
+	radio_status = 1;
+	if (sum == 0) {
+		return 0;
+	} else {
+		return 1;
 	}
 */
 	radio_status = 1;
+	return 1;
 }
+
+void APM_RC_Class::clearOverride(void)
+{
+	for (unsigned char i=0; i<NUM_CHANNELS; i++) {
+		_HIL_override[i] = 0;
+	}
+}
+
 
 // make one instance for the user to use
 APM_RC_Class APM_RC;

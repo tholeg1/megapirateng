@@ -27,9 +27,12 @@
 #define BARO 1
 
 // CH 7 control
-#define DO_SET_HOVER 0
-#define DO_FLIP 1
-#define SIMPLE_MODE_CONTROL 2
+#define CH7_DO_NOTHING 0
+#define CH7_SET_HOVER 1
+#define CH7_FLIP 2
+#define CH7_SIMPLE_MODE 3
+#define CH7_RTL 4
+#define CH7_AUTO_TRIM 5
 
 // Frame types
 #define QUAD_FRAME 0
@@ -164,6 +167,7 @@
 
 #define LOITER_MODE 1
 #define WP_MODE 2
+#define CIRCLE_MODE 3
 
 // Waypoint options
 #define WP_OPTION_ALT_RELATIVE 		1

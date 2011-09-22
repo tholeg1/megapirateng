@@ -100,8 +100,8 @@ get_nav_throttle(long z_error, int target_speed)
 	rate_error 		= target_speed - altitude_rate;
 	rate_error 		= constrain(rate_error, -110, 110);
 
-	long timer			= micros();
-	delta_throttle		= (float)(timer - throttle_timer)/1000000.0;
+	long timer				= millis();
+	float delta_throttle	= (float)(timer - throttle_timer)/1000.0;
 	throttle_timer    	= timer;
 
 	return g.pi_throttle.get_pi(rate_error, delta_throttle);

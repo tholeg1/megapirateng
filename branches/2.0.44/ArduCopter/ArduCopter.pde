@@ -1,13 +1,13 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduCopter V2.0.43 Beta"
+#define THISFIRMWARE "ArduCopter V2.0.44 Beta"
 /*
 ArduCopter Version 2.0 Beta
 Authors:	Jason Short
 Based on code and ideas from the Arducopter team: Jose Julio, Randy Mackay, Jani Hirvinen
 Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier
 
-Porting to MegaPirate Next Geration by
+Porting to MegaPirate Next Generation by
   SovGVD sovgvd@gmail.com 
   Syberian (libraries from MegaPirate r741)
   Sir Alex (rsoft@tut.by)
@@ -337,7 +337,6 @@ static long		target_bearing;						// deg * 100 : 0 to 360 location of the plane 
 //static long		crosstrack_correction;				// deg * 100 : 0 to 360 desired angle of plane to target
 
 static int		climb_rate;							// m/s * 100  - For future implementation of controlled ascent/descent by rate
-static long 	circle_angle = 0;
 static byte	wp_control;							// used to control - navgation or loiter
 
 static byte	command_must_index;					// current command memory location
@@ -355,7 +354,7 @@ static float simple_sin_y, simple_cos_x;
 static float boost; 							// used to give a little extra to maintain altitude
 
 // Acro
-#if CH7_OPTION == DO_FLIP
+#if CH7_OPTION == CH7_FLIP
 static bool do_flip = false;
 #endif
 
@@ -412,9 +411,14 @@ static byte 	yaw_tracking = MAV_ROI_WPNEXT;		// no tracking, point at next wp, o
 
 // Loiter management
 // -----------------
-static long 	saved_target_bearing;				// deg * 100
-static unsigned long 	loiter_time;				// millis : when we started LOITER mode
-static unsigned long 	loiter_time_max;			// millis : how long to stay in LOITER mode
+static long 	original_target_bearing;			// deg * 100, used to check we are not passing the WP
+static long 	old_target_bearing;					// used to track difference in angle
+
+static int		loiter_total; 						// deg : how many times to loiter * 360
+static int		loiter_sum;							// deg : how far we have turned around a waypoint
+static long 	loiter_time;						// millis : when we started LOITER mode
+static int 		loiter_time_max;					// millis : how long to stay in LOITER mode
+
 
 // these are the values for navigation control functions
 // ----------------------------------------------------
@@ -499,8 +503,7 @@ static byte				gps_watchdog;
 // --------------
 static unsigned long 	fast_loopTimer;				// Time in miliseconds of main control loop
 static byte 			medium_loopCounter;			// Counters for branching from main control loop to slower loops
-static uint16_t			throttle_timer;
-static float			delta_throttle;
+static unsigned long	throttle_timer;
 
 static unsigned long	fiftyhz_loopTimer;
 
@@ -535,7 +538,6 @@ void loop()
 		//PORTK |= B00010000;
 		G_Dt 				= (float)(timer - fast_loopTimer) / 1000000.f;		// used by PI Loops
 		fast_loopTimer 		= timer;
-		//Serial.printf("%1.5f\n", G_Dt);
 
 		// Execute the fast loop
 		// ---------------------
@@ -1023,12 +1025,7 @@ void update_yaw_mode(void)
 			break;
 
 		case YAW_LOOK_AT_HOME:
-			// copter will always point at home
-			if(home_is_set){
-				nav_yaw = point_at_home_yaw();
-			} else {
-				nav_yaw = 0;
-			}
+			//nav_yaw updated in update_navigation()
 			break;
 
 		case YAW_AUTO:
@@ -1045,7 +1042,7 @@ void update_yaw_mode(void)
 
 void update_roll_pitch_mode(void)
 {
-	#if CH7_OPTION == DO_FLIP
+	#if CH7_OPTION == CH7_FLIP
 	if (do_flip){
 		roll_flip();
 		return;
@@ -1111,6 +1108,7 @@ void update_roll_pitch_mode(void)
 void update_throttle_mode(void)
 {
 	switch(throttle_mode){
+
 		case THROTTLE_MANUAL:
 			if (g.rc_3.control_in > 0){
 				g.rc_3.servo_out = g.rc_3.control_in + boost;
@@ -1127,6 +1125,7 @@ void update_throttle_mode(void)
 		case THROTTLE_AUTO:
 				// 10hz, 			don't run up i term
 			if(invalid_throttle && motor_auto_armed == true){
+
 				// how far off are we
 				altitude_error = get_altitude_error();
 
@@ -1151,7 +1150,6 @@ static void update_navigation()
 	switch(control_mode){
 		case AUTO:
 			verify_commands();
-
 			// note: wp_control is handled by commands_logic
 
 			// calculates desired Yaw
@@ -1163,6 +1161,7 @@ static void update_navigation()
 
 		case GUIDED:
 			wp_control = WP_MODE;
+
 			update_auto_yaw();
 			update_nav_wp();
 			break;
@@ -1177,6 +1176,7 @@ static void update_navigation()
 
 				wp_control = WP_MODE;
 			}else{
+				// lets just jump to Loiter Mode after RTL
 				set_mode(LOITER);
 				//xtrack_enabled = false;
 			}
@@ -1195,27 +1195,22 @@ static void update_navigation()
 
 		case CIRCLE:
 			yaw_tracking = MAV_ROI_WPNEXT;
+			wp_control 		= CIRCLE_MODE;
 
 			// calculates desired Yaw
 			update_auto_yaw();
-			{
-				circle_angle = wrap_360(target_bearing + 3000 + 18000);
-
-				target_WP.lng = next_WP.lng + (g.loiter_radius * cos(radians(90 - circle_angle/100)));
-				target_WP.lat = next_WP.lat + (g.loiter_radius * sin(radians(90 - circle_angle/100)));
-			}
-
-			// calc the lat and long error to the target
-			calc_location_error(&target_WP);
-
-			// use error as the desired rate towards the target
-			// nav_lon, nav_lat is calculated
-			calc_nav_rate(long_error, lat_error, 200, 0);
-
-			// rotate pitch and roll to the copter frame of reference
-			calc_nav_pitch_roll();
+			update_nav_wp();
 			break;
 
+			}
+
+	if(yaw_mode == YAW_LOOK_AT_HOME){
+		if(home_is_set){
+			//nav_yaw = point_at_home_yaw();
+			nav_yaw = get_bearing(&current_loc, &home);
+		} else {
+			nav_yaw = 0;
+		}
 	}
 }
 
@@ -1396,8 +1391,35 @@ static void update_nav_wp()
 		// use error as the desired rate towards the target
 		calc_nav_rate(long_error, lat_error, g.waypoint_speed_max, 0);
 
-		// rotate pitch and roll to the copter frame of reference
-		calc_nav_pitch_roll();
+	}else if(wp_control == CIRCLE_MODE){
+
+		// check if we have missed the WP
+		int loiter_delta = (target_bearing - old_target_bearing)/100;
+
+		// reset the old value
+		old_target_bearing = target_bearing;
+
+		// wrap values
+		if (loiter_delta > 180) loiter_delta -= 360;
+		if (loiter_delta < -180) loiter_delta += 360;
+
+		// sum the angle around the WP
+		loiter_sum += abs(loiter_delta);
+
+
+		// creat a virtual waypoint that circles the next_WP
+		// Count the degrees we have circulated the WP
+		int circle_angle = wrap_360(target_bearing + 3000 + 18000) / 100;
+
+		target_WP.lng = next_WP.lng + (g.loiter_radius * cos(radians(90 - circle_angle)));
+		target_WP.lat = next_WP.lat + (g.loiter_radius * sin(radians(90 - circle_angle)));
+
+		// calc the lat and long error to the target
+		calc_location_error(&target_WP);
+
+		// use error as the desired rate towards the target
+		// nav_lon, nav_lat is calculated
+		calc_nav_rate(long_error, lat_error, 200, 0);
 
 	} else {
 		// for long journey's reset the wind resopnse
@@ -1411,10 +1433,10 @@ static void update_nav_wp()
 		// use error as the desired rate towards the target
 		calc_nav_rate(long_error, lat_error, g.waypoint_speed_max, 100);
 
+	}
 		// rotate pitch and roll to the copter frame of reference
 		calc_nav_pitch_roll();
 	}
-}
 
 static void update_auto_yaw()
 {
@@ -1425,11 +1447,8 @@ static void update_auto_yaw()
 	}else if(yaw_tracking == MAV_ROI_WPNEXT){
 		auto_yaw = target_bearing;
 	}
+	// MAV_ROI_NONE = basic Yaw hold
 }
 
-static long point_at_home_yaw()
-{
-	return get_bearing(&current_loc, &home);
-}
 
 

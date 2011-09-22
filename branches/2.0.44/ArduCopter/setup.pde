@@ -223,7 +223,7 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 
 		if(Serial.available() > 0){
 			delay(20);
-			//Serial.flush();
+			Serial.flush();
 
 			g.rc_1.save_eeprom();
 			g.rc_2.save_eeprom();
@@ -233,11 +233,9 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 			g.rc_6.save_eeprom();
 			g.rc_7.save_eeprom();
 			g.rc_8.save_eeprom();
-            delay(20);
-			break;
-		}
-	}
 
+        delay(500);
+	Serial.flush();
 	Serial.printf_P(PSTR("\nMove roll, pitch and yaw controls to center. Hit Enter to save trim: "));
 	while(1){
         delay(20);
@@ -245,9 +243,8 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
             delay(20);
             read_radio();
             trim_radio();
-            //delay(20);
-            Serial.flush();
             delay(20);
+            Serial.flush();
             print_done();
             break;
 		}

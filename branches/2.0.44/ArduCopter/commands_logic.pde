@@ -142,7 +142,7 @@ static bool verify_must()
 			break;
 
 		case MAV_CMD_NAV_LOITER_TURNS:
-			return true;
+			return verify_loiter_turns();
 			break;
 
 		case MAV_CMD_NAV_LOITER_TIME:
@@ -297,8 +297,7 @@ static void do_loiter_unlimited()
 
 static void do_loiter_turns()
 {
-/*
-	wp_control = LOITER_MODE;
+	wp_control == CIRCLE_MODE;
 
 	if(next_command.lat == 0)
 		set_next_WP(&current_loc);
@@ -306,7 +305,7 @@ static void do_loiter_turns()
 		set_next_WP(&next_command);
 
 	loiter_total = next_command.p1 * 360;
-*/
+	loiter_sum	 = 0;
 }
 
 static void do_loiter_time()
@@ -425,11 +424,21 @@ static bool verify_loiter_unlim()
 
 static bool verify_loiter_time()
 {
-	//Serial.printf("vlt %ld\n",(millis() - loiter_time));
+	if ((millis() - loiter_time) > loiter_time_max) {
+		return true;
+	}
+	return false;
+}
 
-	if ((millis() - loiter_time) > loiter_time_max) {		// scale loiter_time_max from (sec*10) to milliseconds
-		//gcs.send_text_P(SEVERITY_LOW,PSTR("verify_must: LOITER time complete"));
-		//Serial.println("vlt done");
+static bool verify_loiter_turns()
+{
+	// have we rotated around the center enough times?
+	// -----------------------------------------------
+	if(loiter_sum > loiter_total) {
+		loiter_total 	= 0;
+		loiter_sum		= 0;
+		//gcs_send_text_P(SEVERITY_LOW,PSTR("verify_must: LOITER orbits complete"));
+		// clear the command queue;
 		return true;
 	}
 	return false;
@@ -493,13 +502,13 @@ static void do_yaw()
 	// if unspecified go counterclockwise
 	if(command_yaw_dir == 0)
 		command_yaw_dir = -1;
+	else
+		command_yaw_dir = 1;
 
-	if (command_yaw_relative){
+	if (command_yaw_relative == 1){
 		// relative
-		//command_yaw_dir	  = (command_yaw_end > 0) ? 1 : -1;
-		//command_yaw_end	  += nav_yaw;
-		//command_yaw_end	  = wrap_360(command_yaw_end);
 		command_yaw_delta	= next_command.alt * 100;
+
 	}else{
 		// absolute
 		command_yaw_end		= next_command.alt * 100;
@@ -578,6 +587,8 @@ static bool verify_yaw()
 		// time out
 		// make sure we hold at the final desired yaw angle
 		nav_yaw = command_yaw_end;
+		auto_yaw 	= nav_yaw;
+
 		//Serial.println("Y");
 		return true;
 
@@ -588,6 +599,7 @@ static bool verify_yaw()
 
 		nav_yaw		= command_yaw_start + ((float)command_yaw_delta * power * command_yaw_dir);
 		nav_yaw		= wrap_360(nav_yaw);
+		auto_yaw 	= nav_yaw;
 		//Serial.printf("ny %ld\n",nav_yaw);
 		return false;
 	}
