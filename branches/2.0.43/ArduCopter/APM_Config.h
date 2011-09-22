@@ -7,11 +7,13 @@
 // some config need for MegaPirateNG 2.0.40
 #define SONAR_TYPE MAX_SONAR_XL // don't change!!!
 #define HIL_MODE HIL_MODE_DISABLED
-#define MAG_ORIENTATION	ROTATION_YAW_270
+
+// MPNG: AP_COMPASS lib make additional ROTATION_YAW_90 for 5883L mag, so in result we have ROTATION_YAW_270 
+#define MAG_ORIENTATION	ROTATION_YAW_180 
 #define GCS_PROTOCOL			GCS_PROTOCOL_MAVLINK
 
 // New in 2.0.43, but unused in MegairateNG
-// Piezo uses AN5 pin in ArduCopter, we uses AN5 for CLI switch
+// MPNG: Piezo uses AN5 pin in ArduCopter, we uses AN5 for CLI switch
 #define PIEZO	DISABLED	
 #define PIEZO_LOW_VOLTAGE	DISABLED
 #define PIEZO_ARMING		DISABLED

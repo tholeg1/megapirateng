@@ -149,7 +149,8 @@ AP_Compass_HMC5843::init()
   byte base_config;  // used to test compass type
   byte calibration_gain = 0x20;
   uint16_t expected_x = 715;
-  uint16_t expected_yz = 715;
+  uint16_t expected_y = 715;
+  uint16_t expected_z = 715;
   float gain_multiple = 1.0;
 
   delay(10);
@@ -165,8 +166,11 @@ AP_Compass_HMC5843::init()
 
 	 product_id = AP_COMPASS_TYPE_HMC5883L;
 	 calibration_gain = 0x60;
+	 
+	 // MPNG: Datasheet for HMC5883L says: 766 for X,Y and 713 for Z, but in read_raw we exch Y and Z
 	 expected_x = 766;
-	 expected_yz  = 713;
+	 expected_y  = 713;
+	 expected_z  = 766;
 	 gain_multiple = 660.0 / 1090; // adjustment for runtime vs calibration gain
 
 	 if (old_product_id != product_id) {
@@ -211,8 +215,8 @@ AP_Compass_HMC5843::init()
 	  float cal[3];
 
 	  cal[0] = fabs(expected_x / (float)mag_x);
-	  cal[1] = fabs(expected_yz / (float)mag_y);
-	  cal[2] = fabs(expected_yz / (float)mag_z);
+	  cal[1] = fabs(expected_y / (float)mag_y);
+	  cal[2] = fabs(expected_z / (float)mag_z);
 
 	  if (cal[0] > 0.7 && cal[0] < 1.3 && 
 		  cal[1] > 0.7 && cal[1] < 1.3 && 
