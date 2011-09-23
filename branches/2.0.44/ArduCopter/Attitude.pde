@@ -25,7 +25,6 @@ get_stabilize_roll(long target_angle)
 
 	// output control:
 	return (int)constrain(rate, -2500, 2500);
-
 }
 
 static int
@@ -100,11 +99,19 @@ get_nav_throttle(long z_error, int target_speed)
 	rate_error 		= target_speed - altitude_rate;
 	rate_error 		= constrain(rate_error, -110, 110);
 
-	long timer				= millis();
-	float delta_throttle	= (float)(timer - throttle_timer)/1000.0;
-	throttle_timer    	= timer;
+	float delta_throttle;
 
-	return g.pi_throttle.get_pi(rate_error, delta_throttle);
+	// is the throttle_timer uninitialized?
+	if(throttle_timer == 0){
+		throttle_timer = millis();
+		delta_throttle = 0;
+	}else{
+	long timer				= millis();
+		delta_throttle	= (float)(timer - throttle_timer)/1000.0;
+	throttle_timer    	= timer;
+	}
+
+	return (int)g.pi_throttle.get_pi(rate_error, delta_throttle);
 }
 
 static int
@@ -174,14 +181,6 @@ static void reset_nav(void)
 throttle control
 ****************************************************************/
 
-// user input:
-// -----------
-//static int get_throttle(int throttle_input)
-//{
-//	throttle_input = (float)throttle_input * angle_boost();
-//	return  max(throttle_input, 0);
-//}
-
 static long
 get_nav_yaw_offset(int yaw_input, int reset)
 {
@@ -217,10 +216,10 @@ static int alt_hold_velocity()
 }
 */
 
-static float get_angle_boost()
+static int get_angle_boost()
 {
 	float temp = cos_pitch_x * cos_roll_x;
 	temp = 2.0 - constrain(temp, .5, 1.0);
-	return temp;
+	return (int)(temp * 50.0);
 }
 

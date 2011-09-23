@@ -1,4 +1,7 @@
-// Example config file. Take a look at confi.h. Any term define there can be overridden by defining it here.
+// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
+
+// Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
+
 
 //#define LED_SEQUENCER ENABLED
 
@@ -18,7 +21,6 @@
 #define PIEZO_LOW_VOLTAGE	DISABLED
 #define PIEZO_ARMING		DISABLED
 
-// GPS is auto-selected
 #define GPS_PROTOCOL GPS_PROTOCOL_NONE
 	/*
 	options:
@@ -59,25 +61,6 @@
 	V_FRAME
 	*/
 
-
-#define CHANNEL_6_TUNING CH6_NONE
-	/*
-	CH6_NONE
-	CH6_STABILIZE_KP
-	CH6_STABILIZE_KI
-	CH6_RATE_KP
-	CH6_RATE_KI
-	CH6_THROTTLE_KP
-	CH6_THROTTLE_KD
-	CH6_YAW_KP
-	CH6_YAW_KI
-	CH6_YAW_RATE_KP
-	CH6_YAW_RATE_KI
-	CH6_TOP_BOTTOM_RATIO
-	CH6_PMAX
-    CH6_RELAY
-    CH6_TRAVERSE_SPEED
-	*/
 
 # define CH7_OPTION		CH7_RTL
 	/*

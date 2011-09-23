@@ -400,7 +400,7 @@
 #endif
 
 #ifndef RTL_THR
-# define RTL_THR			THROTTLE_AUTO
+# define RTL_THR			THROTTLE_HOLD
 #endif
 
 
@@ -410,43 +410,43 @@
 // Attitude Control
 //
 #ifndef STABILIZE_ROLL_P
-# define STABILIZE_ROLL_P 		4.0
+# define STABILIZE_ROLL_P 		4.2
 #endif
 #ifndef STABILIZE_ROLL_I
-# define STABILIZE_ROLL_I 		0.02
+# define STABILIZE_ROLL_I 		0.008
 #endif
 #ifndef STABILIZE_ROLL_IMAX
-# define STABILIZE_ROLL_IMAX 	1.5		// degrees
+# define STABILIZE_ROLL_IMAX 	3		// degrees
 #endif
 
 #ifndef STABILIZE_PITCH_P
-# define STABILIZE_PITCH_P		4.0
+# define STABILIZE_PITCH_P		4.2
 #endif
 #ifndef STABILIZE_PITCH_I
-# define STABILIZE_PITCH_I		0.02
+# define STABILIZE_PITCH_I		0.008
 #endif
 #ifndef STABILIZE_PITCH_IMAX
-# define STABILIZE_PITCH_IMAX	1.5		// degrees
+# define STABILIZE_PITCH_IMAX	3		// degrees
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Rate Control
 //
 #ifndef RATE_ROLL_P
-# define RATE_ROLL_P         0.13
+# define RATE_ROLL_P         0.14
 #endif
 #ifndef RATE_ROLL_I
-# define RATE_ROLL_I         0.0
+# define RATE_ROLL_I         0.18
 #endif
 #ifndef RATE_ROLL_IMAX
 # define RATE_ROLL_IMAX	 	15			// degrees
 #endif
 
 #ifndef RATE_PITCH_P
-# define RATE_PITCH_P       0.13
+# define RATE_PITCH_P       0.14
 #endif
 #ifndef RATE_PITCH_I
-# define RATE_PITCH_I		0.0
+# define RATE_PITCH_I		0.18
 #endif
 #ifndef RATE_PITCH_IMAX
 # define RATE_PITCH_IMAX   	15			// degrees
@@ -492,7 +492,7 @@
 # define LOITER_P			.4		//
 #endif
 #ifndef LOITER_I
-# define LOITER_I			0.04	//
+# define LOITER_I			0.01	//
 #endif
 #ifndef LOITER_IMAX
 # define LOITER_IMAX		12		// degrees°
@@ -516,11 +516,17 @@
 //////////////////////////////////////////////////////////////////////////////
 // Throttle control gains
 //
+
+
+#ifndef THROTTLE_CRUISE
+# define THROTTLE_CRUISE	350			//
+#endif
+
 #ifndef THROTTLE_P
 # define THROTTLE_P		0.6			//
 #endif
 #ifndef THROTTLE_I
-# define THROTTLE_I		0.10		// with 4m error, 12.5s windup
+# define THROTTLE_I		0.02		// with 4m error, 8 PWM gain/s
 #endif
 #ifndef THROTTLE_IMAX
 # define THROTTLE_IMAX		300
@@ -560,11 +566,6 @@
 //
 #ifndef DEBUG_LEVEL
 # define DEBUG_LEVEL SEVERITY_LOW
-#endif
-
-
-#ifndef CHANNEL_6_TUNING
-# define CHANNEL_6_TUNING CH6_NONE
 #endif
 
 
@@ -677,7 +678,7 @@
 #endif
 
 #ifndef ALT_HOLD_HOME
-# define ALT_HOLD_HOME 8
+# define ALT_HOLD_HOME -1
 #endif
 
 #ifndef USE_CURRENT_ALT
