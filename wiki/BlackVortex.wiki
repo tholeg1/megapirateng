@@ -2,14 +2,6 @@
 
 = Introduction =
 
-[COLOR="Blue"][B]SENSORS:[/B][/COLOR]
-HMC5883L         Triple Axis Magnetometer
-BMA180           Triple Axis Accelerometer
-BMP085           Barometric Pressure Sensor
-ITG3200          Triple-Axis Digital-Output Gyro
-NEO-6Q	Ublox GPS receiver
-Atmega2560       16MHz 5V 
-
 
 = Details =
 
