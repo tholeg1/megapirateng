@@ -72,7 +72,9 @@ static void init_ardupilot()
 	#if GPS_PROTOCOL != GPS_PROTOCOL_IMU
 	Serial2.begin(SERIAL2_BAUD, 128, 16);
 	#endif
-
+    #if OSD == ENABLED
+    Serial1.begin(9600);    // OSD
+    #endif
 	Serial.printf_P(PSTR("\n\nInit " THISFIRMWARE
 						 "\n\nFree RAM: %lu\n"),
 						 freeRAM());

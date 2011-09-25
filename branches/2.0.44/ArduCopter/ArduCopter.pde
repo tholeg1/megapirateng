@@ -93,6 +93,9 @@ And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
 // use.
 //
 FastSerialPort0(Serial);        // FTDI/console
+#if OSD == ENABLED
+FastSerialPort1(Serial1);        // OSD
+#endif
 FastSerialPort2(Serial2);       // GPS port
 FastSerialPort3(Serial3);       // Telemetry port
 
@@ -611,6 +614,10 @@ static void fast_loop()
 
 static void medium_loop()
 {
+    // OSD
+	#if OSD == ENABLED
+        osd_heartbeat();
+    #endif
 	// LED Sequencer update at 50Hz
 	#if LED_SEQUENCER == ENABLED
 		sq_led_heartbeat(); 

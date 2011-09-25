@@ -4,6 +4,7 @@
 
 
 //#define LED_SEQUENCER ENABLED
+//#define OSD ENABLED
 
 #define MAX_SONAR_RANGE 400
 
