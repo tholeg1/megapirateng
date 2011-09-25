@@ -1,11 +1,6 @@
-#summary One-sentence summary of this page.
+#Настройка кода для платы Black Vortex.
 
-= Introduction =
-
-
-= Details =
-
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+  * Проверить, что в `librares/AP_ADC/AP_ADC_ADS7844.cpp` строка `#define ALLINONE` раскомменитрована, а строки `//#define FFIMU` и `//#define BMA_020` закомменированы.
+  * В APM_Config задать свою раму и ориентацию (x, +, v).
+  * Там же задать GPS протокол GPS_PROTOCOL GPS_PROTOCOL_NMEA.
+  * Не забыть скопировать boards.txt в arduino-0022/hardware/arduino/
