@@ -19,10 +19,6 @@ extern "C" {
 
 #include "AP_ADC_ADS7844.h"
 
-static volatile uint16_t 		_filter[8][ADC_FILTER_SIZE];
-static volatile uint8_t			_filter_index;
-
-
 //*****************************
 // Select your IMU board type:
 // #define FFIMU
@@ -93,11 +89,12 @@ uint8_t i2c_readNak(void) {
   waitTransmissionI2C();
   return TWDR;
 }
-int     adc_value[8]   = { 0, 0, 0, 0, 0, 0, 0, 0 };
-float     adc_flt[8]   = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+int adc_value[8]   = { 0, 0, 0, 0, 0, 0, 0, 0 };
 int rawADC_ITG3200[6],rawADC_BMA180[6];
 long adc_read_timeout=0;
-static uint32_t last_ch6_micros;
+volatile uint32_t 		last_ch6_micros;
+volatile uint32_t 		last_accel_read_millis;
 
 
 // Constructors ////////////////////////////////////////////////////////////////
@@ -111,7 +108,6 @@ void AP_ADC_ADS7844::Init(void)
  int i;
 i2c_init();
 //=== ITG3200 INIT
-for (i=0;i<8;i++) adc_flt[i]=0;
 
  delay(10);  
   TWBR = ((16000000L / 400000L) - 16) / 2; // change the I2C clock rate to 400kHz
@@ -122,7 +118,7 @@ for (i=0;i<8;i++) adc_flt[i]=0;
   delay(5);
   i2c_rep_start(0xd0+0);  // I2C write direction 
   i2c_write(0x15);                   // register Sample Rate Divider
-  i2c_write(0x4);                    //   7: 1000Hz/(4+1) = 250Hz . 
+  i2c_write(0x3+1);                    //   7: 1000Hz/(3+1) = 250Hz . 
   delay(5);
   i2c_rep_start(0xd0+0);  // I2C write direction 
   i2c_write(0x16);                   // register DLPF_CFG - low pass filter configuration & sample rate
@@ -189,7 +185,9 @@ DDRH |=B01000000;
 PORTB&=B11101111; // B4 -d10 - sonar Echo
 DDRB &=B11101111;
 
+last_accel_read_millis = 0; 
 last_ch6_micros = micros(); 
+
 
 //PORTG|=B00000011; // buttons pullup
 
@@ -240,63 +238,60 @@ static uint8_t i;
   for(i = 0; i< 5; i++) {
   rawADC_ITG3200[i]= i2c_readAck();}
   rawADC_ITG3200[5]= i2c_readNak();
-#ifdef ALLINONE
-  adc_value[0] =  ((rawADC_ITG3200[4]<<8) | rawADC_ITG3200[5]); //g yaw
-  adc_value[1] =  ((rawADC_ITG3200[2]<<8) | rawADC_ITG3200[3]); //g roll
-  adc_value[2] =- ((rawADC_ITG3200[0]<<8) | rawADC_ITG3200[1]); //g pitch
-#endif
-#ifdef FFIMU
-  adc_value[0] =  ((rawADC_ITG3200[4]<<8) | rawADC_ITG3200[5]); //g yaw
-  adc_value[2] =  ((rawADC_ITG3200[2]<<8) | rawADC_ITG3200[3]); //g roll
-  adc_value[1] =  ((rawADC_ITG3200[0]<<8) | rawADC_ITG3200[1]); //g pitch
-#endif
+	#ifdef ALLINONE
+	  adc_value[0] =  ((rawADC_ITG3200[4]<<8) | rawADC_ITG3200[5]); //g yaw
+	  adc_value[1] =  ((rawADC_ITG3200[2]<<8) | rawADC_ITG3200[3]); //g roll
+	  adc_value[2] =- ((rawADC_ITG3200[0]<<8) | rawADC_ITG3200[1]); //g pitch
+	#endif
+	#ifdef FFIMU
+	  adc_value[0] =  ((rawADC_ITG3200[4]<<8) | rawADC_ITG3200[5]); //g yaw
+	  adc_value[2] =  ((rawADC_ITG3200[2]<<8) | rawADC_ITG3200[3]); //g roll
+	  adc_value[1] =  ((rawADC_ITG3200[0]<<8) | rawADC_ITG3200[1]); //g pitch
+	#endif
 
-#ifndef BMA_020
-  i2c_rep_start(BMA180_A);     // I2C write direction BMA 180
-  i2c_write(0x02);         // Start multiple read at reg 0x02 acc_x_lsb
-  i2c_rep_start(BMA180_A +1);  // I2C read direction => 1
-  for( i = 0; i < 5; i++) {
-    rawADC_BMA180[i]=i2c_readAck();}
-  rawADC_BMA180[5]= i2c_readNak();
-#else // BMA020
-  i2c_rep_start(0x70);
-  i2c_write(0x02);
-  i2c_write(0x71);  
-  i2c_rep_start(0x71);
-  for( i = 0; i < 5; i++) {
-    rawADC_BMA180[i]=i2c_readAck();}
-  rawADC_BMA180[5]= i2c_readNak();
-#endif  
-  
-#ifdef ALLINONE
-  adc_value[4] =  ((rawADC_BMA180[3]<<8) | (rawADC_BMA180[2])) >> 2; //a pitch
-  adc_value[5] = -((rawADC_BMA180[1]<<8) | (rawADC_BMA180[0])) >> 2; //a roll
-  adc_value[6] =  ((rawADC_BMA180[5]<<8) | (rawADC_BMA180[4])) >> 2; //a yaw
-#endif
-#ifdef FFIMU
-  adc_value[5] =  ((rawADC_BMA180[3]<<8) | (rawADC_BMA180[2]))/ACC_DIV; //a pitch
-  adc_value[4] =  ((rawADC_BMA180[1]<<8) | (rawADC_BMA180[0]))/ACC_DIV; //a roll
-  adc_value[6] =  ((rawADC_BMA180[5]<<8) | (rawADC_BMA180[4]))/ACC_DIV; //a yaw
-#endif
+	// Accel updates at 10Hz
+	if (millis() - last_accel_read_millis >= 100) 
+	{
+		#ifndef BMA_020
+		  i2c_rep_start(BMA180_A);     // I2C write direction BMA 180
+		  i2c_write(0x02);         // Start multiple read at reg 0x02 acc_x_lsb
+		  i2c_rep_start(BMA180_A +1);  // I2C read direction => 1
+		  for( i = 0; i < 5; i++) {
+		    rawADC_BMA180[i]=i2c_readAck();}
+		  rawADC_BMA180[5]= i2c_readNak();
+		#else // BMA020
+		  i2c_rep_start(0x70);
+		  i2c_write(0x02);
+		  i2c_write(0x71);  
+		  i2c_rep_start(0x71);
+		  for( i = 0; i < 5; i++) {
+		    rawADC_BMA180[i]=i2c_readAck();}
+		  rawADC_BMA180[5]= i2c_readNak();
+		#endif  
+		  
+		#ifdef ALLINONE
+		  adc_value[4] =  ((rawADC_BMA180[3]<<8) | (rawADC_BMA180[2])) >> 2; //a pitch
+		  adc_value[5] = -((rawADC_BMA180[1]<<8) | (rawADC_BMA180[0])) >> 2; //a roll
+		  adc_value[6] =  ((rawADC_BMA180[5]<<8) | (rawADC_BMA180[4])) >> 2; //a yaw
+		#endif
+		#ifdef FFIMU
+		  adc_value[5] =  ((rawADC_BMA180[3]<<8) | (rawADC_BMA180[2])) >> 2; //a pitch
+		  adc_value[4] =  ((rawADC_BMA180[1]<<8) | (rawADC_BMA180[0])) >> 2; //a roll
+		  adc_value[6] =  ((rawADC_BMA180[5]<<8) | (rawADC_BMA180[4])) >> 2; //a yaw
+		#endif
+		last_accel_read_millis = millis();
+	}
 }
 
-// Read one channel value
+// Read one channel value, actually it uses to read only Sonar data
 int AP_ADC_ADS7844::Ch(unsigned char ch_num)         
 {char i;int flt;
-	if (ch_num==7) { //ch7 is occupied by Differential pressure sensor
-			if ( (sonar_data < 354) && (pre_sonar_data > 0) ) {	//wrong data from sonar (3cm * 118 = 354), use previous value
-				sonar_data=pre_sonar_data;
-			} else {
-				pre_sonar_data=sonar_data;
-			}
-			return(sonar_data / 118); // Magic conversion sonar_data to cm
-	} else  { // channels 0..6
-		if ( (millis()-adc_read_timeout )  > 2 )  //each read is spaced by 3ms else place old values
-		{  adc_read_timeout = millis();
-			i2c_ACC_getADC ();
+		if ( (sonar_data < 354) && (pre_sonar_data > 0) ) {	//wrong data from sonar (3cm * 118 = 354), use previous value
+			sonar_data=pre_sonar_data;
+		} else {
+			pre_sonar_data=sonar_data;
 		}
-		return(adc_value[ch_num]);
-	}
+		return(sonar_data / 118); // Magic conversion sonar_data to cm
 }
 
 // Read 6 channel values
@@ -308,5 +303,9 @@ uint32_t AP_ADC_ADS7844::Ch6(const uint8_t *channel_numbers, int *result)
 		result[i] = adc_value[channel_numbers[i]];
 	}
 	
-	return 4000; // Gyro sample rate 250Hz
+	// return number of microseconds since last call
+	uint32_t us = micros();
+	uint32_t ret = us - last_ch6_micros;
+	last_ch6_micros = us;
+	return ret; 
 }

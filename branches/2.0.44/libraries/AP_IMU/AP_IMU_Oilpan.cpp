@@ -232,12 +232,6 @@ AP_IMU_Oilpan::_sensor_in(uint8_t channel, int adc_value)
         adc_in = adc_in - _sensor_cal[channel];
     }
 
-    // constrain sensor readings to the sensible range
-    //
-    if (fabs(adc_in) > _adc_constraint) {
-        adc_constraints++;                                              // We keep track of the number of times
-        adc_in = constrain(adc_in, -_adc_constraint, _adc_constraint);    // Throw out nonsensical values
-    }
     return adc_in;
 }
 

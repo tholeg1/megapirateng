@@ -14,7 +14,7 @@ static int8_t	setup_batt_monitor		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_sonar				(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_compass			(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_tune				(uint8_t argc, const Menu::arg *argv);
-//static int8_t	setup_mag_offset		(uint8_t argc, const Menu::arg *argv);
+static int8_t	setup_mag_offset		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_declination		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_esc				(uint8_t argc, const Menu::arg *argv);
 #ifdef OPTFLOW_ENABLED
@@ -44,7 +44,7 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
 	{"sonar",			setup_sonar},
 	{"compass",			setup_compass},
 	{"tune",			setup_tune},
-//	{"offsets",			setup_mag_offset},
+	{"offsets",			setup_mag_offset},
 	{"declination",		setup_declination},
 #ifdef OPTFLOW_ENABLED
 	{"optflow",			setup_optflow},
@@ -713,7 +713,7 @@ static void clear_offsets()
 	compass.save_offsets();
 }
 
-/*static int8_t
+static int8_t
 setup_mag_offset(uint8_t argc, const Menu::arg *argv)
 {
 	Vector3f _offsets;
@@ -775,7 +775,6 @@ setup_mag_offset(uint8_t argc, const Menu::arg *argv)
 	}
 	return 0;
 }
-*/
 
 #ifdef OPTFLOW_ENABLED
 static int8_t

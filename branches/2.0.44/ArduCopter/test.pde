@@ -356,19 +356,31 @@ test_stabilize(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_adc(uint8_t argc, const Menu::arg *argv)
 {
+	const uint8_t _sensors[6] = { 0, 1, 2, 4, 5, 6};	// Channel assignments on the APM oilpan 
+  int adc_values[6]; 
+	uint32_t       _sample_time; 
+	uint32_t time_fast = micros();
+	uint32_t time_slow = millis(); 
+		
 	print_hit_enter();
 	Serial.printf_P(PSTR("ADC\n"));
 	delay(1000);
 
 	while(1){
-		for(int i = 0; i < 9; i++){
-			Serial.printf_P(PSTR("%d,"),adc.Ch(i));
+		if (micros() - time_fast >= 4000)
+		{ 
+			_sample_time = adc.Ch6(_sensors, adc_values);
 		}
-		Serial.println();
-		delay(20);
-		if(Serial.available() > 0){
-			return (0);
-		}
+		
+		if (millis() - time_slow >= 500)
+		{ // 500ms
+			Serial.printf_P(PSTR("dT=%luus Gyr:(%d,%d,%d) Accel:(%d,%d,%d)\n"),_sample_time, adc_values[0],adc_values[1],adc_values[2],adc_values[3],adc_values[4],adc_values[5]);
+			if(Serial.available() > 0)
+			{
+				return (0);
+			}
+			time_slow = millis();
+		} 
 	}
 }
 #endif
