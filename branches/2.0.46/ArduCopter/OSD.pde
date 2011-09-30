@@ -1,3 +1,4 @@
+#if OSD == ENABLED
 #define sport Serial1
 byte osd_pak=0;
 byte osd_sync=0xcb;
@@ -104,5 +105,5 @@ void spp_writes(int in)
 sport.write((char)(in>>8));  
 sport.write((char)(in&255));  
 }
-
+#endif
 
