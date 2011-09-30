@@ -44,7 +44,7 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
 	{"sonar",			setup_sonar},
 	{"compass",			setup_compass},
 	{"tune",			setup_tune},
-	{"offsets",			setup_mag_offset},
+//	{"offsets",			setup_mag_offset},
 	{"declination",		setup_declination},
 #ifdef OPTFLOW_ENABLED
 	{"optflow",			setup_optflow},
@@ -512,6 +512,7 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 	Serial.printf_P(PSTR("\tm\t\tset roll, pitch, coll min/max\n"));
 	Serial.printf_P(PSTR("\tp<angle>\tset pos (i.e. p0 = front, p90 = right)\n"));
 	Serial.printf_P(PSTR("\tr\t\treverse servo\n"));
+	Serial.printf_P(PSTR("\tu a|d\t\tupdate rate (a=analog servo, d=digital)\n"));
 	Serial.printf_P(PSTR("\tt<angle>\tset trim (-500 ~ 500)\n"));
 	Serial.printf_P(PSTR("\tx\t\texit & save\n"));
 
@@ -573,7 +574,7 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 				case 'M':
 				    if( state == 0 ) {
 					    state = 1;  // switch to capture min/max mode
-						Serial.printf_P(PSTR("Move coll, roll, pitch and tail to extremes, press 'm' when done\n"),active_servo+1, temp);
+						Serial.printf_P(PSTR("Move coll, roll, pitch and tail to extremes, press 'm' when done\n"));
 
 						// reset servo ranges
 						g.heli_roll_max = g.heli_pitch_max = 4500;
@@ -638,6 +639,26 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 						Serial.printf_P(PSTR("Servo %d\t\ttrim:%d\n"),active_servo+1, 1500 + temp);
 					}
 					break;
+				case 'u':
+				case 'U':
+				    temp = 0;
+					// delay up to 2 seconds for servo type from user
+					while( !Serial.available() && temp < 20 ) {
+					    temp++;
+					    delay(100);
+					}
+					if( Serial.available() ) {
+					    value = Serial.read();
+						if( value == 'a' || value == 'A' ) {
+							g.heli_servo_averaging = HELI_SERVO_AVERAGING_ANALOG;
+							Serial.printf_P(PSTR("Analog Servo %dhz\n"),250 / HELI_SERVO_AVERAGING_ANALOG);
+						}
+						if( value == 'd' || value == 'D' ) {
+							g.heli_servo_averaging = HELI_SERVO_AVERAGING_DIGITAL;
+							Serial.printf_P(PSTR("Digital Servo 250hz\n"));
+						}
+					}
+					break;
 				case 'z':
 				case 'Z':
 					heli_get_servo(active_servo)->radio_trim -= 10;
@@ -667,6 +688,7 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 	g.heli_coll_min.save();
 	g.heli_coll_max.save();
 	g.heli_coll_mid.save();
+	g.heli_servo_averaging.save();
 
 	// return swash plate movements to attitude controller
 	heli_manual_override = false;
@@ -713,7 +735,7 @@ static void clear_offsets()
 	compass.save_offsets();
 }
 
-static int8_t
+/*static int8_t
 setup_mag_offset(uint8_t argc, const Menu::arg *argv)
 {
 	Vector3f _offsets;
@@ -775,6 +797,7 @@ setup_mag_offset(uint8_t argc, const Menu::arg *argv)
 	}
 	return 0;
 }
+*/
 
 #ifdef OPTFLOW_ENABLED
 static int8_t
@@ -939,6 +962,8 @@ void report_optflow()
 #if FRAME_CONFIG == HELI_FRAME
 static void report_heli()
 {
+    int servo_rate;
+	
 	Serial.printf_P(PSTR("Heli\n"));
 	print_divider();
 
@@ -952,6 +977,14 @@ static void report_heli()
 	Serial.printf_P(PSTR("roll max: \t%d\n"), (int)g.heli_roll_max);
 	Serial.printf_P(PSTR("pitch max: \t%d\n"), (int)g.heli_pitch_max);
 	Serial.printf_P(PSTR("coll min:\t%d\t mid:%d\t max:%d\n"),(int)g.heli_coll_min, (int)g.heli_coll_mid, (int)g.heli_coll_max);
+
+	// calculate and print servo rate
+	if( g.heli_servo_averaging <= 1 ) {
+	    servo_rate = 250;
+	} else {
+	    servo_rate = 250 / g.heli_servo_averaging;
+	}
+	Serial.printf_P(PSTR("servo rate:\t%d hz\n"),servo_rate);
 
 	print_blanks(2);
 }

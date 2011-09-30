@@ -63,7 +63,7 @@
 	*/
 
 
-# define CH7_OPTION		CH7_RTL
+# define CH7_OPTION		CH7_DO_NOTHING
 	/*
 	CH7_DO_NOTHING
 	CH7_SET_HOVER
@@ -71,7 +71,12 @@
 	CH7_SIMPLE_MODE
 	CH7_RTL
 	CH7_AUTO_TRIM
+	CH7_ADC_FILTER (experimental)
 	*/
+
+#define ACCEL_ALT_HOLD 0
+#define ACCEL_ALT_HOLD_GAIN 12.0
+// ACCEL_ALT_HOLD 1 to enable experimental alt_hold_mode
 
 // See the config.h and defines.h files for how to set this up!
 //
@@ -79,3 +84,6 @@
 // lets use Manual throttle during Loiter
 //#define LOITER_THR			THROTTLE_MANUAL
 # define RTL_YAW 			YAW_HOLD
+
+//#define RATE_ROLL_I 	0.18
+//#define RATE_PITCH_I	0.18

@@ -70,11 +70,13 @@ static void init_ardupilot()
 	// on the message set configured.
 	//
 	#if GPS_PROTOCOL != GPS_PROTOCOL_IMU
-	Serial2.begin(SERIAL2_BAUD, 128, 16);
+		Serial2.begin(SERIAL2_BAUD, 128, 16);
 	#endif
-    #if OSD == ENABLED
-    Serial1.begin(9600);    // OSD
-    #endif
+	
+  #if OSD == ENABLED
+	  Serial1.begin(9600);    // OSD
+	#endif
+	
 	Serial.printf_P(PSTR("\n\nInit " THISFIRMWARE
 						 "\n\nFree RAM: %lu\n"),
 						 freeRAM());
@@ -174,6 +176,9 @@ static void init_ardupilot()
     #if FRAME_CONFIG ==	HELI_FRAME
 		heli_init_swash();  // heli initialisation
 	#endif
+
+	// begin filtering the ADC Gyros
+	adc.filter_result = true;
 
 	init_rc_in();		// sets up rc channels from radio
 	init_rc_out();		// sets up the timer libs
@@ -425,6 +430,14 @@ static void set_mode(byte mode)
 			next_WP = current_loc;
 			break;
 
+		case POSITION:
+			yaw_mode 		= YAW_HOLD;
+			roll_pitch_mode = ROLL_PITCH_AUTO;
+			throttle_mode 	= THROTTLE_MANUAL;
+
+			next_WP = current_loc;
+			break;
+
 		case GUIDED:
 			yaw_mode 		= YAW_AUTO;
 			roll_pitch_mode = ROLL_PITCH_AUTO;
@@ -480,14 +493,6 @@ static void set_failsafe(boolean mode)
 	}
 }
 
-
-
-static void resetPerfData(void) {
-	//mainLoop_count 		= 0;
-	G_Dt_max 			= 0;
-	gps_fix_count 		= 0;
-	perf_mon_timer 		= millis();
-}
 
 static void
 init_compass()

@@ -24,7 +24,7 @@ static void handle_process_must()
 			break;
 
 		case MAV_CMD_NAV_LOITER_TURNS:	// Loiter N Times
-			//do_loiter_turns();
+			do_loiter_turns();
 			break;
 
 		case MAV_CMD_NAV_LOITER_TIME:  // 19
@@ -75,7 +75,7 @@ static void handle_process_now()
 			break;
 
 		case MAV_CMD_DO_CHANGE_SPEED:
-			//do_change_speed();
+			do_change_speed();
 			break;
 
 		case MAV_CMD_DO_SET_HOME:
@@ -193,6 +193,7 @@ static bool verify_may()
 
 static void do_RTL(void)
 {
+	// TODO: Altitude option from mission planner
 	Location temp	= home;
 	temp.alt		= read_alt_to_hold();
 
@@ -310,9 +311,15 @@ static void do_loiter_turns()
 
 static void do_loiter_time()
 {
+	if(next_command.lat == 0){
 	wp_control = LOITER_MODE;
+		loiter_time 	= millis();
 	set_next_WP(&current_loc);
-	loiter_time 	= millis();
+	}else{
+		wp_control 		= WP_MODE;
+		set_next_WP(&next_command);
+	}
+
 	loiter_time_max = next_command.p1 * 1000; // units are (seconds)
 }
 
@@ -350,6 +357,10 @@ static bool verify_land()
 
 	if(g.sonar_enabled){
 		// decide which sensor we're using
+		if(sonar_alt < 300){
+			next_WP = current_loc; // don't pitch or roll
+			next_WP.alt = -200; // force us down
+		}
 		if(sonar_alt < 40){
 			land_complete = true;
 			//Serial.println("Y");
@@ -424,8 +435,16 @@ static bool verify_loiter_unlim()
 
 static bool verify_loiter_time()
 {
+	if(wp_control == LOITER_MODE){
 	if ((millis() - loiter_time) > loiter_time_max) {
 		return true;
+	}
+	}
+	if(wp_control == WP_MODE &&  wp_distance <= g.waypoint_radius){
+		// reset our loiter time
+		loiter_time = millis();
+		// switch to position hold
+		wp_control 	= LOITER_MODE;
 	}
 	return false;
 }
@@ -447,7 +466,7 @@ static bool verify_loiter_turns()
 static bool verify_RTL()
 {
 	if (wp_distance <= g.waypoint_radius) {
-		gcs.send_text_P(SEVERITY_LOW,PSTR("Reached home"));
+		//gcs.send_text_P(SEVERITY_LOW,PSTR("Reached home"));
 		return true;
 	}else{
 		return false;
@@ -490,9 +509,9 @@ static void do_yaw()
 	command_yaw_start_time	= millis();
 
 	command_yaw_dir			= next_command.p1;		// 1 = clockwise,	 0 = counterclockwise
+	command_yaw_speed		= next_command.lat * 100; // ms * 100
 	command_yaw_relative	= next_command.lng;		// 1 = Relative,	 0 = Absolute
 
-	command_yaw_speed		= next_command.lat * 100; // ms * 100
 
 
 	// if unspecified go 30° a second
@@ -609,6 +628,11 @@ static bool verify_yaw()
 //	Do (Now) commands
 /********************************************************************************/
 
+static void do_change_speed()
+{
+	g.waypoint_speed_max = next_command.p1 * 100;
+}
+
 static void do_target_yaw()
 {
 	yaw_tracking = next_command.p1;
@@ -626,16 +650,24 @@ static void do_loiter_at_location()
 static void do_jump()
 {
 	struct Location temp;
-	if(next_command.lat > 0) {
+	if(jump == -10){
+		jump = next_command.lat;
+	}
 
+	if(jump > 0) {
+		jump--;
 		command_must_index 	= 0;
 		command_may_index 	= 0;
-		temp				= get_command_with_index(g.waypoint_index);
-		temp.lat			= next_command.lat - 1;					// Decrement repeat counter
 
-		set_command_with_index(temp, g.waypoint_index);
+		// set pointer to desired index
 		g.waypoint_index 	= next_command.p1 - 1;
-	} else if (next_command.lat == -1) {
+
+	} else if (jump == 0){
+		// we're done, move along
+		jump = -10;
+
+	} else if (jump == -1) {
+		// repeat forever
 	    g.waypoint_index 	= next_command.p1 - 1;
 	}
 }
@@ -676,9 +708,9 @@ static void do_repeat_servo()
 	if(next_command.p1 >= CH_5 + 1 && next_command.p1 <= CH_8 + 1) {
 
 		event_timer		= 0;
-		event_delay		= next_command.lng * 500.0; // /2 (half cycle time) * 1000 (convert to milliseconds)
-		event_repeat	= next_command.lat * 2;
 		event_value		= next_command.alt;
+		event_repeat	= next_command.lat * 2;
+		event_delay		= next_command.lng * 500.0; // /2 (half cycle time) * 1000 (convert to milliseconds)
 
 		switch(next_command.p1) {
 			case CH_5:

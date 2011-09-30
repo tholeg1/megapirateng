@@ -74,7 +74,7 @@ AP_IMU_Oilpan::_init_gyro(void (*callback)(unsigned long t))
  	callback(500);
 	Serial.printf_P(PSTR("Init Gyro"));
 
-	for(int c = 0; c < 5; c++){				// Mostly we are just flashing the LED's here to tell the user to keep the IMU still
+	for(int c = 0; c < 25; c++){				// Mostly we are just flashing the LED's here to tell the user to keep the IMU still
 		digitalWrite(A_LED_PIN, LOW);
 		digitalWrite(C_LED_PIN, HIGH);
 		callback(20);
