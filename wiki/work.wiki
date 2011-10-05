@@ -1,11 +1,8 @@
 #summary Our current work (ToDo list)
 
-= Sensors =
-  * improve cheap sonar reading - *ready, in testing*
-  * filter for sonar values - *ready, not needed anymore*
-
-= GPS =
-  * i2c GPS on AllInOne2 board - *ready, in testing*
+= Hardware =
+  * Support for Remzibi OSD (If we will bought it)
+  * GPS via Bluetooth - in progress (BC-04 + Nokia LD3W)
 
 = CLI =
   * more features in CLI
