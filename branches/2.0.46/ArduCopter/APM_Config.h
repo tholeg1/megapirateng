@@ -2,10 +2,7 @@
 
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
-
-//#define LED_SEQUENCER ENABLED
-//#define OSD ENABLED
-
+#define LED_SEQUENCER ENABLED
 #define MAX_SONAR_RANGE 400
 
 // some config need for MegaPirateNG 2.0.40
@@ -16,13 +13,20 @@
 #define MAG_ORIENTATION	ROTATION_YAW_180 
 #define GCS_PROTOCOL			GCS_PROTOCOL_MAVLINK
 
+#define OSD_PROTOCOL OSD_PROTOCOL_NONE
+	/*
+		OSD_PROTOCOL_NONE
+		OSD_PROTOCOL_SYBERIAN
+		OSD_PROTOCOL_REMZIBI
+	*/
+
 // New in 2.0.43, but unused in MegairateNG
 // MPNG: Piezo uses AN5 pin in ArduCopter, we uses AN5 for CLI switch
 #define PIEZO	DISABLED	
 #define PIEZO_LOW_VOLTAGE	DISABLED
 #define PIEZO_ARMING		DISABLED
 
-#define GPS_PROTOCOL GPS_PROTOCOL_NONE
+#define GPS_PROTOCOL GPS_PROTOCOL_NMEA
 	/*
 	options:
 	GPS_PROTOCOL_NONE 	without GPS
@@ -36,9 +40,10 @@
 	GPS_PROTOCOL_AUTO	auto select GPS
 	GPS_PROTOCOL_UBLOX_I2C
 	*/
-#define SERIAL0_BAUD			115200	// If one want a wireless modem (like APC220) on the console port, lower that to 57600. Default is 115200 
+#define SERIAL0_BAUD			 115200	// If one want a wireless modem (like APC220) on the console port, lower that to 57600. Default is 115200 
 #define SERIAL2_BAUD			 38400	// GPS port bps
 #define SERIAL3_BAUD			 57600	// default telemetry BPS rate = 57600
+#define INIT_BLUETOOTH_GPS 0
 
 #define CLI_ENABLED ENABLED
 

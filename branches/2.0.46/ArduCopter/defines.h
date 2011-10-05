@@ -88,6 +88,11 @@
 #define MAX_SONAR_UNKNOWN	0
 #define MAX_SONAR_XL		1
 
+// OSD Types
+#define	OSD_PROTOCOL_NONE 0
+#define	OSD_PROTOCOL_SYBERIAN 1
+#define	OSD_PROTOCOL_REMZIBI 2
+
 #define CH_ROLL CH_1
 #define CH_PITCH CH_2
 #define CH_THROTTLE CH_3

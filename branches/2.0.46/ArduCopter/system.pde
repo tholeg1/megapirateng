@@ -73,10 +73,6 @@ static void init_ardupilot()
 		Serial2.begin(SERIAL2_BAUD, 128, 16);
 	#endif
 	
-  #if OSD == ENABLED
-	  Serial1.begin(9600);    // OSD
-	#endif
-	
 	Serial.printf_P(PSTR("\n\nInit " THISFIRMWARE
 						 "\n\nFree RAM: %lu\n"),
 						 freeRAM());
@@ -189,7 +185,27 @@ static void init_ardupilot()
 		barometer.Init();	// APM Abs Pressure sensor initialization
 	#endif
 
-	// Do GPS init
+	// Init Bluetooth BC-04, for test only
+	#if INIT_BLUETOOTH_GPS == 1
+		digitalWrite(B_LED_PIN, HIGH);
+		Serial2.flush();
+		Serial2.print("AT+INIT\r\n");
+		while (!Serial2.available()){ 
+			delay(20);
+		}
+		Serial2.flush();
+		Serial2.print("AT+PAIR=2,76,C8FDC7\r\n");
+		while (!Serial2.available()){ 
+			delay(20);
+		}
+		Serial2.flush();
+		Serial2.print("AT+LINK=2,76,C8FDC7\r\n");
+		while (!Serial2.available()){ 
+			delay(20);
+		}
+		Serial2.flush();
+		digitalWrite(B_LED_PIN, LOW);
+	#endif
 	g_gps = &g_gps_driver;
 	g_gps->init();			// GPS Initialization
     g_gps->callback = mavlink_delay;
@@ -201,6 +217,10 @@ static void init_ardupilot()
 		gcs.init(&Serial);
 	#endif
 
+	#if OSD_PROTOCOL != OSD_PROTOCOL_NONE
+		osd_init();
+	#endif
+	
 	// init the HIL
 	#if HIL_MODE != HIL_MODE_DISABLED
 		#if HIL_PORT == 3

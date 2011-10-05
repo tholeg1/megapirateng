@@ -70,6 +70,9 @@ static void arm_motors()
 						init_barometer();
 					#endif
 
+					#if OSD_PROTOCOL == OSD_PROTOCOL_REMZIBI
+						osd_init_home();
+					#endif
 					// temp hack
 					motor_light = true;
 					digitalWrite(A_LED_PIN, HIGH);

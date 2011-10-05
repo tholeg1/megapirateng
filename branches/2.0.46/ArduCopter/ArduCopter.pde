@@ -93,8 +93,8 @@ And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
 // use.
 //
 FastSerialPort0(Serial);        // FTDI/console
-#if OSD == ENABLED
-	FastSerialPort1(Serial1);        // OSD
+#if OSD_PROTOCOL != OSD_PROTOCOL_NONE
+	FastSerialPort1(Serial1);        // OSD port
 #endif
 FastSerialPort2(Serial2);       // GPS port
 FastSerialPort3(Serial3);       // Telemetry port
@@ -603,9 +603,9 @@ static void fast_loop()
 
 static void medium_loop()
 {
-	// OSD
- 	#if OSD == ENABLED
- 		osd_heartbeat();
+	// OSD heartbeat at 50Hz
+	#if OSD_PROTOCOL != OSD_PROTOCOL_NONE
+ 		osd_heartbeat_50Hz();
 	#endif
 	
 	// LED Sequencer update at 50Hz
@@ -835,6 +835,11 @@ static void fifty_hz_loop()
 
 static void slow_loop()
 {
+	// OSD heartbeat at 10Hz
+	#if OSD_PROTOCOL != OSD_PROTOCOL_NONE
+ 		osd_heartbeat_10Hz();
+	#endif
+	
 	// This is the slow (3 1/3 Hz) loop pieces
 	//----------------------------------------
 	switch (slow_loopCounter){

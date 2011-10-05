@@ -42,7 +42,9 @@ mw: 0,1,3,4,5,6 - motors
 
 //#define TX_set1				//Graupner/Spektrum					PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 
-//#define TX_standard				//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
+//#define TX_standard				//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
+
+//#define TX_standard_mode6				//standard, Mode channel is 6  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,AUX1,MODE,CAMPITCH,CAMROLL
 
 //#define TX_set2				// some Hitec/Sanwa/others				PITCH,ROLL,THROTTLE,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
 
@@ -187,6 +189,9 @@ static uint8_t pinRcChannel[8] = {1, 3, 2, 0, 4,5,6,7}; //Graupner/Spektrum
 #endif
 #ifdef TX_standard
 static uint8_t pinRcChannel[8] = {0, 1, 2, 3, 4,5,6,7}; //standard  PPM layout Robbe/Hitec/Sanwa
+#endif
+#ifdef TX_standard_mode6
+static uint8_t pinRcChannel[8] = {0, 1, 2, 3, 5,4,6,7}; //standard layout with swapped 5,6 channels (Mode switch on 6 channel)
 #endif
 #ifdef TX_set2
 static uint8_t pinRcChannel[8] = {1, 0, 2, 3, 4,5,6,7}; // some Hitec/Sanwa/others
