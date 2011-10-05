@@ -2,6 +2,7 @@
 
 = Hardware =
   * Support for Remzibi OSD (If we will bought it)
+  * Support for logging into flash memory or SD cards
   * GPS via Bluetooth - in progress (BC-04 + Nokia LD3W)
 
 = CLI =
