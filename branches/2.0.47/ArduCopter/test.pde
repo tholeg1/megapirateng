@@ -29,7 +29,7 @@ static int8_t	test_sonar(uint8_t argc, 		const Menu::arg *argv);
 #ifdef OPTFLOW_ENABLED
 static int8_t	test_optflow(uint8_t argc, 		const Menu::arg *argv);
 #endif
-static int8_t	test_xbee(uint8_t argc, 		const Menu::arg *argv);
+//static int8_t	test_xbee(uint8_t argc, 		const Menu::arg *argv);
 static int8_t	test_eedump(uint8_t argc, 		const Menu::arg *argv);
 static int8_t	test_rawgps(uint8_t argc, 		const Menu::arg *argv);
 //static int8_t	test_mission(uint8_t argc, 		const Menu::arg *argv);
@@ -80,7 +80,7 @@ const struct Menu::command test_menu_commands[] PROGMEM = {
 #ifdef OPTFLOW_ENABLED
 	{"optflow",		test_optflow},
 #endif
-	{"xbee",		test_xbee},
+//  {"xbee",		test_xbee},
 	{"eedump",		test_eedump},
 	{"rawgps",		test_rawgps},
 //	{"mission",		test_mission},
@@ -442,9 +442,6 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 	while(1){
 		//delay(20);
 		if (millis() - fast_loopTimer >= 5) {
-			//delta_ms_fast_loop 	= millis() - fast_loopTimer;
-			//G_Dt 				= (float)delta_ms_fast_loop / 1000.f;		// used by DCM integrator
-			//fast_loopTimer		= millis();
 
 			// IMU
 			// ---
@@ -463,7 +460,7 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 			}
 
 			if(medium_loopCounter == 20){
-				read_radio();
+				//read_radio();
 				medium_loopCounter = 0;
 				//tuning();
 				//dcm.kp_roll_pitch((float)g.rc_6.control_in / 2000.0);
@@ -727,14 +724,14 @@ test_relay(uint8_t argc, const Menu::arg *argv)
 
 	while(1){
 		Serial.printf_P(PSTR("Relay on\n"));
-		relay_on();
+		relay.on();
 		delay(3000);
 		if(Serial.available() > 0){
 			return (0);
 		}
 
 		Serial.printf_P(PSTR("Relay off\n"));
-		relay_off();
+		relay.off();
 		delay(3000);
 		if(Serial.available() > 0){
 			return (0);
@@ -779,7 +776,7 @@ static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
    }
  }
 
-static int8_t
+/*static int8_t
 test_xbee(uint8_t argc, const Menu::arg *argv)
 {
 	print_hit_enter();
@@ -795,6 +792,7 @@ test_xbee(uint8_t argc, const Menu::arg *argv)
 		}
 	}
 }
+*/
 
 #if HIL_MODE != HIL_MODE_ATTITUDE
 static int8_t

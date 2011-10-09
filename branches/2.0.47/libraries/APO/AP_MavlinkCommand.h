@@ -50,7 +50,7 @@ public:
 	 * Constructor for copying/ saving from a mavlink waypoint.
 	 * @param cmd The mavlink_waopint_t structure for the command.
 	 */
-	AP_MavlinkCommand(mavlink_waypoint_t cmd);
+	AP_MavlinkCommand(const mavlink_waypoint_t & cmd);
 
 	bool save() {
 		return _data.save();
@@ -64,7 +64,7 @@ public:
 	bool getAutocontinue() const {
 		return _data.get().autocontinue;
 	}
-	void setAutocontinue(bool val) {
+	void setAutocontinue( bool val) {
 		_data.get().autocontinue = val;
 	}
 	void setSeq(uint8_t val) {
@@ -131,6 +131,7 @@ public:
 			return getX();
 			break;
 		case MAV_FRAME_LOCAL:
+		case MAV_FRAME_LOCAL_ENU:
 		case MAV_FRAME_MISSION:
 		default:
 			return 0;
@@ -144,6 +145,7 @@ public:
 			setX(val);
 			break;
 		case MAV_FRAME_LOCAL:
+		case MAV_FRAME_LOCAL_ENU:
 		case MAV_FRAME_MISSION:
 		default:
 			break;
@@ -156,6 +158,7 @@ public:
 			return getY();
 			break;
 		case MAV_FRAME_LOCAL:
+		case MAV_FRAME_LOCAL_ENU:
 		case MAV_FRAME_MISSION:
 		default:
 			return 0;
@@ -169,6 +172,7 @@ public:
 			setY(val);
 			break;
 		case MAV_FRAME_LOCAL:
+		case MAV_FRAME_LOCAL_ENU:
 		case MAV_FRAME_MISSION:
 		default:
 			break;
@@ -205,6 +209,9 @@ public:
 			break;
 		case MAV_FRAME_GLOBAL_RELATIVE_ALT:
 		case MAV_FRAME_LOCAL:
+			return -getZ() + home.getAlt();
+			break;
+		case MAV_FRAME_LOCAL_ENU:
 			return getZ() + home.getAlt();
 			break;
 		case MAV_FRAME_MISSION:
@@ -223,6 +230,9 @@ public:
 			setZ(val);
 			break;
 		case MAV_FRAME_LOCAL:
+			setZ(home.getLonDeg() - val);
+			break;
+		case MAV_FRAME_LOCAL_ENU:
 			setZ(val - home.getLonDeg());
 			break;
 		case MAV_FRAME_MISSION:
@@ -241,6 +251,9 @@ public:
 			break;
 		case MAV_FRAME_GLOBAL_RELATIVE_ALT:
 		case MAV_FRAME_LOCAL:
+			return -getZ();
+			break;
+		case MAV_FRAME_LOCAL_ENU:
 			return getZ();
 			break;
 		case MAV_FRAME_MISSION:
@@ -250,7 +263,7 @@ public:
 		}
 	}
 	/**
-	 * set the relative altitude in meters from home
+	 * set the relative altitude in meters from home (up)
 	 */
 	void setRelAlt(float val) {
 		switch (getFrame()) {
@@ -259,6 +272,9 @@ public:
 			break;
 		case MAV_FRAME_GLOBAL_RELATIVE_ALT:
 		case MAV_FRAME_LOCAL:
+			setZ(-val);
+			break;
+		case MAV_FRAME_LOCAL_ENU:
 			setZ(val);
 			break;
 		case MAV_FRAME_MISSION:
@@ -278,14 +294,14 @@ public:
 	 * conversion for outbound packets to ground station
 	 * @return output the mavlink_waypoint_t packet
 	 */
-	mavlink_waypoint_t convert(uint8_t current);
+	mavlink_waypoint_t convert(uint8_t current) const;
 
 	/**
 	 * Calculate the bearing from this command to the next command
 	 * @param next The command to calculate the bearing to.
 	 * @return the bearing
 	 */
-	float bearingTo(AP_MavlinkCommand next) const;
+	float bearingTo(const AP_MavlinkCommand & next) const;
 
 	/**
 	 * Bearing form this command to a gps coordinate in integer units
@@ -300,7 +316,7 @@ public:
 	 * @param next The command to measure to.
 	 * @return The distance in meters.
 	 */
-	float distanceTo(AP_MavlinkCommand next) const;
+	float distanceTo(const AP_MavlinkCommand & next) const;
 
 	/**
 	 * Distance to a gps coordinate in integer units
@@ -347,10 +363,10 @@ public:
 	}
 
 	//calculates cross track of a current location
-	float crossTrack(AP_MavlinkCommand previous, int32_t lat_degInt, int32_t lon_degInt);
+	float crossTrack(const AP_MavlinkCommand & previous, int32_t lat_degInt, int32_t lon_degInt) const;
 
 	// calculates along  track distance of a current location
-	float alongTrack(AP_MavlinkCommand previous, int32_t lat_degInt, int32_t lon_degInt);
+	float alongTrack(const AP_MavlinkCommand & previous, int32_t lat_degInt, int32_t lon_degInt) const;
 };
 
 } // namespace apo

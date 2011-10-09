@@ -61,7 +61,7 @@ mw: 0,1,3,4,5,6 - motors
 volatile unsigned int ICR4_old;
 volatile unsigned char PPM_Counter=0;
 volatile uint16_t PWM_RAW[8] = {2400,2400,2400,2400,2400,2400,2400,2400};
-volatile unsigned char radio_status=0;
+volatile uint8_t radio_status=0;
 
 
 // ******************
@@ -364,9 +364,7 @@ Example: FLDW - front-left lower motor with clockwise rotation (Y6 or Y4)
 
 */
 
-
-
-void APM_RC_Class::OutputCh(unsigned char ch, uint16_t pwm)
+void APM_RC_Class::OutputCh(uint8_t ch, uint16_t pwm)
 {
   pwm=constrain(pwm,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
   pwm<<=1;   // pwm*2;
@@ -393,7 +391,7 @@ void APM_RC_Class::OutputCh(unsigned char ch, uint16_t pwm)
   } 
 }
 
-uint16_t APM_RC_Class::InputCh(unsigned char ch)
+uint16_t APM_RC_Class::InputCh(uint8_t ch)
 {
   uint16_t result;
   uint16_t result2;
@@ -408,7 +406,7 @@ result=readRawRC(ch);
   return(result);
 }
 
-unsigned char APM_RC_Class::GetState(void)
+uint8_t APM_RC_Class::GetState(void)
 {
 return(1);// always 1
 }
@@ -444,7 +442,7 @@ bool APM_RC_Class::setHIL(int16_t v[NUM_CHANNELS])
 {
 /*
 	uint8_t sum = 0;
-	for (unsigned char i=0; i<NUM_CHANNELS; i++) {
+	for (uint8_t i=0; i<NUM_CHANNELS; i++) {
 		if (v[i] != -1) {
 			_HIL_override[i] = v[i];
 		}
@@ -465,7 +463,7 @@ bool APM_RC_Class::setHIL(int16_t v[NUM_CHANNELS])
 
 void APM_RC_Class::clearOverride(void)
 {
-	for (unsigned char i=0; i<NUM_CHANNELS; i++) {
+	for (uint8_t i=0; i<NUM_CHANNELS; i++) {
 		_HIL_override[i] = 0;
 	}
 }

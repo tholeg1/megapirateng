@@ -68,9 +68,11 @@
 //////////////////////////////////////////////////////////////////////////////
 // Acrobatics
 //
+
 #ifndef CH7_OPTION
 # define CH7_OPTION		CH7_SET_HOVER
 #endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // AIRSPEED_SENSOR
@@ -400,7 +402,7 @@
 // Attitude Control
 //
 #ifndef STABILIZE_ROLL_P
-# define STABILIZE_ROLL_P 		4.0
+# define STABILIZE_ROLL_P 		4.6
 #endif
 #ifndef STABILIZE_ROLL_I
 # define STABILIZE_ROLL_I 		0.001
@@ -410,7 +412,7 @@
 #endif
 
 #ifndef STABILIZE_PITCH_P
-# define STABILIZE_PITCH_P		4.0
+# define STABILIZE_PITCH_P		4.6
 #endif
 #ifndef STABILIZE_PITCH_I
 # define STABILIZE_PITCH_I		0.001
@@ -423,7 +425,7 @@
 // Rate Control
 //
 #ifndef RATE_ROLL_P
-# define RATE_ROLL_P         .13
+# define RATE_ROLL_P         0.145
 #endif
 #ifndef RATE_ROLL_I
 # define RATE_ROLL_I         0.0
@@ -433,7 +435,7 @@
 #endif
 
 #ifndef RATE_PITCH_P
-# define RATE_PITCH_P       0.13
+# define RATE_PITCH_P       0.145
 #endif
 #ifndef RATE_PITCH_I
 # define RATE_PITCH_I		0 //0.18
@@ -479,23 +481,23 @@
 // Navigation control gains
 //
 #ifndef LOITER_P
-# define LOITER_P			1.0		//
+# define LOITER_P			.5		//
 #endif
 #ifndef LOITER_I
-# define LOITER_I			0.01	//
+# define LOITER_I			0.0	//
 #endif
 #ifndef LOITER_IMAX
 # define LOITER_IMAX		12		// degrees°
 #endif
 
 #ifndef NAV_P
-# define NAV_P				2.0			// for 4.5 ms error = 13.5 pitch
+# define NAV_P				4.0			//
 #endif
 #ifndef NAV_I
-# define NAV_I				0.10		// this feels really low, 4s to move 1 degree pitch...
+# define NAV_I				0.25		// this feels really low, 4s to move 1 degree pitch...
 #endif
 #ifndef NAV_IMAX
-# define NAV_IMAX			16			// degrees
+# define NAV_IMAX			20			// degrees
 #endif
 
 #ifndef WAYPOINT_SPEED_MAX
@@ -510,6 +512,16 @@
 
 #ifndef THROTTLE_CRUISE
 # define THROTTLE_CRUISE	350			//
+#endif
+
+#ifndef THR_HOLD_P
+# define THR_HOLD_P		0.80			//
+#endif
+#ifndef THR_HOLD_I
+# define THR_HOLD_I		0.00		// with 4m error, 12.5s windup
+#endif
+#ifndef THR_HOLD_IMAX
+# define THR_HOLD_IMAX	00
 #endif
 
 #ifndef THROTTLE_P

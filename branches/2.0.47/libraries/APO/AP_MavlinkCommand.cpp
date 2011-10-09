@@ -24,6 +24,19 @@ AP_MavlinkCommand::AP_MavlinkCommand(uint16_t index, bool doLoad) :
 		Serial.print("key: "); Serial.println(k_commands + index);
 		Serial.println("++");
 	}
+
+	// default values for structure
+	_data.get().command = MAV_CMD_NAV_WAYPOINT;
+	_data.get().autocontinue = true;
+	_data.get().frame = MAV_FRAME_GLOBAL;
+	_data.get().param1 = 0;
+	_data.get().param2 = 10; // radius of 10 meters
+	_data.get().param3 = 0;
+	_data.get().param4 = 0;
+	_data.get().x = 0;
+	_data.get().y = 0;
+	_data.get().z = 1000;
+
 	// This is a failsafe measure to stop trying to load a command if it can't load
 	if (doLoad && !load()) {
 		Serial.println("load failed, reverting to home waypoint");
@@ -32,7 +45,7 @@ AP_MavlinkCommand::AP_MavlinkCommand(uint16_t index, bool doLoad) :
 	}
 }
 
-AP_MavlinkCommand::AP_MavlinkCommand(mavlink_waypoint_t cmd) :
+AP_MavlinkCommand::AP_MavlinkCommand(const mavlink_waypoint_t & cmd) :
 	_data(k_commands + cmd.seq), _seq(cmd.seq) {
 	setCommand(MAV_CMD(cmd.command));
 	setAutocontinue(cmd.autocontinue);
@@ -76,7 +89,7 @@ AP_MavlinkCommand::AP_MavlinkCommand(mavlink_waypoint_t cmd) :
 	Serial.flush();
 }
 
-mavlink_waypoint_t AP_MavlinkCommand::convert(uint8_t current) {
+mavlink_waypoint_t AP_MavlinkCommand::convert(uint8_t current) const {
 	mavlink_waypoint_t mavCmd;
 	mavCmd.seq = getSeq();
 	mavCmd.command = getCommand();
@@ -95,7 +108,7 @@ mavlink_waypoint_t AP_MavlinkCommand::convert(uint8_t current) {
 	return mavCmd;
 }
 
-float AP_MavlinkCommand::bearingTo(AP_MavlinkCommand next) const {
+float AP_MavlinkCommand::bearingTo(const AP_MavlinkCommand & next) const {
 	float deltaLon = next.getLon() - getLon();
 	/*
 	 Serial.print("Lon: "); Serial.println(getLon());
@@ -122,7 +135,7 @@ float AP_MavlinkCommand::bearingTo(int32_t latDegInt, int32_t lonDegInt) const {
 	return bearing;
 }
 
-float AP_MavlinkCommand::distanceTo(AP_MavlinkCommand next) const {
+float AP_MavlinkCommand::distanceTo(const AP_MavlinkCommand & next) const {
 	float sinDeltaLat2 = sin((getLat() - next.getLat()) / 2);
 	float sinDeltaLon2 = sin((getLon() - next.getLon()) / 2);
 	float a = sinDeltaLat2 * sinDeltaLat2 + cos(getLat()) * cos(
@@ -151,18 +164,17 @@ float AP_MavlinkCommand::distanceTo(int32_t lat_degInt, int32_t lon_degInt) cons
 }
 
 //calculates cross track of a current location
-float AP_MavlinkCommand::crossTrack(AP_MavlinkCommand previous,
-		int32_t lat_degInt, int32_t lon_degInt) {
-		float d = previous.distanceTo(lat_degInt, lon_degInt);
-		float bCurrent = previous.bearingTo(lat_degInt, lon_degInt);
-		float bNext = previous.bearingTo(*this);
-		return asin(sin(d / rEarth) * sin(bCurrent - bNext)) * rEarth;
-	return 0;
+float AP_MavlinkCommand::crossTrack(const AP_MavlinkCommand & previous,
+		int32_t lat_degInt, int32_t lon_degInt) const {
+	float d = previous.distanceTo(lat_degInt, lon_degInt);
+	float bCurrent = previous.bearingTo(lat_degInt, lon_degInt);
+	float bNext = previous.bearingTo(*this);
+	return asin(sin(d / rEarth) * sin(bCurrent - bNext)) * rEarth;
 }
 
 // calculates along  track distance of a current location
-float AP_MavlinkCommand::alongTrack(AP_MavlinkCommand previous,
-		int32_t lat_degInt, int32_t lon_degInt) {
+float AP_MavlinkCommand::alongTrack(const AP_MavlinkCommand & previous,
+		int32_t lat_degInt, int32_t lon_degInt) const {
 	// ignores lat/lon since single prec.
 	float dXt = this->crossTrack(previous,lat_degInt, lon_degInt);
 	float d = previous.distanceTo(lat_degInt, lon_degInt);

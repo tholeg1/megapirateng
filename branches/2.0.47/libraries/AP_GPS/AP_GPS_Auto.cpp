@@ -212,7 +212,7 @@ _fs->begin(baudrates[brate]);
 _fs->flush();
 
 			// give the GPS time to react to the settings
-			delay(100);
+			callback(100);
 			continue;
 		} else {
 			Serial.print('?');

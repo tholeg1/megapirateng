@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.0.46 Beta"
+#define THISFIRMWARE "MegaPirateNG V2.0.47 Beta"
 /*
 ArduCopter Version 2.0 Beta
 Authors:	Jason Short
@@ -72,6 +72,7 @@ And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
 #include <AP_RangeFinder.h>	// Range finder library
 #include <AP_OpticalFlow.h> // Optical Flow library
 #include <ModeFilter.h>
+#include <AP_Relay.h>		// APM relay
 #include <GCS_MAVLink.h>    // MAVLink GCS definitions
 #include <memcheck.h>
 
@@ -273,16 +274,20 @@ static const char* flight_mode_strings[] = {
 */
 
 // test
+#if ACCEL_ALT_HOLD == 1
 Vector3f accels_rot;
-//float	accel_gain = 12;
+static int	accels_rot_count;
+static float	accels_rot_sum;
+static float alt_hold_gain = ACCEL_ALT_HOLD_GAIN;
+#endif
 
 // temp
-int y_actual_speed;
-int y_rate_error;
+static int y_actual_speed;
+static int y_rate_error;
 
 // calc the
-int x_actual_speed;
-int x_rate_error;
+static int x_actual_speed;
+static int x_rate_error;
 
 // Radio
 // -----
@@ -349,6 +354,7 @@ static float sin_pitch_y, sin_yaw_y, sin_roll_y;
 static long initial_simple_bearing;				// used for Simple mode
 static float simple_sin_y, simple_cos_x;
 static byte jump = -10;								// used to track loops in jump command
+static int waypoint_speed_gov;
 
 // Acro
 #if CH7_OPTION == CH7_FLIP
@@ -510,6 +516,8 @@ static unsigned long 	nav_loopTimer;				// used to track the elapsed ime for GPS
 static byte				counter_one_herz;
 static bool				GPS_enabled 	= false;
 static bool				new_radio_frame;
+
+AP_Relay relay;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Top-level logic
@@ -788,7 +796,7 @@ static void fifty_hz_loop()
 		sonar_alt = sonar.read();
 	}
 
-	#if HIL_PROTOCOL == HIL_PROTOCOL_MAVLINK && HIL_MODE != HIL_MODE_DISABLED
+	#if HIL_PROTOCOL == HIL_PROTOCOL_MAVLINK && HIL_MODE != HIL_MODE_DISABLED && FRAME_CONFIG != HELI_FRAME
 		// HIL for a copter needs very fast update of the servo values
 		hil.send_message(MSG_RADIO_OUT);
 	#endif
@@ -1106,7 +1114,7 @@ void update_throttle_mode(void)
 				altitude_error = get_altitude_error();
 
 				// get the AP throttle
-				nav_throttle = get_nav_throttle(altitude_error, 250); //150 =  target speed of 1.5m/s
+				nav_throttle = get_nav_throttle(altitude_error);//, 250); //150 =  target speed of 1.5m/s
 				//Serial.printf("in:%d, cr:%d, NT:%d, I:%1.4f\n", g.rc_3.control_in,altitude_error,  nav_throttle, g.pi_throttle.get_integrator());
 
 				// clear the new data flag
@@ -1144,7 +1152,10 @@ static void update_navigation()
 			break;
 
 		case RTL:
-			if(wp_distance > 4){
+			if((wp_distance <= g.waypoint_radius) || check_missed_wp()){
+				// lets just jump to Loiter Mode after RTL
+				set_mode(LOITER);
+			}else{
 				// calculates desired Yaw
 				// XXX this is an experiment
 				#if FRAME_CONFIG ==	HELI_FRAME
@@ -1152,9 +1163,6 @@ static void update_navigation()
 				#endif
 
 				wp_control = WP_MODE;
-			}else{
-				// lets just jump to Loiter Mode after RTL
-				set_mode(LOITER);
 			}
 
 			// calculates the desired Roll and Pitch
@@ -1229,8 +1237,12 @@ static void update_trig(void){
 	// 270 = cos_yaw: -1.00, sin_yaw:  0.00,
 
 
+	#if ACCEL_ALT_HOLD == 1
 	Vector3f accel_filt	= imu.get_accel_filtered();
 	accels_rot 	= dcm.get_dcm_matrix() * imu.get_accel_filtered();
+	accels_rot_sum += accels_rot.z;
+	accels_rot_count++;
+	#endif
 }
 
 // updated at 10hz
@@ -1294,6 +1306,13 @@ static void tuning(){
 	tuning_value = (float)g.rc_6.control_in / 1000.0;
 
 	switch(g.radio_tuning){
+
+		/*case CH6_STABILIZE_KP:
+			g.rc_6.set_range(0,2000); 		// 0 to 8
+			tuning_value = (float)g.rc_6.control_in / 100.0;
+			alt_hold_gain = tuning_value;
+			break;*/
+
 		case CH6_STABILIZE_KP:
 			g.rc_6.set_range(0,8000); 		// 0 to 8
 			g.pi_stabilize_roll.kP(tuning_value);
@@ -1341,8 +1360,8 @@ static void tuning(){
 
 		case CH6_RELAY:
 			g.rc_6.set_range(0,1000);
-		  	if (g.rc_6.control_in > 525) relay_on();
-		  	if (g.rc_6.control_in < 475) relay_off();
+		  	if (g.rc_6.control_in > 525) relay.on();
+		  	if (g.rc_6.control_in < 475) relay.off();
 			break;
 
 		case CH6_TRAVERSE_SPEED:
@@ -1411,8 +1430,6 @@ static void update_nav_wp()
 		calc_loiter_pitch_roll();
 
 	} else {
-		// for long journey's reset the wind resopnse
-		// it assumes we are standing still.
 		// use error as the desired rate towards the target
 		calc_nav_rate(g.waypoint_speed_max);
 		// rotate pitch and roll to the copter frame of reference

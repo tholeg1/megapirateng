@@ -173,18 +173,19 @@ static void init_ardupilot()
 		heli_init_swash();  // heli initialisation
 	#endif
 
-	// begin filtering the ADC Gyros
-	adc.filter_result = true;
-
 	init_rc_in();		// sets up rc channels from radio
 	init_rc_out();		// sets up the timer libs
 	init_camera();
 
 	#if HIL_MODE != HIL_MODE_ATTITUDE
+	        // begin filtering the ADC Gyros
+        	adc.filter_result = true;
+
 		adc.Init();	 		// APM ADC library initialization
 		barometer.Init();	// APM Abs Pressure sensor initialization
 	#endif
 
+	// Do GPS init
 	// Init Bluetooth BC-04, for test only
 	#if INIT_BLUETOOTH_GPS == 1
 		digitalWrite(B_LED_PIN, HIGH);
