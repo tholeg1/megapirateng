@@ -101,7 +101,7 @@ private:
 	static const float		_gyro_total_cal_change = 8.0;		// Experimentally derived - allows for some minor motion
 	static const float		_gyro_max_cal_offset = 320.0;
 	static const float		_accel_total_cal_change = 10.0; 
-	static const float		_accel_max_cal_offset = 250.0;
+	static const float		_accel_max_cal_offset = 500.0;
 };
 
 #endif
