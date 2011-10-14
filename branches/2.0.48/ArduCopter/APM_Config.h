@@ -2,7 +2,7 @@
 
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
-#define LED_SEQUENCER ENABLED
+#define LED_SEQUENCER DISABLED
 #define MAX_SONAR_RANGE 400
 
 // some config need for MegaPirateNG 2.0.40
@@ -11,7 +11,6 @@
 
 // MPNG: AP_COMPASS lib make additional ROTATION_YAW_90 for 5883L mag, so in result we have ROTATION_YAW_270 
 #define MAG_ORIENTATION	ROTATION_YAW_180 
-#define GCS_PROTOCOL			GCS_PROTOCOL_MAVLINK
 
 #define OSD_PROTOCOL OSD_PROTOCOL_NONE
 	/*
@@ -26,7 +25,7 @@
 #define PIEZO_LOW_VOLTAGE	DISABLED
 #define PIEZO_ARMING		DISABLED
 
-#define GPS_PROTOCOL GPS_PROTOCOL_NMEA
+#define GPS_PROTOCOL GPS_PROTOCOL_NONE
 	/*
 	options:
 	GPS_PROTOCOL_NONE 	without GPS
