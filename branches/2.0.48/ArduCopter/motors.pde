@@ -26,7 +26,7 @@ static void arm_motors()
 
 				}else if (arming_counter == ARM_DELAY){
 					#if HIL_MODE != HIL_MODE_DISABLED
-                    hil.send_text_P(SEVERITY_HIGH, PSTR("ARMING MOTORS"));
+                    gcs_send_text_P(SEVERITY_HIGH, PSTR("ARMING MOTORS"));
 					#endif
 					motor_armed 	= true;
 					arming_counter 	= ARM_DELAY;
@@ -39,7 +39,7 @@ static void arm_motors()
 					// Tune down DCM
 					// -------------------
 					#if HIL_MODE != HIL_MODE_ATTITUDE
-						dcm.kp_roll_pitch(0.120000);
+						dcm.kp_roll_pitch(0.030000);
 					  dcm.ki_roll_pitch(0.00001278),	// 50 hz I term
 					//dcm.ki_roll_pitch(0.000006);
 					#endif
@@ -93,7 +93,7 @@ static void arm_motors()
 
 			}else if (arming_counter == DISARM_DELAY){
 				#if HIL_MODE != HIL_MODE_DISABLED
-                hil.send_text_P(SEVERITY_HIGH, PSTR("DISARMING MOTORS"));
+                gcs_send_text_P(SEVERITY_HIGH, PSTR("DISARMING MOTORS"));
 				#endif
 
 				motor_armed 	= false;

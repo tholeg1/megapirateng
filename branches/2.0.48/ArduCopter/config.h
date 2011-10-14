@@ -47,6 +47,14 @@
 
 
 //////////////////////////////////////////////////////////////////////////////
+// PWM control
+//
+#ifndef INSTANT_PWM
+# define INSTANT_PWM	DISABLED
+#endif
+
+
+//////////////////////////////////////////////////////////////////////////////
 // Sonar
 //
 #ifndef MAX_SONAR_RANGE
@@ -87,20 +95,10 @@
 
 
 //////////////////////////////////////////////////////////////////////////////
-// HIL_PROTOCOL                             OPTIONAL
 // HIL_MODE                                 OPTIONAL
-// HIL_PORT                                 OPTIONAL
 
 #ifndef HIL_MODE
 #define HIL_MODE	HIL_MODE_DISABLED
-#endif
-
-#ifndef HIL_PROTOCOL
-#define HIL_PROTOCOL	HIL_PROTOCOL_MAVLINK
-#endif
-
-#ifndef HIL_PORT
-#define HIL_PORT 0
 #endif
 
 #if HIL_MODE != HIL_MODE_DISABLED	// we are in HIL mode
@@ -111,29 +109,8 @@
 #endif
 
 
-// If we are in XPlane, diasble the mag
-#if HIL_MODE != HIL_MODE_DISABLED // we are in HIL mode
-
- // check xplane settings
- #if HIL_PROTOCOL == HIL_PROTOCOL_XPLANE
-
-  // MAGNETOMETER not supported by XPLANE
-  # undef MAGNETOMETER
-  # define MAGNETOMETER			DISABLED
-
-  # if HIL_MODE != HIL_MODE_ATTITUDE
-  #  error HIL_PROTOCOL_XPLANE requires HIL_MODE_ATTITUDE
-  # endif
-
- #endif
-#endif
-
-
 //////////////////////////////////////////////////////////////////////////////
 // GPS_PROTOCOL
-//
-// Note that this test must follow the HIL_PROTOCOL block as the HIL
-// setup may override the GPS configuration.
 //
 #ifndef GPS_PROTOCOL
 # define GPS_PROTOCOL 		GPS_PROTOCOL_AUTO
@@ -146,19 +123,6 @@
 # define OSD_PROTOCOL 		OSD_PROTOCOL_NONE
 #endif
 
-
-//////////////////////////////////////////////////////////////////////////////
-// GCS_PROTOCOL
-// GCS_PORT
-//
-#ifndef GCS_PROTOCOL
-# define GCS_PROTOCOL			GCS_PROTOCOL_MAVLINK
-#endif
-
-//Chris: Commenting out assignment of GCS to port 3 because it kills MAVLink on Port 0
-#ifndef GCS_PORT
-# define GCS_PORT			3
-#endif
 
 #ifndef MAV_SYSTEM_ID
 # define MAV_SYSTEM_ID		1
@@ -501,7 +465,7 @@
 #endif
 
 #ifndef WAYPOINT_SPEED_MAX
-# define WAYPOINT_SPEED_MAX			450			// for 6m/s error = 13mph
+# define WAYPOINT_SPEED_MAX			300			// for 6m/s error = 13mph
 #endif
 
 

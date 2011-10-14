@@ -256,9 +256,9 @@ AP_IMU_Oilpan::update(void)
 	_accel.y = _accel_scale * _sensor_in(4, adc_values[4]);
 	_accel.z = _accel_scale * _sensor_in(5, adc_values[5]);
 
-	_accel_filtered.x = _accel_filtered.x * .98 + _accel.x * .02;
-	_accel_filtered.y = _accel_filtered.y * .98 + _accel.y * .02;
-	_accel_filtered.z = _accel_filtered.z * .98 + _accel.z * .02;
+	_accel_filtered.x = _accel_filtered.x / 2 + _accel.x / 2;
+	_accel_filtered.y = _accel_filtered.y / 2 + _accel.y / 2;
+	_accel_filtered.z = _accel_filtered.z / 2 + _accel.z / 2;
 
 	// always updated
 	return true;

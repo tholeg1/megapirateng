@@ -154,7 +154,7 @@ static bool verify_must()
 			break;
 
 		default:
-			//gcs.send_text_P(SEVERITY_HIGH,PSTR("<verify_must: default> No current Must commands"));
+			//gcs_send_text_P(SEVERITY_HIGH,PSTR("<verify_must: default> No current Must commands"));
 			return false;
 			break;
 	}
@@ -181,7 +181,7 @@ static bool verify_may()
 			break;
 
 		default:
-			//gcs.send_text_P(SEVERITY_HIGH,PSTR("<verify_must: default> No current May commands"));
+			//gcs_send_text_P(SEVERITY_HIGH,PSTR("<verify_must: default> No current May commands"));
 			return false;
 			break;
 	}
@@ -207,7 +207,7 @@ static void do_RTL(void)
 
 	// output control mode to the ground station
 	// -----------------------------------------
-	gcs.send_message(MSG_HEARTBEAT);
+	gcs_send_message(MSG_HEARTBEAT);
 }
 
 /********************************************************************************/
@@ -299,7 +299,7 @@ static void do_loiter_unlimited()
 
 static void do_loiter_turns()
 {
-	wp_control == CIRCLE_MODE;
+	wp_control = CIRCLE_MODE;
 
 	if(next_command.lat == 0)
 		set_next_WP(&current_loc);
@@ -412,7 +412,7 @@ static bool verify_nav_wp()
 
 		if ((millis() - loiter_time) > loiter_time_max) {
 			wp_verify_byte |= NAV_DELAY;
-			//gcs.send_text_P(SEVERITY_LOW,PSTR("verify_must: LOITER time complete"));
+			//gcs_send_text_P(SEVERITY_LOW,PSTR("verify_must: LOITER time complete"));
 			//Serial.println("vlt done");
 		}
 	}
@@ -421,7 +421,7 @@ static bool verify_nav_wp()
 	//if(wp_verify_byte & NAV_LOCATION){
 		char message[30];
 		sprintf(message,"Reached Command #%i",command_must_index);
-		gcs.send_text(SEVERITY_LOW,message);
+		gcs_send_text(SEVERITY_LOW,message);
 		wp_verify_byte = 0;
 		return true;
 	}else{
@@ -454,7 +454,7 @@ static bool verify_loiter_turns()
 {
 	// have we rotated around the center enough times?
 	// -----------------------------------------------
-	if(loiter_sum > loiter_total) {
+	if(abs(loiter_sum) > loiter_total) {
 		loiter_total 	= 0;
 		loiter_sum		= 0;
 		//gcs_send_text_P(SEVERITY_LOW,PSTR("verify_must: LOITER orbits complete"));
@@ -467,7 +467,7 @@ static bool verify_loiter_turns()
 static bool verify_RTL()
 {
 	if (wp_distance <= g.waypoint_radius) {
-		//gcs.send_text_P(SEVERITY_LOW,PSTR("Reached home"));
+		//gcs_send_text_P(SEVERITY_LOW,PSTR("Reached home"));
 		return true;
 	}else{
 		return false;
@@ -650,7 +650,6 @@ static void do_loiter_at_location()
 
 static void do_jump()
 {
-	struct Location temp;
 	if(jump == -10){
 		jump = next_command.lat;
 	}

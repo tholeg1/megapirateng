@@ -12,9 +12,11 @@ unsigned long timer;
 
 void setup()
 {	
-	APM_BMP085.Init();	 // APM ADC initialization
-	Serial.begin(38400);
+	Serial.begin(115200);
 	Serial.println("ArduPilot Mega BMP085 library test");
+	Serial.println("Initialising barometer..."); delay(100);
+	APM_BMP085.Init();	 // APM ADC initialization
+	Serial.println("initialisation complete."); delay(100);
 	delay(1000);
 	timer = millis();
 }
