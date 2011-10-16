@@ -275,10 +275,13 @@ static void init_ardupilot()
 			break;
 		}
 
-		if (counter >= 2) {
+		if (counter >= 3) {
 			GPS_enabled = false;
 			break;
-	    }
+	  }
+		#if GPS_PROTOCOL == GPS_PROTOCOL_UBLOX_I2C
+	    delay(100);
+		#endif	    
 	}
 
 	// lengthen the idle timeout for gps Auto_detect
