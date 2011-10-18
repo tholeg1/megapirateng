@@ -42,7 +42,9 @@ static void reset_control_switch()
 	read_control_switch();
 }
 
+#if CH7_OPTION == CH7_SET_HOVER
 static boolean trim_flag;
+#endif
 
 // read at 10 hz
 // set this to your trainer switch
@@ -54,7 +56,6 @@ static void read_trim_switch()
 	}
 
 #elif CH7_OPTION == CH7_SIMPLE_MODE
-
 	do_simple = (g.rc_7.control_in > 800);
 	//Serial.println(g.rc_7.control_in, DEC);
 
@@ -90,12 +91,14 @@ static void read_trim_switch()
 			trim_flag = false;
 		}
 	}
+
 #elif CH7_OPTION == CH7_ADC_FILTER
 	if (g.rc_7.control_in > 800){
 		adc.filter_result = true;
 	}else{
 		adc.filter_result = false;
 	}
+
 #elif CH7_OPTION == CH7_AUTO_TRIM
 	if (g.rc_7.control_in > 800){
 		auto_level_counter = 10;

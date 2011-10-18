@@ -136,9 +136,11 @@ static void heli_move_swash(int roll_out, int pitch_out, int coll_out, int yaw_o
 	    APM_RC.OutputCh(CH_7, g.heli_ext_gyro_gain);
 	}
 
-		// InstantPWM - force message to the servos
+		#if INSTANT_PWM == 1
+		// InstantPWM
 	APM_RC.Force_Out0_Out1();
 	APM_RC.Force_Out2_Out3();
+		#endif
 	
 		// reset the averaging
 		heli_servo_out_count = 0;
@@ -147,6 +149,15 @@ static void heli_move_swash(int roll_out, int pitch_out, int coll_out, int yaw_o
 		heli_servo_out[2] = 0;
 		heli_servo_out[3] = 0;
 	}
+}
+
+static void init_motors_out()
+{
+	#if INSTANT_PWM == 0
+	ICR5 = 5000;	// 400 hz output 	CH 1, 2, 9
+	ICR1 = 5000;	// 400 hz output	CH 3, 4, 10
+	ICR3 = 40000;	// 50 hz output		CH 7, 8, 11
+	#endif
 }
 
 // these are not really motors, they're servos but we don't rename the function because it fits with the rest of the code better

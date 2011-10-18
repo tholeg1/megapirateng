@@ -83,7 +83,6 @@ static void init_ardupilot()
 	//
 	report_version();
 
-
 	// setup IO pins
 	pinMode(C_LED_PIN, OUTPUT);				// GPS status LED
 	pinMode(A_LED_PIN, OUTPUT);				// GPS status LED
@@ -147,6 +146,7 @@ static void init_ardupilot()
 		}
 
 	}else{
+
 	    // Load all auto-loaded EEPROM variables
 	    AP_Var::load_all();
 	}
@@ -160,7 +160,6 @@ static void init_ardupilot()
 	// shrunk for protocols that don't send large messages.
 	//
 	Serial3.begin(map_baudrate(g.serial3_baud,SERIAL3_BAUD), 128, 128);
-
 
 	#ifdef RADIO_OVERRIDE_DEFAULTS
 	{
@@ -225,6 +224,10 @@ static void init_ardupilot()
 	}
 #endif
 
+// agmatthews USERHOOKS
+#ifdef USERHOOK_INIT
+   USERHOOK_INIT
+#endif
 	// Logging:
 	// --------
 	// DataFlash log initialization
@@ -241,11 +244,7 @@ static void init_ardupilot()
 	//
 	if (check_startup_for_CLI()) {
 		digitalWrite(A_LED_PIN,HIGH);		// turn on setup-mode LED
-		Serial.printf_P(PSTR("\n"
-							 "Entering interactive setup mode...\n"
-							 "\n"
-							 "Type 'help' to list commands, 'exit' to leave a submenu.\n"
-							 "Visit the 'setup' menu for first-time configuration.\n\n"));
+		Serial.printf_P(PSTR("\nCLI:\n\n"));
 		for (;;) {
 			//Serial.println_P(PSTR("\nMove the slide switch and reset to FLY.\n"));
 			main_menu.run();
@@ -577,6 +576,6 @@ static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
     case 111:  return 111100;
     case 115:  return 115200;
     }
-    Serial.println_P(PSTR("Invalid SERIAL3_BAUD"));
+    //Serial.println_P(PSTR("Invalid SERIAL3_BAUD"));
     return default_baud;
 }

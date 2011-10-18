@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.0.48 Beta"
+#define THISFIRMWARE "MegaPirateNG V2.0.49 Beta"
 /*
 ArduCopter Version 2.0 Beta
 Authors:	Jason Short
@@ -223,6 +223,14 @@ ModeFilter sonar_mode_filter;
     #error Unrecognised SONAR_TYPE setting.
 #endif
 
+// agmatthews USERHOOKS
+////////////////////////////////////////////////////////////////////////////////
+// User variables
+////////////////////////////////////////////////////////////////////////////////
+#ifdef USERHOOK_VARIABLES
+#include USERHOOK_VARIABLES
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 // Global variables
 ////////////////////////////////////////////////////////////////////////////////
@@ -438,13 +446,13 @@ static int 		event_repeat;						// how many times to fire : 0 = forever, 1 = do 
 static int 		event_value; 						// per command value, such as PWM for servos
 static int 		event_undo_value;					// the value used to undo commands
 //static byte 	repeat_forever;
-static byte 	undo_event;							// counter for timing the undo
+//static byte 	undo_event;							// counter for timing the undo
 
 // delay command
 // --------------
 static long 	condition_value;					// used in condition commands (eg delay, change alt, etc.)
 static long 	condition_start;
-static int 		condition_rate;
+//static int 		condition_rate;
 
 // land command
 // ------------
@@ -458,12 +466,10 @@ static struct 	Location prev_WP;					// last waypoint
 static struct 	Location current_loc;				// current location
 static struct 	Location next_WP;					// next waypoint
 static struct 	Location target_WP;					// where do we want to you towards?
-static struct 	Location simple_WP;					//
 static struct 	Location next_command;				// command preloaded
 static struct   Location guided_WP;					// guided mode waypoint
 static long 	target_altitude;					// used for
 static boolean	home_is_set; 						// Flag for if we have g_gps lock and have set the home location
-static boolean  new_location;						// flag to tell us if location has been updated
 
 // IMU variables
 // -------------
@@ -580,6 +586,12 @@ static void fast_loop()
 
 	//if(motor_armed)
 	//	Log_Write_Attitude();
+
+// agmatthews - USERHOOKS
+#ifdef USERHOOK_FASTLOOP
+   USERHOOK_FASTLOOP
+#endif
+
 }
 
 static void medium_loop()
@@ -744,6 +756,10 @@ static void medium_loop()
 			medium_loopCounter = 0;
 			break;
 	}
+// agmatthews - USERHOOKS
+#ifdef USERHOOK_MEDIUMLOOP
+   USERHOOK_MEDIUMLOOP
+#endif
 
 }
 
@@ -760,6 +776,10 @@ static void fifty_hz_loop()
 	if(g.sonar_enabled){
 		sonar_alt = sonar.read();
 	}
+	// agmatthews - USERHOOKS
+	#ifdef USERHOOK_50HZLOOP
+	  USERHOOK_50HZLOOP
+	#endif
 
 	#if HIL_MODE != HIL_MODE_DISABLED && FRAME_CONFIG != HELI_FRAME
 		// HIL for a copter needs very fast update of the servo values
@@ -861,6 +881,11 @@ static void slow_loop()
 			break;
 
 	}
+	// agmatthews - USERHOOKS
+	#ifdef USERHOOK_SLOWLOOP
+	   USERHOOK_SLOWLOOP
+	#endif
+
 }
 
 // 1Hz loop
@@ -870,6 +895,10 @@ static void super_slow_loop()
 		Log_Write_Current();
 
     gcs_send_message(MSG_HEARTBEAT);
+	// agmatthews - USERHOOKS
+	#ifdef USERHOOK_SUPERSLOWLOOP
+	   USERHOOK_SUPERSLOWLOOP
+	#endif
 }
 
 static void update_GPS(void)
@@ -1075,9 +1104,14 @@ static void update_navigation()
 		case GUIDED:
 			wp_control = WP_MODE;
             // check if we are close to point > loiter
+			wp_verify_byte = 0;
             verify_nav_wp();
 
+			if (wp_control == WP_MODE) {
 			update_auto_yaw();
+			} else {
+				set_mode(LOITER);
+			}
 			update_nav_wp();
 			break;
 
