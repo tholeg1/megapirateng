@@ -50,7 +50,7 @@
 // PWM control
 //
 #ifndef INSTANT_PWM
-# define INSTANT_PWM	DISABLED
+# define INSTANT_PWM	ENABLED
 #endif
 
 
