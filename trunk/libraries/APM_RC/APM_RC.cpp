@@ -109,21 +109,29 @@ static  uint16_t cTime,dTime;
 static uint16_t edgeTime[8];
 static uint8_t PCintLast;
   cTime = TCNT5;         // from sonar
-    pin = PINK;             // PINK indicates the state of each PIN for the arduino port dealing with [A8-A15] digital pins (8 bits variable)
-mask = pin ^ PCintLast;   // doing a ^ between the current interruption and the last one indicates wich pin changed
+  pin = PINK;             // PINK indicates the state of each PIN for the arduino port dealing with [A8-A15] digital pins (8 bits variable)
+	mask = pin ^ PCintLast;   // doing a ^ between the current interruption and the last one indicates wich pin changed
   sei();                    // re enable other interrupts at this point, the rest of this interrupt is not so time critical and can be interrupted safely
   PCintLast = pin;          // we memorize the current state of all PINs [D0-D7]
 
 #ifdef SERIAL_SUM
-static uint8_t pps_num=0;
-static uint8_t pps_etime=0;
+	static uint8_t pps_num=0;
+	static uint16_t pps_etime=0;
 
     if (!(pin & 1)) {
-      dTime = cTime-pps_etime; 
-		if (dTime<4400) {rcPinValue[pps_num] = dTime>>1;
-		pps_num++;pps_num&=7;} // upto 8 packets in slot
-		else pps_num=0; 
-    } else pps_etime = cTime; 
+    	if (cTime < pps_etime) // Timer overflow detection
+    		dTime = (0xFFFF-pps_etime)+cTime;
+    	else
+      	dTime = cTime-pps_etime; 
+			if (dTime<4400) {
+				rcPinValue[pps_num] = dTime>>1;
+				pps_num++;
+				pps_num&=7; // upto 8 packets in slot
+			} else 
+				pps_num=0; 
+    } 
+    else 
+    	pps_etime = cTime; 
 
 #else // generic split PPM  
   // mask is pins [D0-D7] that have changed // the principle is the same on the MEGA for PORTK and [A8-A15] PINs

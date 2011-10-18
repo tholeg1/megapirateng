@@ -7,10 +7,11 @@
 
 static void init_motors_out()
 {
+	// Set 400Hz to all outputs except camstab
 	#if INSTANT_PWM == 0
-	ICR5 = 5000;	// 400 hz output 	CH 1, 2, 9
-	ICR1 = 5000;	// 400 hz output	CH 3, 4, 10
-	ICR3 = 5000;	// 50 hz output		CH 7, 8, 11
+		ICR1 = 5000; 
+		ICR3 = 5000;
+		ICR4 = 5000;	
 	#endif
 }
 
