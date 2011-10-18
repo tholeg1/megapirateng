@@ -144,7 +144,7 @@ setup_factory(uint8_t argc, const Menu::arg *argv)
 		return(-1);
 
 	AP_Var::erase_all();
-	Serial.printf_P(PSTR("\nFACTORY RESET complete - reboot APM"));
+	Serial.printf_P(PSTR("\nReboot APM"));
 
 	delay(1000);
 	//default_gains();
