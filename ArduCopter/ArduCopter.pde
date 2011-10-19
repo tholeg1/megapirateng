@@ -11,6 +11,7 @@ Porting to MegaPirate Next Generation by
   SovGVD sovgvd@gmail.com 
   Syberian (libraries from MegaPirate r741)
   Sir Alex (rsoft@tut.by)
+  Romb89 (UBLOX GPS i2c library)
 Manual can be found at:
   http://code.google.com/p/megapirateng
 

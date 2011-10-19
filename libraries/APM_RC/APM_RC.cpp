@@ -15,13 +15,9 @@
 /*
 APM motor remap to the MultiWii-style
 
-/*
 Another remap to foolish the original board:
 AP: 0,1,2,3,6,7 - motors, 4,5 - camstab (who the f*ck has implemented this???)
 mw: 0,1,3,4,5,6 - motors
-
-
-
 */
 
 
@@ -33,6 +29,7 @@ mw: 0,1,3,4,5,6 - motors
 
 //######################################################
 // ENABLE serial PPM receiver by uncommenting the line below
+// Connect PPM_SUM signal to A8
 
 //#define SERIAL_SUM
 
@@ -58,48 +55,25 @@ mw: 0,1,3,4,5,6 - motors
 #else
 
 // Variable definition for Input Capture interrupt
-volatile unsigned int ICR4_old;
-volatile unsigned char PPM_Counter=0;
-volatile uint16_t PWM_RAW[8] = {2400,2400,2400,2400,2400,2400,2400,2400};
 volatile uint8_t radio_status=0;
-
 
 // ******************
 // rc functions split channels
 // ******************
-#define MINCHECK 800
-#define MAXCHECK 2200
-
-volatile int16_t failsafeCnt = 0;
-
 volatile uint16_t rcPinValue[8] = {900,1500,1500,1500,1500,1500,1500,1500}; // interval [1000;2000]
-static int16_t rcData[8] ; // interval [1000;2000]
-static int16_t rcCommand[4] ; // interval [1000;2000] for THROTTLE and [-500;+500] for ROLL/PITCH/YAW 
-static int16_t rcHysteresis[8] ;
-static int16_t rcData4Values[8][4];
-
-
-// ***PPM SUM SIGNAL***
-volatile uint16_t rcValue[8] = {1500,1500,1500,1500,1500,1500,1500,1500}; // interval [1000;2000]
 
 // Configure each rc pin for PCINT
 void configureReceiver() {
-    for (uint8_t chan = 0; chan < 8; chan++)
-      for (uint8_t a = 0; a < 4; a++)
-        rcData4Values[chan][a] = 1500; //we initiate the default value of each channel. If there is no RC receiver connected, we will see those values
-      // PCINT activated only for specific pin inside [A8-A15]
-      DDRK = 0;  // defined PORTK as a digital port ([A8-A15] are consired as digital PINs and not analogical)
-      PORTK   = (1<<0) | (1<<1) | (1<<2) | (1<<3) | (1<<4) | (1<<5) | (1<<6) | (1<<7); //enable internal pull ups on the PINs of PORTK
-#ifdef SERIAL_SUM
-	  PCMSK2=1;
-#else
-	  PCMSK2 = 255;
-#endif
-	  PCMSK0 = B00010000; // sonar port B4 - d10 echo
-      PCICR   = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
-
-	  //Remember the registers not declared here remains zero by default... 
-// timer5	  
+	// PCINT activated only for specific pin inside [A8-A15]
+	DDRK = 0;  // defined PORTK as a digital port ([A8-A15] are consired as digital PINs and not analogical)
+	PORTK   = (1<<0) | (1<<1) | (1<<2) | (1<<3) | (1<<4) | (1<<5) | (1<<6) | (1<<7); //enable internal pull ups on the PINs of PORTK
+	#ifdef SERIAL_SUM
+		PCMSK2=1;	// Enable int for pin A8
+	#else
+		PCMSK2 = 255; // 
+	#endif
+	PCMSK0 = B00010000; // sonar port B4 - d10 echo
+	PCICR = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
 }
 
 ISR(PCINT2_vect) { //this ISR is common to every receiver channel, it is call everytime a change state occurs on a digital pin [D2-D7]
@@ -118,35 +92,34 @@ static uint8_t PCintLast;
 	static uint8_t pps_num=0;
 	static uint16_t pps_etime=0;
 
-    if (!(pin & 1)) {
-    	if (cTime < pps_etime) // Timer overflow detection
-    		dTime = (0xFFFF-pps_etime)+cTime;
-    	else
-      	dTime = cTime-pps_etime; 
-			if (dTime<4400) {
-				rcPinValue[pps_num] = dTime>>1;
-				pps_num++;
-				pps_num&=7; // upto 8 packets in slot
-			} else 
-				pps_num=0; 
-    } 
-    else 
-    	pps_etime = cTime; 
+  if (pin & 1) { // Rising edge detection
+  	if (cTime < pps_etime) // Timer overflow detection
+  		dTime = (0xFFFF-pps_etime)+cTime;
+  	else
+    	dTime = cTime-pps_etime; 
+		if (dTime < 4400) {
+			rcPinValue[pps_num] = dTime>>1;
+			pps_num++;
+			pps_num&=7; // upto 8 packets in slot
+		} else 
+			pps_num=0; 
+	 	pps_etime = cTime; // Save edge time
+	 }
 
 #else // generic split PPM  
   // mask is pins [D0-D7] that have changed // the principle is the same on the MEGA for PORTK and [A8-A15] PINs
   // chan = pin sequence of the port. chan begins at D2 and ends at D7
-  if (mask & 1<<0)    
+  if (mask & 1<<0)
     if (!(pin & 1<<0)) {
-      dTime = cTime-edgeTime[0]; if (1600<dTime && dTime<4400) rcPinValue[0] = dTime>>1; 
-    } else edgeTime[0] = cTime; 
-  if (mask & 1<<1)      
+      dTime = cTime-edgeTime[0]; if (1600<dTime && dTime<4400) rcPinValue[0] = dTime>>1;
+    } else edgeTime[0] = cTime;
+  if (mask & 1<<1)
     if (!(pin & 1<<1)) {
-      dTime = cTime-edgeTime[1]; if (1600<dTime && dTime<4400) rcPinValue[1] = dTime>>1; 
+      dTime = cTime-edgeTime[1]; if (1600<dTime && dTime<4400) rcPinValue[1] = dTime>>1;
     } else edgeTime[1] = cTime;
   if (mask & 1<<2) 
     if (!(pin & 1<<2)) {
-      dTime = cTime-edgeTime[2]; if (1600<dTime && dTime<4400) rcPinValue[2] = dTime>>1; 
+      dTime = cTime-edgeTime[2]; if (1600<dTime && dTime<4400) rcPinValue[2] = dTime>>1;
     } else edgeTime[2] = cTime;
   if (mask & 1<<3)
     if (!(pin & 1<<3)) {
@@ -214,7 +187,7 @@ uint16_t readRawRC(uint8_t chan) {
   uint8_t oldSREG;
   oldSREG = SREG;
   cli(); // Let's disable interrupts
-    data = rcPinValue[pinRcChannel[chan]]; // Let's copy the data Atomically
+  data = rcPinValue[pinRcChannel[chan]]; // Let's copy the data Atomically
   SREG = oldSREG;
   sei();// Let's enable the interrupts
   return data; // We return the value correctly copied when the IRQ's where disabled
@@ -243,8 +216,7 @@ APM_RC_Class::APM_RC_Class()
 
 void APM_RC_Class::Init(void)
 {
-//We are using JUST 1 timer1 for 16 PPM outputs!!! (Syberian)
-  // Init PWM Timer 1
+	//We are using JUST 1 timer1 for 16 PPM outputs!!! (Syberian)
   pinMode(2,OUTPUT);
   pinMode(3,OUTPUT);
   pinMode(4,OUTPUT);
@@ -255,12 +227,9 @@ void APM_RC_Class::Init(void)
   pinMode(9,OUTPUT);
   pinMode(11,OUTPUT);
   pinMode(12,OUTPUT);
-//  pinMode(32,OUTPUT);//cam roll
-//  pinMode(33,OUTPUT);// cam pitch
   pinMode(44,OUTPUT);//cam roll L5
   pinMode(45,OUTPUT);// cam pitch L4
   
- // OCR1A=254
   //general servo
   TCCR5A =0; //standard mode with overflow at A and OC B and C interrupts
   TCCR5B = (1<<CS11); //Prescaler set to 8, resolution of 0.5us
@@ -268,17 +237,13 @@ void APM_RC_Class::Init(void)
   OCR5A=65510; // approx 10m limit, 33ms period
   OCR5B=3000;
   
-  
-//motors
+	//motors
   OCR1A = 1800; 
   OCR1B = 1800; 
-  ICR1 = 40000; //50hz freq
+  ICR1 = 40000; //50hz freq...Datasheet says  (system_freq/prescaler)/target frequency. So (16000000hz/8)/50hz=40000,
   TCCR1A =((1<<WGM31)|(1<<COM3A1)|(1<<COM3B1)); // A and B used
   TCCR1B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
-//  ICR1 = 40000; //50hz freq...Datasheet says  (system_freq/prescaler)/target frequency. So (16000000hz/8)/50hz=40000,
 
-  //TCCR3A = (1<<COM3A1)|(1<<COM3B1)|(1<<COM3C1); // ctc on icr
-//  TCCR3B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
   OCR3A = 1800; 
   OCR3B = 1800; 
   OCR3C = 1800; 
@@ -293,14 +258,12 @@ void APM_RC_Class::Init(void)
   TCCR4A =((1<<WGM31)|(1<<COM4A1)|(1<<COM4B1)|(1<<COM4C1));
   TCCR4B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
 
-  
- configureReceiver();
+  configureReceiver();
 }
 
 
 
 uint16_t OCRxx1[8]={1800,1800,1800,1800,1800,1800,1800,1800,};
-//int OCRxx2[8]={1800,1800,1800,1800,1800,1800,1800,1800,};
 char OCRstate=7;
 /*
 D	Port PWM
