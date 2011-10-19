@@ -6,7 +6,7 @@
 #include <FastSerial.h>
 #include <AP_Common.h>
 #include <AP_Math.h>		// ArduPilot Mega Vector/Matrix math Library
-#include <SPI.h>      // Arduino SPI library
+#include <SPI.h>      		// Arduino SPI library
 #include <AP_DCM.h>			// ArduCopter DCM Library
 #include "AP_OpticalFlow.h" // ArduCopter OpticalFlow Library
 
@@ -310,7 +310,7 @@ void display_motion()
 	
 	while( !Serial.available() ) {
 	    flowSensor.read();
-		flowSensor.get_position(0,0,0,100);
+		flowSensor.update_position(0,0,0,1,100);
 
 		// x,y,squal
 		//if( flowSensor.motion() || first_time ) {
