@@ -2,8 +2,8 @@
 
 #define ARM_DELAY 10	// one second
 #define DISARM_DELAY 10	// one second
-#define LEVEL_DELAY 120 // twelve seconds
-#define AUTO_LEVEL_DELAY 150 // twentyfive seconds
+#define LEVEL_DELAY 70 // twelve seconds
+#define AUTO_LEVEL_DELAY 90 // twentyfive seconds
 
 
 // called at 10hz
@@ -52,6 +52,12 @@ static void arm_motors()
 					// Remember Orientation
 					// --------------------
 					init_simple_bearing();
+
+					// init the Z damopener
+					// --------------------
+					#if ACCEL_ALT_HOLD == 1
+					init_z_damper();
+					#endif
 
 					// Reset home position
 					// ----------------------

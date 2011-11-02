@@ -375,6 +375,19 @@
 //////////////////////////////////////////////////////////////////////////////
 // Attitude Control
 //
+
+// Extra motor values that are changed from time to time by jani @ jDrones as software
+// and charachteristics changes.
+#ifdef MOTORS_JD880
+# define STABILIZE_ROLL_P 		3.6
+# define STABILIZE_ROLL_I 		0.06
+# define STABILIZE_ROLL_IMAX 	        2.0		// degrees
+# define STABILIZE_PITCH_P		3.6
+# define STABILIZE_PITCH_I		0.06
+# define STABILIZE_PITCH_IMAX	        2.0		// degrees
+#endif
+
+// Jasons default values that are good for smaller payload motors.
 #ifndef STABILIZE_ROLL_P
 # define STABILIZE_ROLL_P 		4.6
 #endif
@@ -396,7 +409,30 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// Rate Control
+// Acro Rate Control
+//
+#ifndef ACRO_ROLL_P
+# define ACRO_ROLL_P         0.145
+#endif
+#ifndef ACRO_ROLL_I
+# define ACRO_ROLL_I         0.0
+#endif
+#ifndef ACRO_ROLL_IMAX
+# define ACRO_ROLL_IMAX	 	15			// degrees
+#endif
+
+#ifndef ACRO_PITCH_P
+# define ACRO_PITCH_P       0.145
+#endif
+#ifndef ACRO_PITCH_I
+# define ACRO_PITCH_I		0 //0.18
+#endif
+#ifndef ACRO_PITCH_IMAX
+# define ACRO_PITCH_IMAX   	15			// degrees
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// Stabilize Rate Control
 //
 #ifndef RATE_ROLL_P
 # define RATE_ROLL_P         0.145
@@ -487,10 +523,10 @@
 #endif
 
 #ifndef THR_HOLD_P
-# define THR_HOLD_P		0.5			//
+# define THR_HOLD_P		0.4			//
 #endif
 #ifndef THR_HOLD_I
-# define THR_HOLD_I		0.01		// with 4m error, 12.5s windup
+# define THR_HOLD_I		0.02		// with 4m error, 12.5s windup
 #endif
 #ifndef THR_HOLD_IMAX
 # define THR_HOLD_IMAX	300
@@ -498,10 +534,10 @@
 
 // RATE control
 #ifndef THROTTLE_P
-# define THROTTLE_P		0.6			//
+# define THROTTLE_P		1.0			//
 #endif
 #ifndef THROTTLE_I
-# define THROTTLE_I		0.10		// with 4m error, 12.5s windup
+# define THROTTLE_I		0.0			//
 #endif
 #ifndef THROTTLE_IMAX
 # define THROTTLE_IMAX	50
@@ -691,6 +727,11 @@
 // use this to completely disable the CLI
 #ifndef CLI_ENABLED
 # define CLI_ENABLED ENABLED
+#endif
+
+// use this to disable the CLI slider switch
+#ifndef CLI_SLIDER_ENABLED
+# define CLI_SLIDER_ENABLED ENABLED
 #endif
 
 // delay to prevent Xbee bricking, in milliseconds

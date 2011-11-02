@@ -18,7 +18,7 @@
 // Lesser General Public License for more details.
 //
 
-/// @file	AP_GPS_NMEA.cpp
+/// @file	AP_GPS_Ublox_i2c.cpp
 /// @brief	NMEA protocol parser
 ///
 /// This is a lightweight NMEA parser, derived originally from the
@@ -32,38 +32,11 @@
 #include <ctype.h>
 #include <stdint.h>
 
-#include "AP_GPS_NMEA.h"
+#include <Wire.h>
 
-// SiRF init messages //////////////////////////////////////////////////////////
-//
-// Note that we will only see a SiRF in NMEA mode if we are explicitly configured
-// for NMEA.  GPS_AUTO will try to set any SiRF unit to binary mode as part of
-// the autodetection process.
-//
-const prog_char AP_GPS_NMEA::_SiRF_init_string[] PROGMEM =
-	"$PSRF103,0,0,1,1*25\r\n"	// GGA @ 1Hz
-	"$PSRF103,1,0,0,1*25\r\n"	// GLL off
-	"$PSRF103,2,0,0,1*26\r\n"	// GSA off
-	"$PSRF103,3,0,0,1*27\r\n"	// GSV off
-	"$PSRF103,4,0,1,1*20\r\n"	// RMC off
-	"$PSRF103,5,0,1,1*20\r\n"	// VTG @ 1Hz
-	"$PSRF103,6,0,0,1*22\r\n"	// MSS off
-	"$PSRF103,8,0,0,1*2C\r\n"	// ZDA off
-	"$PSRF151,1*3F\r\n"			// WAAS on (not always supported)
-	"$PSRF106,21*0F\r\n"		// datum = WGS84
-	"";
+#include "AP_GPS_Ublox_i2c.h"
 
-// MediaTek init messages //////////////////////////////////////////////////////
-//
-// Note that we may see a MediaTek in NMEA mode if we are connected to a non-DIYDrones
-// MediaTek-based GPS.
-//
-const prog_char AP_GPS_NMEA::_MTK_init_string[] PROGMEM =
-	"$PMTK314,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n"	// GGA & VTG once every fix
-	"$PMTK330,0*2E\r\n"										// datum = WGS84
-	"$PMTK313,1*2E\r\n"									// SBAS on
-	"$PMTK301,2*2E\r\n"									// use SBAS data for DGPS
-	"";
+#define GPS_ADDRESS 66  // Address of GPS module on i2c bus
 
 // ublox init messages /////////////////////////////////////////////////////////
 //
@@ -74,67 +47,79 @@ const prog_char AP_GPS_NMEA::_MTK_init_string[] PROGMEM =
 // We don't attempt to send $PUBX,41 as the unit must already be talking NMEA
 // and we don't know the baudrate.
 //
-const prog_char AP_GPS_NMEA::_ublox_init_string[] PROGMEM =
-	"$PUBX,40,gga,0,1,0,0,0,0*7B\r\n"	// GGA on at one per fix
-	"$PUBX,40,vtg,0,1,0,0,0,0*7F\r\n"	// VTG on at one per fix
-	"$PUBX,40,rmc,0,0,0,0,0,0*67\r\n"	// RMC off (XXX suppress other message types?)
-	"";
+const char* AP_GPS_Ublox_i2c::_ublox_init_string[]  =
+        {"$PUBX,40,GGA,1,0,0,0,0,0*5B\r\n",
+		"$PUBX,40,VTG,1,0,0,0,0,0*5F\r\n",	
+		"$PUBX,40,RMC,1,0,0,0,0,0*46\r\n",
+        "$PUBX,40,GSA,0,0,0,0,0,0*4E\r\n",
+        "$PUBX,40,GSV,0,0,0,0,0,0*59\r\n",
+        "$PUBX,40,GLL,0,0,0,0,0,0*5C\r\n"};	
+		
+byte ublox_set_5hz[14]={0xB5 ,0x62 ,0x06 ,0x08 ,0x06 ,0x00 ,0xC8 ,0x00 ,
+		   0x01 ,0x00 ,0x01 ,0x00 ,0xDE ,0x6A};  
 
 // NMEA message identifiers ////////////////////////////////////////////////////
 //
-const char AP_GPS_NMEA::_gprmc_string[] PROGMEM = "GPRMC";
-const char AP_GPS_NMEA::_gpgga_string[] PROGMEM = "GPGGA";
-const char AP_GPS_NMEA::_gpvtg_string[] PROGMEM = "GPVTG";
+const char AP_GPS_Ublox_i2c::_gprmc_string[] PROGMEM = "GPRMC";
+const char AP_GPS_Ublox_i2c::_gpgga_string[] PROGMEM = "GPGGA";
+const char AP_GPS_Ublox_i2c::_gpvtg_string[] PROGMEM = "GPVTG";
 
 // Convenience macros //////////////////////////////////////////////////////////
 //
 #define DIGIT_TO_VAL(_x)	(_x - '0')
 
 // Constructors ////////////////////////////////////////////////////////////////
-AP_GPS_NMEA::AP_GPS_NMEA(Stream *s) :
+AP_GPS_Ublox_i2c::AP_GPS_Ublox_i2c(Stream *s) :
 	GPS(s)
 {
-	FastSerial	*fs = (FastSerial *)_port;
-
-	// Re-open the port with enough receive buffering for the messages we expect
-	// and very little tx buffering, since we don't care about sending.
-	// Leave the port speed alone as we don't actually know at what rate we're running...
-	//
-	fs->begin(0, 200, 16);
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
-void AP_GPS_NMEA::init(void)
+void AP_GPS_Ublox_i2c::init(void)
 {
-	BetterStream	*bs = (BetterStream *)_port;
-
-	// send the SiRF init strings
-	bs->print_P((const prog_char_t *)_SiRF_init_string);
-
-	// send the MediaTek init strings
-	bs->print_P((const prog_char_t *)_MTK_init_string);
-
-	// send the ublox init strings
-	bs->print_P((const prog_char_t *)_ublox_init_string);
+	Wire.begin();
 	
-	idleTimeout = 1200;
+	Wire.beginTransmission(GPS_ADDRESS);
+	Wire.send(ublox_set_5hz, 14);
+	Wire.endTransmission();
+	delay(100);
+	
+	for(int i = 0; i < 6; i++)
+	{
+		Wire.beginTransmission(GPS_ADDRESS);
+		Wire.send((char *)_ublox_init_string[i]);
+		Wire.endTransmission();
+	}
+	
+    idleTimeout = 20000;
+	gps_timeout = 0;
 }
 
-bool AP_GPS_NMEA::read(void)
+bool AP_GPS_Ublox_i2c::read(void)
 {
 	int numc;
 	bool parsed = false;
-
-	numc = _port->available();
+	if(millis() - gps_timeout < 50) {
+		return false;
+	}
+	
+	Wire.requestFrom(GPS_ADDRESS, 32);
+	numc = Wire.available();
 	while (numc--) {
-		if (_decode(_port->read())) {
-			parsed = true;
+		char c = Wire.receive();
+		//Serial.print(c);
+		if(c >= 0)
+		{
+			if (_decode(c)) {
+				parsed = true;
+			}
 		}
 	}
+	gps_timeout = millis();
 	return parsed;
 }
 
-bool AP_GPS_NMEA::_decode(char c)
+bool AP_GPS_Ublox_i2c::_decode(char c)
 {
 	bool valid_sentence = false;
 
@@ -174,7 +159,7 @@ bool AP_GPS_NMEA::_decode(char c)
 //
 // internal utilities
 //
-int AP_GPS_NMEA::_from_hex(char a)
+int AP_GPS_Ublox_i2c::_from_hex(char a)
 {
 	if (a >= 'A' && a <= 'F')
 		return a - 'A' + 10;
@@ -184,7 +169,7 @@ int AP_GPS_NMEA::_from_hex(char a)
 		return a - '0';
 }
 
-unsigned long AP_GPS_NMEA::_parse_decimal()
+unsigned long AP_GPS_Ublox_i2c::_parse_decimal()
 {
 	char *p = _term;
 	unsigned long ret = 100UL * atol(p);
@@ -200,7 +185,7 @@ unsigned long AP_GPS_NMEA::_parse_decimal()
 	return ret;
 }
 
-unsigned long AP_GPS_NMEA::_parse_degrees()
+unsigned long AP_GPS_Ublox_i2c::_parse_degrees()
 {
 	char *p, *q;
 	uint8_t deg = 0, min = 0;
@@ -241,8 +226,7 @@ unsigned long AP_GPS_NMEA::_parse_degrees()
 
 // Processes a just-completed term
 // Returns true if new sentence has just passed checksum test and is validated
-long fc_lat_prev,fc_lon_prev;
-bool AP_GPS_NMEA::_term_complete()
+bool AP_GPS_Ublox_i2c::_term_complete()
 {
 	// handle the last term in a message
 	if (_is_checksum_term) {
@@ -272,7 +256,7 @@ bool AP_GPS_NMEA::_term_complete()
 					hdop			= _new_hdop;
 					fix				= true;
 					break;
-				case _GPS_SENTENCE_GPVTG:
+				case _GPS_SENTENCE_VTG:
 					ground_speed	= _new_speed;
 					ground_course	= _new_course;
 					// VTG has no fix indicator, can't change fix status
@@ -301,7 +285,7 @@ bool AP_GPS_NMEA::_term_complete()
 		} else if (!strcmp_P(_term, _gpgga_string)) {
 			_sentence_type = _GPS_SENTENCE_GPGGA;
 		} else if (!strcmp_P(_term, _gpvtg_string)) {
-			_sentence_type = _GPS_SENTENCE_GPVTG;
+			_sentence_type = _GPS_SENTENCE_VTG;
 			// VTG may not contain a data qualifier, presume the solution is good
 			// unless it tells us otherwise.
 			_gps_data_good = true;
@@ -311,69 +295,71 @@ bool AP_GPS_NMEA::_term_complete()
 		return false;
 	}
 
-	// 32 = RMC, 64 = GGA, 96 = VTG
+	// 10 = RMC, 20 = GGA, 30 = VTG
 	if (_sentence_type != _GPS_SENTENCE_OTHER && _term[0]) {
 		switch (_sentence_type + _term_number) {
 		// operational status
 		//
-		case _GPS_SENTENCE_GPRMC + 2: // validity (RMC)
+		case 12: // validity (RMC)
 			_gps_data_good = _term[0] == 'A';
 			break;
-		case _GPS_SENTENCE_GPGGA + 6: // Fix data (GGA)
+		case 26: // Fix data (GGA)
 			_gps_data_good = _term[0] > '0';
 			break;
-		case _GPS_SENTENCE_GPVTG + 9: // validity (VTG) (we may not see this field)
+		case 39: // validity (VTG) (we may not see this field)
 			_gps_data_good = _term[0] != 'N';
 			break;
-		case _GPS_SENTENCE_GPGGA + 7: // satellite count (GGA)
+		case 27: // satellite count (GGA)
 			_new_satellite_count = atol(_term);
 			break;
-		case _GPS_SENTENCE_GPGGA + 8: // HDOP (GGA)
+		case 28: // HDOP (GGA)
 			_new_hdop = _parse_decimal();
 			break;
 
 			// time and date
 			//
-		case _GPS_SENTENCE_GPRMC + 1: // Time (RMC)
-		case _GPS_SENTENCE_GPGGA + 1: // Time (GGA)
+		case 11: // Time (RMC)
+		case 21: // Time (GGA)
 			_new_time = _parse_decimal();
 			break;
-		case _GPS_SENTENCE_GPRMC + 9: // Date (GPRMC)
+		case 19: // Date (GPRMC)
 			_new_date = atol(_term);
 			break;
 
 			// location
 			//
-		case _GPS_SENTENCE_GPRMC + 3: // Latitude
-		case _GPS_SENTENCE_GPGGA + 2:
+		case 13: // Latitude
+		case 22:
 			_new_latitude = _parse_degrees();
 			break;
-		case _GPS_SENTENCE_GPRMC + 4: // N/S
-		case _GPS_SENTENCE_GPGGA + 3:
+		case 14: // N/S
+		case 23:
 			if (_term[0] == 'S')
 				_new_latitude = -_new_latitude;
 			break;
-		case _GPS_SENTENCE_GPRMC + 5: // Longitude
-		case _GPS_SENTENCE_GPGGA + 4:
+		case 15: // Longitude
+		case 24:
 			_new_longitude = _parse_degrees();
 			break;
-		case _GPS_SENTENCE_GPRMC + 6: // E/W
-		case _GPS_SENTENCE_GPGGA + 5:
+		case 16: // E/W
+		case 25:
 			if (_term[0] == 'W')
 				_new_longitude = -_new_longitude;
 			break;
-		case _GPS_SENTENCE_GPGGA + 9: // Altitude (GPGGA)
+		case 29: // Altitude (GPGGA)
 			_new_altitude = _parse_decimal();
 			break;
 
 			// course and speed
 			//
-		case _GPS_SENTENCE_GPRMC + 7: // Speed (GPRMC)
-		case _GPS_SENTENCE_GPVTG + 5: // Speed (VTG)
+		case 17: // Speed (GPRMC)
 			_new_speed = (_parse_decimal() * 514) / 1000; 	// knots-> m/sec, approximiates * 0.514
 			break;
-		case _GPS_SENTENCE_GPRMC + 8: // Course (GPRMC)
-		case _GPS_SENTENCE_GPVTG + 1: // Course (VTG)
+		case 37: // Speed (VTG)
+			_new_speed = _parse_decimal();
+			break;
+		case 18: // Course (GPRMC)
+		case 31: // Course (VTG)
 			_new_course = _parse_decimal();
 			break;
 		}
