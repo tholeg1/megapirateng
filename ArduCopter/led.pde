@@ -1,7 +1,7 @@
 /*
 Programmable LED sequencer for MegaPirate B8+ by Syberian
 #########
-- 4 programs selectable by RC channel
+- 4 programs selectable by RC channel 8 (by default)
 - each program may consist of up to 64 states
 - up to 8 split LED channels
 - automatic sequence restart
@@ -45,7 +45,7 @@ Last record should end by 0,LED_OFF,   - this is mandatory!
 //#define SQ_LED1 51
 
 // Define RX channel to control 
-#define SQ_LED_CH 8 // ch7 is used for SIMPLE MODE selection
+#define SQ_LED_CH 8 // ch8 is used for SIMPLE MODE selection
 
 
 // LED program # 1

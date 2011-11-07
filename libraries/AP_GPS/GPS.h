@@ -43,7 +43,9 @@ public:
 	///
 	/// @returns			Current GPS status
 	///
-	GPS_Status		status(void) { return _status; }
+    GPS_Status		status(void) {
+        return _status;
+    }
 
 	/// GPS time epoch codes
 	///
@@ -59,7 +61,9 @@ public:
 	///
 	/// @returns			Current GPS time epoch code
 	///
-	GPS_Time_Epoch		epoch(void) { return _epoch; }
+    GPS_Time_Epoch		epoch(void) {
+        return _epoch;
+    }
 
 	/// Startup initialisation.
 	///
