@@ -167,7 +167,10 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 		AP_GPS_None     g_gps_driver(NULL);
 
 	#elif GPS_PROTOCOL == GPS_PROTOCOL_UBLOX_I2C
-		GPS_Ublox_i2c    g_gps_driver(NULL);
+		AP_GPS_Ublox_i2c    g_gps_driver(NULL);
+
+	#elif GPS_PROTOCOL == GPS_PROTOCOL_BLACKVORTEX
+		AP_GPS_BLACKVORTEX  g_gps_driver(&Serial2);
 		
 	#else
 		#error Unrecognised GPS_PROTOCOL setting.

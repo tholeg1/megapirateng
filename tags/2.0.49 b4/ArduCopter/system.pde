@@ -184,6 +184,10 @@ static void init_ardupilot()
 		barometer.Init();	// APM Abs Pressure sensor initialization
 	#endif
 
+	#if OSD_PROTOCOL != OSD_PROTOCOL_NONE
+		osd_init();
+	#endif 
+	
 	// Do GPS init
 	// Init Bluetooth BC-04, for test only
 	#if INIT_BLUETOOTH_GPS == 1

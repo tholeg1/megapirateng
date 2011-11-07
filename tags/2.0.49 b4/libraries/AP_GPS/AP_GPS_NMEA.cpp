@@ -241,6 +241,7 @@ unsigned long AP_GPS_NMEA::_parse_degrees()
 
 // Processes a just-completed term
 // Returns true if new sentence has just passed checksum test and is validated
+long fc_lat_prev,fc_lon_prev;
 bool AP_GPS_NMEA::_term_complete()
 {
 	// handle the last term in a message
@@ -252,6 +253,8 @@ bool AP_GPS_NMEA::_term_complete()
 				case _GPS_SENTENCE_GPRMC:
 					time			= _new_time;
 					date			= _new_date;
+					if(_new_latitude!=0) fc_lat_prev=_new_latitude; else _new_latitude=fc_lat_prev;
+					if(_new_longitude!=0) fc_lon_prev=_new_longitude; else _new_longitude=fc_lon_prev;
 					latitude		= _new_latitude * 100;	// degrees*10e5 -> 10e7
 					longitude		= _new_longitude * 100;	// degrees*10e5 -> 10e7
 					ground_speed	= _new_speed;
@@ -261,6 +264,8 @@ bool AP_GPS_NMEA::_term_complete()
 				case _GPS_SENTENCE_GPGGA:
 					altitude		= _new_altitude;
 					time			= _new_time;
+					if(_new_latitude!=0) fc_lat_prev=_new_latitude; else _new_latitude=fc_lat_prev;
+					if(_new_longitude!=0) fc_lon_prev=_new_longitude; else _new_longitude=fc_lon_prev;
 					latitude		= _new_latitude * 100;	// degrees*10e5 -> 10e7
 					longitude		= _new_longitude * 100;	// degrees*10e5 -> 10e7
 					num_sats		= _new_satellite_count;
