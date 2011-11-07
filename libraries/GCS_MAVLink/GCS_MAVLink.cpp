@@ -11,11 +11,7 @@ BetterStream	*mavlink_comm_1_port;
 // this might need to move to the flight software
 mavlink_system_t mavlink_system = {7,1,0,0};
 
-#ifdef MAVLINK10
-# include "include_v1.0/mavlink_helpers.h"
-#else
-# include "include/mavlink_helpers.h"
-#endif
+#include "include/mavlink_helpers.h"
 
 uint8_t mavlink_check_target(uint8_t sysid, uint8_t compid)
 {

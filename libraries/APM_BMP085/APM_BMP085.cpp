@@ -106,33 +106,53 @@ uint8_t APM_BMP085_Class::Read()
 	uint8_t result = 0;
 
 	#ifdef BMP085_EOC 
-	if (BMP085_State == 1){
-		if (digitalRead(BMP085_EOC)){
-			BMP085_State = 2;
-			ReadTemp();						 // On state 1 we read temp
-			Command_ReadPress();
+		if (BMP085_State == 1){
+			if (digitalRead(BMP085_EOC)){
+				ReadTemp();						 // On state 1 we read temp
+				BMP085_State++;
+				Command_ReadPress();
+			}
+		}else{
+			if (BMP085_State == 5){
+				if (digitalRead(BMP085_EOC)){
+					ReadPress();
+					Calculate();
+	
+					BMP085_State = 1;			// Start again from state = 1
+					Command_ReadTemp();			// Read Temp
+					result = 1;					// New pressure reading
+				}
+			}else{
+				if (digitalRead(BMP085_EOC)){
+					ReadPress();
+					Calculate();
+					BMP085_State++;
+					Command_ReadPress();
+					result = 1;					// New pressure reading
+				}
+			}
 		}
-	}else{
-		if (digitalRead(BMP085_EOC)){
-			BMP085_State = 1;			// Start again from state = 1
-			ReadPress();
-			Calculate();
-			Command_ReadTemp();			// Read Temp
-			result = 1;					// New pressure reading
-		}
-	}
 	#else
-	if (BMP085_State == 1){
-			BMP085_State = 2;
-			ReadTemp();						 // On state 1 we read temp
-			Command_ReadPress();
-	}else{
-			BMP085_State = 1;			// Start again from state = 1
-			ReadPress();
-			Calculate();
-			Command_ReadTemp();			// Read Temp
-			result = 1;					// New pressure reading
-	}
+		if (BMP085_State == 1){
+				ReadTemp();						 // On state 1 we read temp
+				BMP085_State++;
+				Command_ReadPress();
+		}else{
+			if (BMP085_State == 5){
+					ReadPress();
+					Calculate();
+	
+					BMP085_State = 1;			// Start again from state = 1
+					Command_ReadTemp();			// Read Temp
+					result = 1;					// New pressure reading
+			}else{
+					ReadPress();
+					Calculate();
+					BMP085_State++;
+					Command_ReadPress();
+					result = 1;					// New pressure reading
+			}
+		}
 	#endif
 	return(result);
 }

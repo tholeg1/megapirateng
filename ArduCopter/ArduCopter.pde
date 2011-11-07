@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.0.50 beta1"
+#define THISFIRMWARE "MegaPirateNG V2.0.49 Beta"
 /*
 ArduCopter Version 2.0 Beta
 Authors:	Jason Short
@@ -60,7 +60,7 @@ And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
 #include <APM_RC.h>         // ArduPilot Mega RC Library
 #include <AP_GPS.h>         // ArduPilot GPS library
 #include <Wire.h>			// Arduino I2C lib
-#include <SPI.h>
+//#include <SPI.h>
 //#include <DataFlash.h>      // ArduPilot Mega Flash Memory Library
 #include <AP_ADC.h>         // ArduPilot Mega Analog to Digital Converter Library
 #include <APM_BMP085.h>     // ArduPilot Mega BMP085 Library
@@ -167,10 +167,7 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 		AP_GPS_None     g_gps_driver(NULL);
 
 	#elif GPS_PROTOCOL == GPS_PROTOCOL_UBLOX_I2C
-		AP_GPS_Ublox_i2c    g_gps_driver(NULL);
-
-	#elif GPS_PROTOCOL == GPS_PROTOCOL_BLACKVORTEX
-		AP_GPS_BLACKVORTEX  g_gps_driver(&Serial2);
+		GPS_Ublox_i2c    g_gps_driver(NULL);
 		
 	#else
 		#error Unrecognised GPS_PROTOCOL setting.
@@ -263,6 +260,14 @@ static const char* flight_mode_strings[] = {
 			8	TBD
 */
 
+// test
+#if ACCEL_ALT_HOLD == 1
+Vector3f accels_rot;
+static int	accels_rot_count;
+static float	accels_rot_sum;
+static float alt_hold_gain = ACCEL_ALT_HOLD_GAIN;
+#endif
+
 // temp
 static int y_actual_speed;
 static int y_rate_error;
@@ -343,9 +348,6 @@ static int waypoint_speed_gov;
 static bool do_flip = false;
 #endif
 
-static boolean trim_flag;
-static int CH7_wp_index = 0;
-
 // Airspeed
 // --------
 static int		airspeed;							// m/s * 100
@@ -354,7 +356,6 @@ static int		airspeed;							// m/s * 100
 // ---------------
 static long		altitude_error;						// meters * 100 we are off in altitude
 static long 	old_altitude;
-static int 		old_rate;
 static long 	yaw_error;							// how off are we pointed
 static long		long_error, lat_error;				// temp for debugging
 
@@ -394,8 +395,6 @@ static boolean	land_complete;
 static long 	old_alt;							// used for managing altitude rates
 static int		velocity_land;
 static byte 	yaw_tracking = MAV_ROI_WPNEXT;		// no tracking, point at next wp, or at a target
-static int 		manual_boost;						// used in adjust altitude to make changing alt faster
-static int 		angle_boost;						// used in adjust altitude to make changing alt faster
 
 // Loiter management
 // -----------------
@@ -550,7 +549,7 @@ void loop()
 			counter_one_herz = 0;
 		}
 
-		if (millis() - perf_mon_timer > 1200 /*20000*/) {
+		if (millis() - perf_mon_timer > 20000) {
 				if (g.log_bitmask & MASK_LOG_PM)
 					Log_Write_Performance();
 
@@ -683,7 +682,6 @@ static void medium_loop()
 			}else{
 				g_gps->new_data = false;
 			}
-
 			break;
 
 		// command processing
@@ -749,11 +747,6 @@ static void medium_loop()
 			// -----------------------
 			arm_motors();
 
-			// Do an extra baro read
-			// ---------------------
-#if HIL_MODE != HIL_MODE_ATTITUDE
-			barometer.Read();
-#endif
 
 			slow_loop();
 			break;
@@ -1058,15 +1051,8 @@ void update_throttle_mode(void)
 
 		case THROTTLE_MANUAL:
 			if (g.rc_3.control_in > 0){
-			    #if FRAME_CONFIG == HELI_FRAME
-				    g.rc_3.servo_out = heli_get_angle_boost(heli_get_scaled_throttle(g.rc_3.control_in));
-				#else
-					angle_boost = get_angle_boost(g.rc_3.control_in);
-					g.rc_3.servo_out = g.rc_3.control_in + angle_boost;
-				#endif
+				g.rc_3.servo_out = g.rc_3.control_in + get_angle_boost();
 			}else{
-				g.pi_stabilize_roll.reset_I();
-				g.pi_stabilize_pitch.reset_I();
 				g.pi_rate_roll.reset_I();
 				g.pi_rate_pitch.reset_I();
 				g.rc_3.servo_out = 0;
@@ -1092,21 +1078,9 @@ void update_throttle_mode(void)
 				// clear the new data flag
 				invalid_throttle = false;
 			}
-			#if FRAME_CONFIG == HELI_FRAME
-				g.rc_3.servo_out = heli_get_angle_boost(g.throttle_cruise + nav_throttle);
-			#else
-				angle_boost = get_angle_boost(g.throttle_cruise);
 
-				if(manual_boost != 0){
-					//remove alt_hold_velocity when implemented
-					g.rc_3.servo_out = g.throttle_cruise + angle_boost + manual_boost + get_z_damping();
-					// reset next_WP.alt
-					next_WP.alt = max(current_loc.alt, 100);
-				}else{
-					g.rc_3.servo_out = g.throttle_cruise + nav_throttle + angle_boost + get_z_damping();
-				}
-
-			#endif
+			// apply throttle control at 200 hz
+			g.rc_3.servo_out = g.throttle_cruise + nav_throttle + get_angle_boost() + alt_hold_velocity();
 			break;
 	}
 }
@@ -1226,6 +1200,14 @@ static void update_trig(void){
 	// 90° = cos_yaw:  1.00, sin_yaw:  0.00,
 	// 180 = cos_yaw:  0.00, sin_yaw: -1.00,
 	// 270 = cos_yaw: -1.00, sin_yaw:  0.00,
+
+
+	#if ACCEL_ALT_HOLD == 1
+	Vector3f accel_filt	= imu.get_accel_filtered();
+	accels_rot 	= dcm.get_dcm_matrix() * imu.get_accel_filtered();
+	accels_rot_sum += accels_rot.z;
+	accels_rot_count++;
+	#endif
 }
 
 // updated at 10hz
@@ -1243,7 +1225,7 @@ static void update_altitude()
 		float scale;
 
 		// read barometer
-		baro_alt = (baro_alt + read_barometer()) >> 1;
+		baro_alt 			= read_barometer();
 
 		if(baro_alt < BARO_TO_SONAR){
 
@@ -1267,47 +1249,21 @@ static void update_altitude()
 		current_loc.alt = baro_alt + home.alt;
 	}
 
-	// calc the vertical accel rate
-	int temp_rate 	= (barometer._offset_press - barometer.RawPress) << 1; // invert and scale
-	altitude_rate 	= (temp_rate - old_rate) * 10;
-	old_rate 		= temp_rate;
+	altitude_rate 	= (current_loc.alt - old_altitude) * 10; // 10 hz timer
+	old_altitude 	= current_loc.alt;
 	#endif
 }
 
 static void
 adjust_altitude()
 {
-	/*
-	// old vert control
 		if(g.rc_3.control_in <= 200){
 			next_WP.alt -= 1;												// 1 meter per second
 		next_WP.alt = max(next_WP.alt, (current_loc.alt - 500));		// don't go less than 4 meters below current location
 			next_WP.alt = max(next_WP.alt, 100);							// don't go less than 1 meter
-		//manual_boost = (g.rc_3.control_in == 0) ? -20 : 0;
-
 		}else if (g.rc_3.control_in > 700){
 			next_WP.alt += 1;												// 1 meter per second
 		next_WP.alt = min(next_WP.alt, (current_loc.alt + 500));		// don't go more than 4 meters below current location
-		//manual_boost = (g.rc_3.control_in == 800) ? 20 : 0;
-	}*/
-
-	if(g.rc_3.control_in <= 180){
-		// we remove 0 to 100 PWM from hover
-		manual_boost = g.rc_3.control_in - 180;
-		manual_boost = max(-120, manual_boost);
-		g.throttle_cruise += g.pi_alt_hold.get_integrator();
-		g.pi_alt_hold.reset_I();
-		g.pi_throttle.reset_I();
-
-	}else if  (g.rc_3.control_in >= 650){
-		// we add 0 to 100 PWM to hover
-		manual_boost = g.rc_3.control_in - 650;
-		g.throttle_cruise += g.pi_alt_hold.get_integrator();
-		g.pi_alt_hold.reset_I();
-		g.pi_throttle.reset_I();
-
-	}else {
-		manual_boost = 0;
 		}
 	}
 
@@ -1389,13 +1345,6 @@ static void tuning(){
 			g.pi_nav_lat.kP(tuning_value);
 			g.pi_nav_lon.kP(tuning_value);
 			break;
-
-		#if FRAME_CONFIG == HELI_FRAME
-		case CH6_HELI_EXTERNAL_GYRO:
-			g.rc_6.set_range(1000,2000);
-			g.heli_ext_gyro_gain = tuning_value * 1000;
-			break;
-		#endif
 	}
 }
 

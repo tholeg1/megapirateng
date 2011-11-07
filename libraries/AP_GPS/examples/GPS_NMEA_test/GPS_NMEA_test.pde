@@ -32,8 +32,7 @@ const uint8_t sirf_to_nmea[] = { 0xa0, 0xa2, // preamble
 								 0x00, 0x00, // pad
 								 0x96, 0x00, // 38400
 								 0x01, 0x25, // checksum TBD
-                                 0xb0, 0xb3
-                               }; // postamble
+								 0xb0, 0xb3 }; // postamble
 
 void setup()
 {

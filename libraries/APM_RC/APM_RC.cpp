@@ -50,7 +50,7 @@ mw: 0,1,3,4,5,6 - motors
 //##################################################
 
 
-#if !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__)
+#if (!defined(__AVR_ATmega1280__))&&(!defined(__AVR_ATmega2560__))
 # error Please check the Tools/Board menu to ensure you have selected Arduino Mega as your target.
 #else
 

@@ -4,7 +4,6 @@
 #include <sys/time.h>
 #include <sched.h>
 #include <wiring.h>
-#include "desktop.h"
 
 void setup(void);
 void loop(void);
@@ -17,17 +16,15 @@ int main(void)
 	setup();
 	while (true) {
 		struct timeval tv;
-		fd_set fds;
-		int fd_high = 0;
-
-		FD_ZERO(&fds);
+		unsigned long t1, t2;
+		t1 = micros();
 		loop();
-
-		desktop_serial_select_setup(&fds, &fd_high);
-		tv.tv_sec = 0;
-		tv.tv_usec = 100;
-
-		select(fd_high+1, &fds, NULL, NULL, &tv);
+		t2 = micros();
+		if (t2 - t1 < 2) {
+			tv.tv_sec = 0;
+			tv.tv_usec = 1;
+			select(0, NULL, NULL, NULL, &tv);
+		}
 	}
 	return 0;
 }

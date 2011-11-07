@@ -1,23 +1,5 @@
 // Support for Remzibi OSD
 // Based on file OSD_RemzibiV2.pde from WWW.DIYDRONES.COM
-// tested with remzibi firmware ardum 1.73 from rcgroup
-// coded by sir alex, 
-// tested by fr3d on his desktop with flyduino v2 
-// only connect TX1 wire to remzibi RX plug! no ground no 5v power ONLY one Wire !
-// tested with the poor remzibi gps on  rx/tx2.
-// write flight mode (acro, stabilize,etc..) on line 3 and column 1
-// write voltage (an0) on line 14 column 1
-// write alert voltage on line 13 column 6
-
-//****************************************************************************************
-// to run it configure APM_config.h adding thoses lines.
-//#define OSD_PROTOCOL OSD_PROTOCOL_REMZIBI
-//#define GPS_PROTOCOL GPS_PROTOCOL_NMEA            //for the poor remzibi nmea gps
-//#define BATTERY_EVENT  ENABLED                    //enable for checking main voltage in an0 on flyduino
-//#define LOW_VOLTAGE			9.9         //min voltage show alarm
-//#define VOLT_DIV_RATIO			3.60// with 10k on (+) and 3k9 on(-)
-// have fun fr3d
-//**************************************************************************************** 
 
 #if OSD_PROTOCOL == OSD_PROTOCOL_REMZIBI
 
@@ -55,8 +37,6 @@ byte readOSDSwitch(void){
 */
 void osd_init(){
 	Serial1.begin(57600);
-//	Serial1.begin(38400);
-
 	set_osd_mode(1);
 }
 
@@ -97,63 +77,75 @@ void osd_heartbeat_10Hz(void)
 	SendSer(g_gps->time,DEC); //Time
 	SendSerln();
 
-# if BATTERY_EVENT == ENABLED
+	#if BATTERY_EVENT == ENABLED
     if(battery_voltage < LOW_VOLTAGE)
     {
-          SendSer("$M,6,13,215,215,");     //fr3d colonne 6 ligne 13 
-          SendSer("LOW VOLTAGE ALERT");
-          SendSerln();                  
-
-          SendSer ("$M,1,14,215,00,");   //fr3d colonne 1 ligne 14 
-          SendSer(battery_voltage,1); 
-          SendSerln();
-
+        SendSer("$M");
+        SendSer("97");
+        SendSer("02");
+        SendSer("D7");
+        SendSer("00");
+        SendSer(battery_voltage,1);
+        SendSerln();
+        
+        SendSer("$M");
+        SendSer("87"); // Hex Column (01h - 1Eh) for small fonts add 80h (81h - 9Eh) 
+        SendSer("0B"); // Hex Row (01h - 0Dh for NTSC, 01h - 10h for PAL) 
+        SendSer("D7"); // Hex address of First Character
+        SendSer("D7"); // Hex address of Last Character
+        SendSer("LOW VOLTAGE ALERT");
+        SendSerln();                  
     }
     else
     {
-//        SendSerln("$CLS");
-//        SendSer("$M,1,4,0,0,");         //fr3d colonne 1 ligne 4 
-//        SendSer("                 ");
-
-        SendSer ("$M,1,14,213,00,");     //fr3d colonne 1 ligne 14
+        SendSer("$M");
+        SendSer("97");
+        SendSer("02");
+        SendSer("D5");
+        SendSer("00");
         SendSer(battery_voltage,1);
         SendSerln();         
-
     }
   #endif
-        SendSer ("$M,1,3,0,0, "); //fr3d write flight mode column 1 ligne 3
+  
+  SendSer("$M");
+  SendSer("82"); // Hex Column (01h - 1Eh) for small fonts add 80h (81h - 9Eh) 
+  SendSer("0C"); // Hex Row (01h - 0Dh for NTSC, 01h - 10h for PAL) 
+  SendSer("E9"); // Hex address of First Character
+  SendSer("00"); // Hex address of Last Character
+
 	switch (control_mode){
 		case STABILIZE:
 			SendSer("STABILIZE       ");
-                        break;
+      break;
 		case ACRO:
 			SendSer("ACRO            ");
-                        break;
+      break;
 		case ALT_HOLD:
 			SendSer("ALT_HOLD        ");
-                        break;
+      break;
 		case AUTO:
 			SendSer("WP");
-                        SendSer((int)(wp_distance*nMult));
-                        SendSer("   ");
-                        break;
+      SendSer((int)(wp_distance*nMult));
+      SendSer("   ");
+      break;
 		case GUIDED:
 			SendSer("GUIDED          ");
-                        break;
+      break;
 		case LOITER:
 			SendSer("LOITER          ");
-                        break;
+      break;
 		case RTL:
 			SendSer("RTL:");
-                        SendSer((int)(wp_distance*nMult));
-                        SendSer("   ");
-                        break;
+      SendSer((int)(wp_distance*nMult));
+      SendSer("   ");
+      break;
 		case CIRCLE:
 			SendSer("CIRCLE          ");
-                        break;
+      break;
 		case POSITION:
 			SendSer("POSITION        ");
-                        break;
+      break;
 	}
   SendSerln("");
 }

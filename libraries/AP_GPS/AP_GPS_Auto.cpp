@@ -15,14 +15,14 @@
 // the GPS to switch to binary mode at the same time that this code
 // detects it as being in NMEA mode.
 //
-//#define WITH_NMEA_MODE	1
+#define WITH_NMEA_MODE	1
 
 static unsigned int	baudrates[] = {38400U, 57600U, 9600U, 4800U};
 
 const prog_char	AP_GPS_Auto::_mtk_set_binary[]   PROGMEM = MTK_SET_BINARY;
 const prog_char	AP_GPS_Auto::_ublox_set_binary[] PROGMEM = UBLOX_SET_BINARY;
 const prog_char	AP_GPS_Auto::_sirf_set_binary[]  PROGMEM = SIRF_SET_BINARY;
-
+byte brate;
 
 AP_GPS_Auto::AP_GPS_Auto(FastSerial *s, GPS **gps)  :
 	GPS(s),
@@ -66,6 +66,7 @@ AP_GPS_Auto::read(void)
 	for (i = 0; i < (sizeof(baudrates) / sizeof(baudrates[0])); i++) {
 
 		_fs->begin(baudrates[i]);
+		brate=i;
 		if (NULL != (gps = _detect())) {
 
 			// configure the detected GPS and give it a chance to listen to its device
@@ -96,6 +97,14 @@ AP_GPS_Auto::read(void)
 GPS *
 AP_GPS_Auto::_detect(void)
 {
+			byte ublox_set_5hz[14]={0xB5 ,0x62 ,0x06 ,0x08 ,0x06 ,0x00 ,0xC8 ,0x00 ,
+                   0x01 ,0x00 ,0x01 ,0x00 ,0xDE ,0x6A};   
+byte ublox_set_384[28]={0xB5 ,0x62 ,0x06 ,0x00 ,0x14 ,0x00 ,0x01 ,0x00 ,
+                   0x00 ,0x00 ,0xD0 ,0x08 ,0x00 ,0x00 ,0x00 ,0x96 ,
+                   0x00 ,0x00 ,0x07 ,0x00 ,0x02 ,0x00 ,0x00 ,0x00 ,
+                   0x00 ,0x00 ,0x92 ,0x8A};
+byte i;
+
 	unsigned long then;
 	int		fingerprint[4];
 	int		tries;
@@ -192,8 +201,15 @@ AP_GPS_Auto::_detect(void)
 			Serial.print('*');
 			// use the FastSerial port handle so that we can use PROGMEM strings
 			_fs->println_P((const prog_char_t *)_mtk_set_binary);
-			_fs->println_P((const prog_char_t *)_ublox_set_binary);
 			_fs->println_P((const prog_char_t *)_sirf_set_binary);
+delay(100);
+_fs->begin(9600);
+for (i=0;i<14;i++) Serial2.write(ublox_set_5hz[i]);
+delay(100);
+for (i=0;i<28;i++) Serial2.write(ublox_set_384[i]);
+delay(1000);
+_fs->begin(baudrates[brate]);
+_fs->flush();
 
 			// give the GPS time to react to the settings
 			callback(100);

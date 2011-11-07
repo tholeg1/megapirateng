@@ -803,15 +803,8 @@ test_baro(uint8_t argc, const Menu::arg *argv)
 
 	while(1){
 		delay(100);
-		barometer.Read();
-		delay(100);
 		baro_alt 		= read_barometer();
-
-		int temp_rate = (barometer._offset_press - barometer.RawPress) << 1;
-		altitude_rate = (temp_rate - old_rate) * 10;
-		old_rate = temp_rate;
-						//			1			2	3	4	 5		 1        2				3   				4					5
-		Serial.printf_P(PSTR("Baro: %dcm, rate:%d, %ld, %ld, %d, Sonar: %dcm\n"), baro_alt, altitude_rate, barometer.RawTemp, barometer.RawPress, temp_rate,sonar.read());
+		Serial.printf_P(PSTR("Baro: %dcm, Sonar: %dcm\n"), baro_alt,sonar.read());
 		//Serial.printf_P(PSTR("Baro, %d, %ld, %ld, %ld, %ld\n"), baro_alt, barometer.RawTemp, barometer.RawTemp2, barometer.RawPress, barometer.RawPress2);
 		if(Serial.available() > 0){
 			return (0);

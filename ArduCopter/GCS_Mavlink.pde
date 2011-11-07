@@ -8,9 +8,6 @@ static bool in_mavlink_delay;
 // messages don't block the CPU
 static mavlink_statustext_t pending_status;
 
-// true when we have received at least 1 MAVLink packet
-static bool mavlink_active;
-
 
 // check if a message will fit in the payload space available
 #define CHECK_PAYLOAD_SIZE(id) if (payload_space < MAVLINK_MSG_ID_## id ##_LEN) return false
@@ -542,26 +539,8 @@ GCS_MAVLINK::update(void)
 	{
 		uint8_t c = comm_receive_ch(chan);
 
-#if CLI_ENABLED == ENABLED
-        /* allow CLI to be started by hitting enter 3 times, if no
-           heartbeat packets have been received */
-        if (mavlink_active == false) {
-            if (c == '\n' || c == '\r') {
-                crlf_count++;
-            } else {
-                crlf_count = 0;
-            }
-            if (crlf_count == 3) {
-                run_cli();
-            }
-        }
-#endif
-
 		// Try to get a new message
-        if (mavlink_parse_char(chan, c, &msg, &status)) {
-            mavlink_active = true;
-            handleMessage(&msg);
-        }
+		if(mavlink_parse_char(chan, c, &msg, &status)) handleMessage(&msg);
 	}
 
 	// Update packet drops counter
@@ -572,26 +551,18 @@ GCS_MAVLINK::update(void)
         send_message(MSG_NEXT_PARAM);
     }
 
-    if (!waypoint_receiving && !waypoint_sending) {
-        return;
-    }
-
-    uint32_t tnow = millis();
-
     if (waypoint_receiving &&
-        waypoint_request_i <= (unsigned)g.waypoint_total &&
-        tnow > waypoint_timelast_request + 500) {
-        waypoint_timelast_request = tnow;
+        waypoint_request_i <= (unsigned)g.waypoint_total) {
         send_message(MSG_NEXT_WAYPOINT);
     }
 
     // stop waypoint sending if timeout
-    if (waypoint_sending && (tnow - waypoint_timelast_send) > waypoint_send_timeout){
+    if (waypoint_sending && (millis() - waypoint_timelast_send) > waypoint_send_timeout){
         waypoint_sending = false;
     }
 
     // stop waypoint receiving if timeout
-    if (waypoint_receiving && (tnow - waypoint_timelast_receive) > waypoint_receive_timeout){
+    if (waypoint_receiving && (millis() - waypoint_timelast_receive) > waypoint_receive_timeout){
         waypoint_receiving = false;
     }
 }
@@ -1159,7 +1130,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			waypoint_receiving   = true;
 			waypoint_sending	 = false;
 			waypoint_request_i   = 0;
-            waypoint_timelast_request = 0;
 			break;
 		}
 
@@ -1305,7 +1275,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
 			// update waypoint receiving state machine
 			waypoint_timelast_receive = millis();
-            waypoint_timelast_request = 0;
 			waypoint_request_i++;
 
 			if (waypoint_request_i > (uint16_t)g.waypoint_total){

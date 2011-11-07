@@ -42,6 +42,10 @@ static void reset_control_switch()
 	read_control_switch();
 }
 
+#if CH7_OPTION == CH7_SET_HOVER
+static boolean trim_flag;
+#endif
+
 // read at 10 hz
 // set this to your trainer switch
 static void read_trim_switch()
@@ -135,12 +139,8 @@ static void auto_trim()
 			led_mode = NORMAL_LEDS;
 			clear_leds();
 			imu.save();
-
 			//Serial.println("Done");
 			auto_level_counter = 0;
-
-			// set TC
-			init_throttle_cruise();
 		}
 	}
 }

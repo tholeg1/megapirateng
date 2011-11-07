@@ -18,7 +18,7 @@
 // Lesser General Public License for more details.
 //
 
-/// @file	AP_GPS_Ublox_i2c.h
+/// @file	GPS_Ublox_i2c.h
 /// @brief	NMEA protocol parser
 ///
 /// This is a lightweight NMEA parser, derived originally from the
@@ -39,8 +39,8 @@
 ///
 
 
-#ifndef AP_GPS_Ublox_i2c_h
-#define AP_GPS_Ublox_i2c_h
+#ifndef GPS_Ublox_i2c_h
+#define GPS_Ublox_i2c_h
 
 #include "GPS.h"
 #include <avr/pgmspace.h>
@@ -48,12 +48,12 @@
 
 /// NMEA parser
 ///
-class AP_GPS_Ublox_i2c : public GPS
+class GPS_Ublox_i2c : public GPS
 {
 public:
 	/// Constructor
 	///
-	AP_GPS_Ublox_i2c(Stream *s);
+	GPS_Ublox_i2c(Stream *s);
 
 	/// Perform a (re)initialisation of the GPS; sends the
 	/// protocol configuration messages.

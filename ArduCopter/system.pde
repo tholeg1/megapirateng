@@ -43,14 +43,6 @@ const struct Menu::command main_menu_commands[] PROGMEM = {
 // Create the top-level menu object.
 MENU(main_menu, THISFIRMWARE, main_menu_commands);
 
-// the user wants the CLI. It never exits
-static void run_cli(void)
-{
-    while (1) {
-        main_menu.run();
-    }
-}
-
 #endif // CLI_ENABLED
 
 static void init_ardupilot()
@@ -82,7 +74,7 @@ static void init_ardupilot()
 	#endif
 	
 	Serial.printf_P(PSTR("\n\nInit " THISFIRMWARE
-						 "\n\nFree RAM: %u\n"),
+						 "\n\nFree RAM: %lu\n"),
                     memcheck_available_memory());
 
 
@@ -138,9 +130,6 @@ static void init_ardupilot()
 		// save the new format version
 		g.format_version.set_and_save(Parameters::k_format_version);
 
-		// save default radio values
-		default_dead_zones();
-
 		Serial.printf_P(PSTR("Please Run Setup...\n"));
 		while (true) {
 			delay(1000);
@@ -157,8 +146,6 @@ static void init_ardupilot()
 		}
 
 	}else{
-		// save default radio values
-		//default_dead_zones();
 
 	    // Load all auto-loaded EEPROM variables
 	    AP_Var::load_all();
@@ -197,10 +184,6 @@ static void init_ardupilot()
 		barometer.Init();	// APM Abs Pressure sensor initialization
 	#endif
 
-	#if OSD_PROTOCOL != OSD_PROTOCOL_NONE
-		osd_init();
-	#endif 
-	
 	// Do GPS init
 	// Init Bluetooth BC-04, for test only
 	#if INIT_BLUETOOTH_GPS == 1
@@ -252,7 +235,7 @@ static void init_ardupilot()
 	DataFlash.Init();
 #endif
 
-#if CLI_ENABLED == ENABLED && CLI_SLIDER_ENABLED == ENABLED
+#if CLI_ENABLED == ENABLED
 	// If the switch is in 'menu' mode, run the main menu.
 	//
 	// Since we can't be sure that the setup or test mode won't leave
@@ -262,10 +245,11 @@ static void init_ardupilot()
 	if (check_startup_for_CLI()) {
 		digitalWrite(A_LED_PIN,HIGH);		// turn on setup-mode LED
 		Serial.printf_P(PSTR("\nCLI:\n\n"));
-        run_cli();
+		for (;;) {
+			//Serial.println_P(PSTR("\nMove the slide switch and reset to FLY.\n"));
+			main_menu.run();
+		}
 	}
-#else
-    Serial.printf_P(PSTR("\nPress ENTER 3 times to start interactive setup\n\n"));
 #endif // CLI_ENABLED
 
     if(g.esc_calibrate == 1){
@@ -384,12 +368,6 @@ static void set_mode(byte mode)
 
 	// used to stop fly_aways
 	motor_auto_armed = (g.rc_3.control_in > 0);
-
-	// clearing value used in interactive alt hold
-	manual_boost = 0;
-
-	// clearing value used to set WP's dynamically.
-	CH7_wp_index = 0;
 
 	Serial.println(flight_mode_strings[control_mode]);
 
@@ -549,12 +527,7 @@ init_throttle_cruise()
 	// are we moving from manual throttle to auto_throttle?
 	if((old_control_mode <= STABILIZE) && (g.rc_3.control_in > MINIMUM_THROTTLE)){
 		g.pi_throttle.reset_I();
-		g.pi_alt_hold.reset_I();
-		#if FRAME_CONFIG == HELI_FRAME
-		    g.throttle_cruise.set_and_save(heli_get_scaled_throttle(g.rc_3.control_in));
-		#else
 		g.throttle_cruise.set_and_save(g.rc_3.control_in);
-		#endif
 	}
 }
 

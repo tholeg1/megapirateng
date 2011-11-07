@@ -87,7 +87,6 @@
 #define GPS_PROTOCOL_MTK16	6
 #define GPS_PROTOCOL_AUTO	7
 #define GPS_PROTOCOL_UBLOX_I2C 8
-#define GPS_PROTOCOL_BLACKVORTEX 9
 
 // SONAR types:
 #define MAX_SONAR_UNKNOWN	0
@@ -154,7 +153,6 @@
 
 #define CH6_NAV_P 11
 #define CH6_LOITER_P 12
-#define CH6_HELI_EXTERNAL_GYRO 13
 
 // nav byte mask
 // -------------
