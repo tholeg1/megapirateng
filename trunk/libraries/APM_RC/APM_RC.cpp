@@ -305,34 +305,12 @@ switch (OCRstate>>1)
 }
 
 /*
-ch			3		4		1		2		7		8		10		11	
-motor mapping
+ch			3		4		1		2		7		8		10		11
 =======================================================================
-Pin			2		3		5		6		7		8		11		12
+Pin			D2	D3	D5	D6	D7	D8	D11		D12
 =======================================================================
-TRI			S		BC		RC		LC		-		-		-		-	
-QuadX		LFW		RBW		RFC		LBC		-		-		-		-	
-QuadP		FW		BW		RC		LC		-		-		-		-	
-HexaP		BLW		FRC		FW		BC		FLC		BRW		-		-	
-HexaX		FLW		BRC		RW		LC		FRC		BLW		-		-	
-Y6			LDW		BDW		RDW		LUC		RUC		BUC		-		-	
-OCTA_X																	
-OCTA_P																	
-=============
 
-Motors description:
-B- back
-R- right
-L- left
-F- front
-U- upper
-D- lower
-W- clockwise rotation
-C- counter clockwise rotation (normal propeller)
-S- servo (for tri)
-
-Example: FLDW - front-left lower motor with clockwise rotation (Y6 or Y4)
-
+For motor mapping, see release_notes.txt
 */
 
 void APM_RC_Class::OutputCh(uint8_t ch, uint16_t pwm)
