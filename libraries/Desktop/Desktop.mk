@@ -25,6 +25,14 @@
 #
 
 #
+# Save the system type for later use.
+#
+SYSTYPE			:=	$(shell uname)
+
+# force LANG to C so awk works sanely on MacOS
+export LANG=C
+
+#
 # Locate the sketch sources based on the initial Makefile's path
 #
 SRCROOT			:=	$(PWD)
@@ -85,13 +93,19 @@ ifneq ($(MAKECMDGOALS),configure)
 HARDWARE=desktop
 BOARD=desktop
 
-CXX			:=	g++
-CC			:=	gcc
-AS			:=	gcc
-AR			:=	ar
-LD			:=	g++
-GDB			:=	gdb
-OBJCOPY			:=	objcopy
+ifeq ($(SYSTYPE),Darwin)
+  AWK			:=	awk
+  CXX			:=	c++
+  CC			:=	cc
+  AS			:=	cc
+  AR			:=	ar
+endif
+
+CXX			?=	g++
+CC			?=	gcc
+AS			?=	gcc
+AR			?=	ar
+LD			:=	$(CXX)
 
 # Find awk
 AWK			?=	gawk
@@ -114,7 +128,7 @@ ASOPTS			=	-assembler-with-cpp
 CXXFLAGS		=	-g $(DEFINES) $(OPTFLAGS) $(DEPFLAGS) $(CXXOPTS)
 CFLAGS			=	-g $(DEFINES) $(OPTFLAGS) $(DEPFLAGS) $(COPTS)
 ASFLAGS			=	-g $(DEFINES) $(DEPFLAGS) $(ASOPTS)
-LDFLAGS			=	-g $(OPTFLAGS) -Wl,--gc-sections -Wl,-Map -Wl,$(SKETCHMAP)
+LDFLAGS			=	-g $(OPTFLAGS)
 
 LIBS			=	-lm
 
@@ -171,7 +185,7 @@ else
 endif
 
 # these are library objects we don't want in the desktop build (maybe we'll add them later)
-NODESKTOP		:= FastSerial/FastSerial.cpp AP_Compass/AP_Compass_HMC5843.cpp APM_BMP085/APM_BMP085.cpp AP_IMU/AP_IMU_Oilpan.cpp AP_OpticalFlow/AP_OpticalFlow_ADNS3080.cpp 
+NODESKTOP		:= DataFlash/DataFlash.cpp FastSerial/FastSerial.cpp AP_Compass/AP_Compass_HMC5843.cpp APM_BMP085/APM_BMP085.cpp AP_IMU/AP_IMU_Oilpan.cpp AP_OpticalFlow/AP_OpticalFlow_ADNS3080.cpp
 
 #
 # Find sketchbook libraries referenced by the sketch.

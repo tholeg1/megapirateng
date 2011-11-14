@@ -46,76 +46,86 @@ static void reset_control_switch()
 // set this to your trainer switch
 static void read_trim_switch()
 {
-#if CH7_OPTION == CH7_FLIP
-	if (g.rc_7.control_in > 800 && g.rc_3.control_in != 0){
-		do_flip = true;
-	}
-
-#elif CH7_OPTION == CH7_SIMPLE_MODE
-	do_simple = (g.rc_7.control_in > 800);
-	//Serial.println(g.rc_7.control_in, DEC);
-
-#elif CH7_OPTION == CH7_RTL
-	static bool ch7_rtl_flag = false;
-
-	if (ch7_rtl_flag == false && g.rc_7.control_in > 800){
-		ch7_rtl_flag = true;
-		set_mode(RTL);
-	}
-
-	if (ch7_rtl_flag == true && g.rc_7.control_in < 800){
-		ch7_rtl_flag = false;
-		if (control_mode == RTL || control_mode == LOITER){
-			reset_control_switch();
+	#if CH7_OPTION == CH7_FLIP
+		if (g.rc_7.control_in > 800 && g.rc_3.control_in != 0){
+			do_flip = true;
 		}
-	}
 
-#elif CH7_OPTION == CH7_SET_HOVER
-	// switch is engaged
-	if (g.rc_7.control_in > 800){
-		trim_flag = true;
+	#elif CH7_OPTION == CH7_SIMPLE_MODE
+		do_simple = (g.rc_7.control_in > 800);
+		//Serial.println(g.rc_7.control_in, DEC);
 
-	}else{ // switch is disengaged
+	#elif CH7_OPTION == CH7_RTL
+		static bool ch7_rtl_flag = false;
 
-		if(trim_flag){
+		if (ch7_rtl_flag == false && g.rc_7.control_in > 800){
+			ch7_rtl_flag = true;
+			set_mode(RTL);
+		}
 
-			// set the throttle nominal
-			if(g.rc_3.control_in > 150){
-				g.throttle_cruise.set_and_save(g.rc_3.control_in);
-					//Serial.printf("tnom %d\n", g.throttle_cruise.get());
+		if (ch7_rtl_flag == true && g.rc_7.control_in < 800){
+			ch7_rtl_flag = false;
+			if (control_mode == RTL || control_mode == LOITER){
+				reset_control_switch();
 			}
-			trim_flag = false;
 		}
-	}
+
+	#elif CH7_OPTION == CH7_SET_HOVER
+		// switch is engaged
+		if (g.rc_7.control_in > 800){
+			trim_flag = true;
+
+		}else{ // switch is disengaged
+
+			if(trim_flag){
+				trim_flag = false;
+
+				// set the throttle nominal
+				if(g.rc_3.control_in > 150){
+					g.throttle_cruise.set_and_save(g.rc_3.control_in);
+						//Serial.printf("tnom %d\n", g.throttle_cruise.get());
+				}
+			}
+		}
 
 	#elif CH7_OPTION == CH7_SAVE_WP
+		if (g.rc_7.control_in > 800){
+			trim_flag = true;
 
-	if (g.rc_7.control_in > 800){
-		trim_flag = true;
+		}else{ // switch is disengaged
 
-	}else{ // switch is disengaged
+			if(trim_flag){
+				trim_flag = false;
+				// increment index
+				CH7_wp_index++;
 
-		if(trim_flag){
-			// set the next_WP
-			CH7_wp_index++;
-			current_loc.id = MAV_CMD_NAV_WAYPOINT;
-			g.waypoint_total.set_and_save(CH7_wp_index);
-			set_command_with_index(current_loc, CH7_wp_index);
+				// set the next_WP, 0 is Home so we don't set that
+				// max out at 100 since I think we need to stay under the EEPROM limit
+				CH7_wp_index = constrain(CH7_wp_index, 1, 100);
+
+				// set our location ID to 16, MAV_CMD_NAV_WAYPOINT
+				current_loc.id = MAV_CMD_NAV_WAYPOINT;
+
+				// save command
+				set_command_with_index(current_loc, CH7_wp_index);
+
+				// save the index
+				g.command_total.set_and_save(CH7_wp_index + 1);
+			}
 		}
-	}
 
-#elif CH7_OPTION == CH7_ADC_FILTER
-	if (g.rc_7.control_in > 800){
-		adc.filter_result = true;
-	}else{
-		adc.filter_result = false;
-	}
+	#elif CH7_OPTION == CH7_ADC_FILTER
+		if (g.rc_7.control_in > 800){
+			adc.filter_result = true;
+		}else{
+			adc.filter_result = false;
+		}
 
-#elif CH7_OPTION == CH7_AUTO_TRIM
-	if (g.rc_7.control_in > 800){
-		auto_level_counter = 10;
-	}
-#endif
+		#elif CH7_OPTION == CH7_AUTO_TRIM
+		if (g.rc_7.control_in > 800){
+			auto_level_counter = 10;
+		}
+	#endif
 
 }
 

@@ -15,7 +15,6 @@ FastSerialPort0(Serial);
 #define ToDeg(x) (x*57.2957795131)  // *180/pi
 
 AP_Compass_HMC5843 compass;
-//AP_Compass_HMC5883L compass;
 
 
 unsigned long timer;
@@ -25,7 +24,10 @@ void setup()
   Serial.begin(115200);
   Serial.println("Compass library test (HMC5843 and HMC5883L)");
   Wire.begin();
-  compass.init();	 // Initialization
+  if (!compass.init()) {
+	  Serial.println("compass initialisation failed!");
+	  while (1) ;
+  }
 
   compass.set_orientation(AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD);  // set compass's orientation on aircraft.
   compass.set_offsets(0,0,0);  // set offsets to account for surrounding interference

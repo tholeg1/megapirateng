@@ -294,9 +294,8 @@
 // Y6 Support
 
 #ifndef TOP_BOTTOM_RATIO
-# define TOP_BOTTOM_RATIO	0.92
+# define TOP_BOTTOM_RATIO	1.00
 #endif
-
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -392,7 +391,7 @@
 # define STABILIZE_ROLL_P 		4.6
 #endif
 #ifndef STABILIZE_ROLL_I
-# define STABILIZE_ROLL_I 		0.001
+# define STABILIZE_ROLL_I 		0.0
 #endif
 #ifndef STABILIZE_ROLL_IMAX
 # define STABILIZE_ROLL_IMAX 	1.5		// degrees
@@ -402,7 +401,7 @@
 # define STABILIZE_PITCH_P		4.6
 #endif
 #ifndef STABILIZE_PITCH_I
-# define STABILIZE_PITCH_I		0.001
+# define STABILIZE_PITCH_I		0.0
 #endif
 #ifndef STABILIZE_PITCH_IMAX
 # define STABILIZE_PITCH_IMAX	1.5		// degrees
@@ -504,7 +503,7 @@
 # define NAV_P				3.0			//
 #endif
 #ifndef NAV_I
-# define NAV_I				0.25		// this feels really low, 4s to move 1 degree pitch...
+# define NAV_I				0.05		// Lowerd from .25 - saw lots of overshoot.
 #endif
 #ifndef NAV_IMAX
 # define NAV_IMAX			20			// degrees
@@ -685,7 +684,7 @@
 #endif
 
 #ifndef LOITER_RADIUS
-# define LOITER_RADIUS 10
+# define LOITER_RADIUS 10		// meters for circle mode
 #endif
 
 #ifndef ALT_HOLD_HOME

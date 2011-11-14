@@ -66,6 +66,7 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
         break;
     case GUIDED:
         mode 		= MAV_MODE_GUIDED;
+        nav_mode 	= MAV_NAV_WAYPOINT;
         break;
     default:
         mode 		= control_mode + 100;
@@ -111,11 +112,11 @@ static void NOINLINE send_nav_controller_output(mavlink_channel_t chan)
         nav_roll / 1.0e2,
         nav_pitch / 1.0e2,
         target_bearing / 1.0e2,
-        target_bearing / 1.0e2,
+        dcm.yaw_sensor / 1.0e2, // was target_bearing
         wp_distance,
         altitude_error / 1.0e2,
-        0,
-        0);
+        nav_lon,	// was 0
+        nav_lat);	// was 0
 }
 
 static void NOINLINE send_gps_raw(mavlink_channel_t chan)
@@ -128,7 +129,7 @@ static void NOINLINE send_gps_raw(mavlink_channel_t chan)
         g_gps->longitude / 1.0e7,
         g_gps->altitude / 100.0,
         g_gps->hdop,
-        0.0,
+        current_loc.alt / 100.0, // was 0
         g_gps->ground_speed / 100.0,
         g_gps->ground_course / 100.0);
 }
@@ -138,23 +139,23 @@ static void NOINLINE send_servo_out(mavlink_channel_t chan)
     const uint8_t rssi = 1;
     // normalized values scaled to -10000 to 10000
     // This is used for HIL.  Do not change without discussing with HIL maintainers
-    
-    #if FRAME_CONFIG ==	HELI_FRAME 
-    
+
+    #if FRAME_CONFIG ==	HELI_FRAME
+
         mavlink_msg_rc_channels_scaled_send(
         chan,
-        g.rc_1.servo_out, 
-        g.rc_2.servo_out, 
-        g.rc_3.radio_out, 
+        g.rc_1.servo_out,
+        g.rc_2.servo_out,
+        g.rc_3.radio_out,
         g.rc_4.servo_out,
         0,
         0,
         0,
         0,
         rssi);
-    
+
     #else
-    
+
     mavlink_msg_rc_channels_scaled_send(
         chan,
         g.rc_1.servo_out,
@@ -166,7 +167,7 @@ static void NOINLINE send_servo_out(mavlink_channel_t chan)
         10000 * g.rc_3.norm_output(),
         10000 * g.rc_4.norm_output(),
         rssi);
-        
+
      #endif
 }
 
@@ -273,7 +274,7 @@ static void NOINLINE send_current_waypoint(mavlink_channel_t chan)
 {
     mavlink_msg_waypoint_current_send(
         chan,
-        g.waypoint_index);
+        g.command_index);
 }
 
 static void NOINLINE send_statustext(mavlink_channel_t chan)
@@ -579,7 +580,7 @@ GCS_MAVLINK::update(void)
     uint32_t tnow = millis();
 
     if (waypoint_receiving &&
-        waypoint_request_i <= (unsigned)g.waypoint_total &&
+        waypoint_request_i < (unsigned)g.command_total &&
         tnow > waypoint_timelast_request + 500) {
         waypoint_timelast_request = tnow;
         send_message(MSG_NEXT_WAYPOINT);
@@ -947,7 +948,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			mavlink_msg_waypoint_count_send(
 				chan,msg->sysid,
 				msg->compid,
-				g.waypoint_total + 1); // + home
+				g.command_total); // includes home
 
 			waypoint_timelast_send		= millis();
 			waypoint_sending			= true;
@@ -974,7 +975,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
  				break;
 
 			// send waypoint
-			tell_command = get_command_with_index(packet.seq);
+			tell_command = get_cmd_with_index(packet.seq);
 
 			// set frame of waypoint
 			uint8_t frame;
@@ -990,7 +991,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			// time that the mav should loiter in milliseconds
 			uint8_t current = 0; // 1 (true), 0 (false)
 
-			if (packet.seq == (uint16_t)g.waypoint_index)
+			if (packet.seq == (uint16_t)g.command_index)
 				current = 1;
 
 			uint8_t autocontinue = 1; // 1 (true), 0 (false)
@@ -1005,13 +1006,20 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 				z = tell_command.alt/1.0e2; // local (z), global/relative (altitude)
 			}
 
-
-			switch (tell_command.id) {					// Switch to map APM command fields inot MAVLink command fields
+			// Switch to map APM command fields inot MAVLink command fields
+			switch (tell_command.id) {
 
 				case MAV_CMD_NAV_LOITER_TURNS:
 				case MAV_CMD_CONDITION_CHANGE_ALT:
 				case MAV_CMD_DO_SET_HOME:
 					param1 = tell_command.p1;
+					break;
+
+				case MAV_CMD_CONDITION_YAW:
+					param3 = tell_command.p1;
+					param1 = tell_command.alt;
+					param2 = tell_command.lat;
+					param4 = tell_command.lng;
 					break;
 
 				case MAV_CMD_NAV_TAKEOFF:
@@ -1115,7 +1123,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
 			// clear all waypoints
 			uint8_t type = 0; // ok (0), error(1)
-			g.waypoint_total.set_and_save(0);
+			g.command_total.set_and_save(1);
 
 			// send acknowledgement 3 times to makes sure it is received
 			for (int i=0;i<3;i++)
@@ -1136,7 +1144,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			// set current command
 			change_command(packet.seq);
 
-			mavlink_msg_waypoint_current_send(chan, g.waypoint_index);
+			mavlink_msg_waypoint_current_send(chan, g.command_index);
 			break;
 		}
 
@@ -1153,7 +1161,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			if (packet.count > MAX_WAYPOINTS) {
 				packet.count = MAX_WAYPOINTS;
 			}
-			g.waypoint_total.set_and_save(packet.count - 1);
+			g.command_total.set_and_save(packet.count);
 
 			waypoint_timelast_receive = millis();
 			waypoint_receiving   = true;
@@ -1232,6 +1240,13 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 					tell_command.p1 = packet.param1;
 					break;
 
+				case MAV_CMD_CONDITION_YAW:
+					tell_command.p1 = packet.param3;
+					tell_command.alt = packet.param1;
+					tell_command.lat = packet.param2;
+					tell_command.lng = packet.param4;
+					break;
+
 				case MAV_CMD_NAV_TAKEOFF:
 					tell_command.p1 = 0;
 					break;
@@ -1299,28 +1314,33 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 				// Check if receiving waypoints (mission upload expected)
 				if (!waypoint_receiving) break;
 
+
+				Serial.printf("req: %d, seq: %d, total: %d\n", waypoint_request_i,packet.seq, g.command_total.get());
+
 				// check if this is the requested waypoint
-				if (packet.seq != waypoint_request_i) break;
-					set_command_with_index(tell_command, packet.seq);
+				if (packet.seq != waypoint_request_i)
+					break;
 
-			// update waypoint receiving state machine
-			waypoint_timelast_receive = millis();
-            waypoint_timelast_request = 0;
-			waypoint_request_i++;
+				set_command_with_index(tell_command, packet.seq);
 
-			if (waypoint_request_i > (uint16_t)g.waypoint_total){
-				uint8_t type = 0; // ok (0), error(1)
+				// update waypoint receiving state machine
+				waypoint_timelast_receive = millis();
+            	waypoint_timelast_request = 0;
+				waypoint_request_i++;
 
-				mavlink_msg_waypoint_ack_send(
-					chan,
-					msg->sysid,
-					msg->compid,
-					type);
+				if (waypoint_request_i == (uint16_t)g.command_total){
+					uint8_t type = 0; // ok (0), error(1)
 
-				send_text(SEVERITY_LOW,PSTR("flight plan received"));
-				waypoint_receiving = false;
-				// XXX ignores waypoint radius for individual waypoints, can
-				// only set WP_RADIUS parameter
+					mavlink_msg_waypoint_ack_send(
+						chan,
+						msg->sysid,
+						msg->compid,
+						type);
+
+					send_text(SEVERITY_LOW,PSTR("flight plan received"));
+					waypoint_receiving = false;
+					// XXX ignores waypoint radius for individual waypoints, can
+					// only set WP_RADIUS parameter
 				}
 			}
 			break;
@@ -1643,7 +1663,7 @@ void
 GCS_MAVLINK::queued_waypoint_send()
 {
     if (waypoint_receiving &&
-        waypoint_request_i <= (unsigned)g.waypoint_total) {
+        waypoint_request_i < (unsigned)g.command_total) {
         mavlink_msg_waypoint_request_send(
             chan,
             waypoint_dest_sysid,
@@ -1660,8 +1680,8 @@ GCS_MAVLINK::queued_waypoint_send()
 */
 static void mavlink_delay(unsigned long t)
 {
-    unsigned long tstart;
-    static unsigned long last_1hz, last_50hz;
+    uint32_t tstart;
+    static uint32_t last_1hz, last_50hz;
 
 	if (in_mavlink_delay) {
         // this should never happen, but let's not tempt fate by
@@ -1674,7 +1694,7 @@ static void mavlink_delay(unsigned long t)
 
     tstart = millis();
     do {
-        unsigned long tnow = millis();
+        uint32_t tnow = millis();
         if (tnow - last_1hz > 1000) {
             last_1hz = tnow;
             gcs_send_message(MSG_HEARTBEAT);

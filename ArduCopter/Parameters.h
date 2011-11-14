@@ -21,7 +21,7 @@ public:
 
 	// The parameter software_type is set up solely for ground station use
 	// and identifies the software type (eg ArduPilotMega versus ArduCopterMega)
-	// GCS will interpret values 0-9 as ArduPilotMega.	Developers may use
+	// GCS will interpret values 0-9 as ArduPilotMega.  Developers may use
 	// values within that range to identify different branches.
 	//
 	static const uint16_t k_software_type = 10;		// 0 for APM trunk
@@ -75,7 +75,10 @@ public:
 	k_param_heli_collective_mid,
 	k_param_heli_ext_gyro_enabled,
 	k_param_heli_ext_gyro_gain,
-	k_param_heli_servo_averaging, // 94
+	k_param_heli_servo_averaging,
+	k_param_heli_servo_manual,
+	k_param_heli_phase_angle, 
+	k_param_heli_coll_yaw_effect, // 97
 	#endif
 
 	// 110: Telemetry control
@@ -146,8 +149,8 @@ public:
 	// 220: Waypoint data
 	//
 	k_param_waypoint_mode = 220,
-	k_param_waypoint_total,
-	k_param_waypoint_index,
+	k_param_command_total,
+	k_param_command_index,
 	k_param_command_must_index,
 	k_param_waypoint_radius,
 	k_param_loiter_radius,
@@ -183,7 +186,7 @@ public:
 	//
 	AP_Int16	sysid_this_mav;
 	AP_Int16	sysid_my_gcs;
-    AP_Int8			serial3_baud;
+    AP_Int8		serial3_baud;
 
 
 	// Crosstrack navigation
@@ -193,11 +196,11 @@ public:
 	// Waypoints
 	//
 	AP_Int8		waypoint_mode;
-	AP_Int8		waypoint_total;
-	AP_Int8		waypoint_index;
+	AP_Int8		command_total;
+	AP_Int8		command_index;
 	AP_Int8		command_must_index;
 	AP_Int8		waypoint_radius;
-	AP_Int8		loiter_radius;
+	AP_Int16	loiter_radius;
 	AP_Int16	waypoint_speed_max;
 
 	// Throttle
@@ -247,12 +250,15 @@ public:
 	#if FRAME_CONFIG ==	HELI_FRAME
 	// Heli
 	RC_Channel	heli_servo_1, heli_servo_2, heli_servo_3, heli_servo_4;	// servos for swash plate and tail
-	AP_Int16	heli_servo1_pos, heli_servo2_pos, heli_servo3_pos;			// servo positions (3 because we don't need pos for tail servo)
+	AP_Int16	heli_servo1_pos, heli_servo2_pos, heli_servo3_pos;		// servo positions (3 because we don't need pos for tail servo)
 	AP_Int16	heli_roll_max, heli_pitch_max;	// maximum allowed roll and pitch of swashplate
 	AP_Int16	heli_coll_min, heli_coll_max, heli_coll_mid;		// min and max collective.	mid = main blades at zero pitch
 	AP_Int8		heli_ext_gyro_enabled;	// 0 = no external tail gyro, 1 = external tail gyro
-	AP_Int16	heli_ext_gyro_gain;			// radio output 1000~2000 (value output on CH_7)
+	AP_Int16	heli_ext_gyro_gain;		// radio output 1000~2000 (value output on CH_7)
 	AP_Int8		heli_servo_averaging;	// 0 or 1 = no averaging (250hz) for **digital servos**, 2=average of two samples (125hz), 3=three samples (83.3hz) **analog servos**, 4=four samples (62.5hz), 5=5 samples(50hz)
+	AP_Int8		heli_servo_manual;	    // 0 = normal mode, 1 = radio inputs directly control swash.  required for swash set-up
+	AP_Int16	heli_phase_angle;		// 0 to 360 degrees.  specifies mixing between roll and pitch for helis
+	AP_Float	heli_coll_yaw_effect;	// -5.0 ~ 5.0.  Feed forward control from collective to yaw.  1.0 = move rudder right 1% for every 1% of collective above the mid point 
 	#endif
 
 	// RC channels
@@ -316,11 +322,11 @@ public:
 	low_voltage				(LOW_VOLTAGE,				k_param_low_voltage,					PSTR("LOW_VOLT")),
 
 	waypoint_mode			(0,							k_param_waypoint_mode,					PSTR("WP_MODE")),
-	waypoint_total			(0,							k_param_waypoint_total,					PSTR("WP_TOTAL")),
-	waypoint_index			(0,							k_param_waypoint_index,					PSTR("WP_INDEX")),
+	command_total			(0,							k_param_command_total,					PSTR("WP_TOTAL")),
+	command_index			(0,							k_param_command_index,					PSTR("WP_INDEX")),
 	command_must_index		(0,							k_param_command_must_index,				PSTR("WP_MUST_INDEX")),
 	waypoint_radius			(WP_RADIUS_DEFAULT,			k_param_waypoint_radius,				PSTR("WP_RADIUS")),
-	loiter_radius			(LOITER_RADIUS * 100,		k_param_loiter_radius,					PSTR("WP_LOITER_RAD")),
+	loiter_radius			(LOITER_RADIUS * 100,	    k_param_loiter_radius,					PSTR("WP_LOITER_RAD")),
 	waypoint_speed_max		(WAYPOINT_SPEED_MAX,		k_param_waypoint_speed_max,				PSTR("WP_SPEED_MAX")),
 
 	throttle_min			(0,							k_param_throttle_min,					PSTR("THR_MIN")),
@@ -361,6 +367,9 @@ public:
 	heli_ext_gyro_enabled	(0,							k_param_heli_ext_gyro_enabled,			PSTR("GYR_ENABLE_")),
 	heli_ext_gyro_gain		(1000,						k_param_heli_ext_gyro_gain,				PSTR("GYR_GAIN_")),
 	heli_servo_averaging	(0,							k_param_heli_servo_averaging,			PSTR("SV_AVG")),
+	heli_servo_manual		(0,							k_param_heli_servo_manual,				PSTR("HSV_MAN")),
+	heli_phase_angle		(0,							k_param_heli_phase_angle,				PSTR("H_PHANG")),
+	heli_coll_yaw_effect	(0,							k_param_heli_coll_yaw_effect,			PSTR("H_COLYAW")),
 	#endif
 
 	// RC channel			group key					name

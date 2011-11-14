@@ -182,6 +182,7 @@ static void init_ardupilot()
 	#endif
 
     #if FRAME_CONFIG ==	HELI_FRAME
+		g.heli_servo_manual = false;
 		heli_init_swash();  // heli initialisation
 	#endif
 
@@ -202,27 +203,6 @@ static void init_ardupilot()
 	#endif 
 	
 	// Do GPS init
-	// Init Bluetooth BC-04, for test only
-	#if INIT_BLUETOOTH_GPS == 1
-		digitalWrite(B_LED_PIN, HIGH);
-		Serial2.flush();
-		Serial2.print("AT+INIT\r\n");
-		while (!Serial2.available()){ 
-			delay(20);
-		}
-		Serial2.flush();
-		Serial2.print("AT+PAIR=2,76,C8FDC7\r\n");
-		while (!Serial2.available()){ 
-			delay(20);
-		}
-		Serial2.flush();
-		Serial2.print("AT+LINK=2,76,C8FDC7\r\n");
-		while (!Serial2.available()){ 
-			delay(20);
-		}
-		Serial2.flush();
-		digitalWrite(B_LED_PIN, LOW);
-	#endif
 	g_gps = &g_gps_driver;
 	g_gps->init();			// GPS Initialization
     g_gps->callback = mavlink_delay;
@@ -282,6 +262,7 @@ static void init_ardupilot()
 
     GPS_enabled = false;
 
+	#if HIL_MODE == HIL_MODE_DISABLED
     // Read in the GPS
 	for (byte counter = 0; ; counter++) {
 		g_gps->update();
@@ -290,14 +271,14 @@ static void init_ardupilot()
 			break;
 		}
 
-		if (counter >= 3) {
+		if (counter >= 2) {
 			GPS_enabled = false;
 			break;
 	  }
-		#if GPS_PROTOCOL == GPS_PROTOCOL_UBLOX_I2C
-	    delay(100);
-		#endif	    
 	}
+	#else
+		GPS_enabled = true;
+	#endif
 
 	// lengthen the idle timeout for gps Auto_detect
 	// ---------------------------------------------
@@ -321,12 +302,21 @@ static void init_ardupilot()
 	// ---------------------------
 	reset_control_switch();
 
-	startup_ground();
-	
-	// Init LED sequencer
-	#if LED_SEQUENCER == ENABLED
-		sq_led_init();
+	#if HIL_MODE != HIL_MODE_ATTITUDE
+		dcm.kp_roll_pitch(0.030000);
+		dcm.ki_roll_pitch(0.00001278),	// 50 hz I term
+		dcm.kp_yaw(0.08);
+		dcm.ki_yaw(0.00004);
 	#endif
+	
+	// init the Z damopener
+	// --------------------
+	#if ACCEL_ALT_HOLD == 1
+	init_z_damper();
+	#endif
+
+
+	startup_ground();
 
 	Log_Write_Startup();
 
@@ -396,41 +386,32 @@ static void set_mode(byte mode)
 	// report the GPS and Motor arming status
 	led_mode = NORMAL_LEDS;
 
-	reset_nav();
-
 	switch(control_mode)
 	{
 		case ACRO:
 			yaw_mode 		= YAW_ACRO;
 			roll_pitch_mode = ROLL_PITCH_ACRO;
 			throttle_mode 	= THROTTLE_MANUAL;
-			reset_hold_I();
 			break;
 
 		case STABILIZE:
 			yaw_mode 		= YAW_HOLD;
 			roll_pitch_mode = ROLL_PITCH_STABLE;
 			throttle_mode 	= THROTTLE_MANUAL;
-			reset_hold_I();
 			break;
 
 		case ALT_HOLD:
 			yaw_mode 		= ALT_HOLD_YAW;
 			roll_pitch_mode = ALT_HOLD_RP;
 			throttle_mode 	= ALT_HOLD_THR;
-			reset_hold_I();
 
-			init_throttle_cruise();
 			next_WP = current_loc;
 			break;
 
 		case AUTO:
-			reset_hold_I();
 			yaw_mode 		= AUTO_YAW;
 			roll_pitch_mode = AUTO_RP;
 			throttle_mode 	= AUTO_THR;
-
-			init_throttle_cruise();
 
 			// loads the commands from where we left off
 			init_commands();
@@ -441,7 +422,6 @@ static void set_mode(byte mode)
 			roll_pitch_mode = CIRCLE_RP;
 			throttle_mode 	= CIRCLE_THR;
 
-			init_throttle_cruise();
 			next_WP = current_loc;
 			break;
 
@@ -450,7 +430,6 @@ static void set_mode(byte mode)
 			roll_pitch_mode = LOITER_RP;
 			throttle_mode 	= LOITER_THR;
 
-			init_throttle_cruise();
 			next_WP = current_loc;
 			break;
 
@@ -467,8 +446,6 @@ static void set_mode(byte mode)
 			roll_pitch_mode = ROLL_PITCH_AUTO;
 			throttle_mode 	= THROTTLE_AUTO;
 
-			//xtrack_enabled = true;
-			init_throttle_cruise();
 			next_WP = current_loc;
 			set_next_WP(&guided_WP);
 			break;
@@ -478,13 +455,27 @@ static void set_mode(byte mode)
 			roll_pitch_mode = RTL_RP;
 			throttle_mode 	= RTL_THR;
 
-			//xtrack_enabled = true;
-			init_throttle_cruise();
 			do_RTL();
 			break;
 
 		default:
 			break;
+	}
+
+	if(throttle_mode == THROTTLE_MANUAL){
+		// reset all of the throttle iterms
+		g.pi_alt_hold.reset_I();
+		g.pi_throttle.reset_I();
+	}else { // an automatic throttle
+
+		// todo: replace with a throttle cruise estimator
+		init_throttle_cruise();
+	}
+
+	if(roll_pitch_mode <= ROLL_PITCH_ACRO){
+		// We are under manual attitude control
+		// reset out nav parameters
+		reset_nav();
 	}
 
 	Log_Write_Mode(control_mode);
@@ -550,11 +541,7 @@ init_throttle_cruise()
 	if((old_control_mode <= STABILIZE) && (g.rc_3.control_in > MINIMUM_THROTTLE)){
 		g.pi_throttle.reset_I();
 		g.pi_alt_hold.reset_I();
-		#if FRAME_CONFIG == HELI_FRAME
-		    g.throttle_cruise.set_and_save(heli_get_scaled_throttle(g.rc_3.control_in));
-		#else
 		g.throttle_cruise.set_and_save(g.rc_3.control_in);
-		#endif
 	}
 }
 
