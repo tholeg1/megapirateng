@@ -1,0 +1,12 @@
+*** Configuring software for using on BlackVortex boards ***
+1. Copy boards.txt into Arduino IDE folder: arduino-0022/hardware/arduino/ 
+2. Uncomment #define ALLINONE in the librares/AP_ADC/AP_ADC_ADS7844.cpp (comment //#define FFIMU и //#define BMA_020)
+3. Choose your frame type (x,+,v) in Arducopter/APM_Config.h
+4. Set GPS protocol as GPS_PROTOCOL_BLACKVORTEX (in APM_Config.h) (in versions below 2.0.49 b4, use GPS_PROTOCOL_AUTO)
+
+*** Настройка кода для платы Black Vortex ***
+
+1. Cкопируйте boards.txt в arduino-0022/hardware/arduino/ 
+2. Проверить, что в librares/AP_ADC/AP_ADC_ADS7844.cpp строка #define ALLINONE раскомменитрована, а строки //#define FFIMU и //#define BMA_020 закомменированы.
+3. В APM_Config задать свою раму и ориентацию (x, +, v).
+4. Там же задать GPS протокол GPS_PROTOCOL GPS_PROTOCOL_BLACKVORTEX (в версиях младше 2.0.49B4, надо указывать GPS_PROTOCOL_AUTO)   
