@@ -8,7 +8,7 @@
 // MPNG: AP_COMPASS lib make additional ROTATION_YAW_90 for 5883L mag, so in result we have ROTATION_YAW_270 
 #define MAG_ORIENTATION	ROTATION_YAW_180 
 
-#define OSD_PROTOCOL OSD_PROTOCOL_REMZIBI
+#define OSD_PROTOCOL OSD_PROTOCOL_NONE
 	/*
 		OSD_PROTOCOL_NONE
 		OSD_PROTOCOL_SYBERIAN
@@ -21,7 +21,7 @@
 #define PIEZO_LOW_VOLTAGE	DISABLED
 #define PIEZO_ARMING		DISABLED
 
-#define GPS_PROTOCOL GPS_PROTOCOL_UBLOX_I2C
+#define GPS_PROTOCOL GPS_PROTOCOL_NONE
 	/*
 	options:
 	GPS_PROTOCOL_NONE 	without GPS
@@ -39,7 +39,6 @@
 #define SERIAL0_BAUD			 115200	// If one want a wireless modem (like APC220) on the console port, lower that to 57600. Default is 115200 
 #define SERIAL2_BAUD			 38400	// GPS port bps
 #define SERIAL3_BAUD			 57600	// default telemetry BPS rate = 57600
-#define INIT_BLUETOOTH_GPS 0
 
 //#define BROKEN_SLIDER		0		// 1 = yes (use Yaw to enter CLI mode)
 
@@ -73,7 +72,7 @@
 	CH7_SAVE_WP
 	*/
 
-#define ACCEL_ALT_HOLD 1		// disabled by default, work in progress
+#define ACCEL_ALT_HOLD 0		// disabled by default, work in progress
 
 // See the config.h and defines.h files for how to set this up!
 //

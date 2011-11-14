@@ -33,7 +33,6 @@
 #include "FastSerial.h"
 #include "WProgram.h"
 #include <unistd.h>
-#include <pty.h>
 #include <fcntl.h>
 
 #include <stdio.h>
@@ -60,6 +59,10 @@
 # define FS_MAX_PORTS   2
 #else
 # define FS_MAX_PORTS   1
+#endif
+
+#ifndef MSG_NOSIGNAL
+# define MSG_NOSIGNAL 0
 #endif
 
 static struct tcp_state {
@@ -132,7 +135,7 @@ static void tcp_start_connection(unsigned int serial_port, bool wait_for_connect
             fprintf(stderr, "accept() error - %s", strerror(errno));
             exit(1);
         }
-		setsockopt(s->fd, SOL_TCP, TCP_NODELAY, &one, sizeof(one));
+		setsockopt(s->fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
 		s->connected = true;
     }
 }
@@ -174,7 +177,7 @@ static void check_connection(struct tcp_state *s)
 		if (s->fd != -1) {
 			int one = 1;
 			s->connected = true;
-			setsockopt(s->fd, SOL_TCP, TCP_NODELAY, &one, sizeof(one));
+			setsockopt(s->fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
 			printf("New connection on serial port %u\n", s->serial_port);
 		}
 	}
@@ -292,11 +295,15 @@ void FastSerial::flush(void)
 void FastSerial::write(uint8_t c)
 {
 	struct tcp_state *s = &tcp_state[_u2x];
+	int flags = MSG_NOSIGNAL;
 	check_connection(s);
 	if (!s->connected) {
 		return;
 	}
-	send(s->fd, &c, 1, MSG_DONTWAIT | MSG_NOSIGNAL);
+	if (!desktop_state.slider) {
+		flags |= MSG_DONTWAIT;
+	}
+	send(s->fd, &c, 1, flags);
 }
 
 // Buffer management ///////////////////////////////////////////////////////////

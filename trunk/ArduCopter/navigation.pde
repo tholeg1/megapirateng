@@ -28,9 +28,11 @@ static byte navigate()
 
 static bool check_missed_wp()
 {
-	long temp 	= target_bearing - original_target_bearing;
+	int32_t temp 	= target_bearing - original_target_bearing;
 	temp 		= wrap_180(temp);
-	return (abs(temp) > 10000);	//we pased the waypoint by 10 °
+	//return (abs(temp) > 10000);	//we pased the waypoint by 10 °
+	// temp testing
+	return false;
 }
 
 // ------------------------------
@@ -68,7 +70,7 @@ static void calc_loiter(int x_error, int y_error)
 	float temp		= radians((float)g_gps->ground_course/100.0);
 
 	#ifdef OPTFLOW_ENABLED
-	// calc the cos of the error to tell how fast we are moving towards the target in cm
+		// calc the cos of the error to tell how fast we are moving towards the target in cm
 		if(g.optflow_enabled && current_loc.alt < 500 &&  g_gps->ground_speed < 150){
 			x_actual_speed 	= optflow.vlon * 10;
 			y_actual_speed 	= optflow.vlat * 10;
@@ -143,36 +145,54 @@ static void calc_loiter_pitch_roll()
 static void calc_nav_rate(int max_speed)
 {
 	/*
-	0  1   2   3   4   5   6   7   8
+			   |< WP Radius
+	0  1   2   3   4   5   6   7   8m
 	...|...|...|...|...|...|...|...|
-		  100	  200	  300	  400
-	                                     +|+
+		  100  |  200	  300	  400cm/s
+	           |  		 		            +|+
+	           |< we should slow to 1.5 m/s as we hit the target
 	*/
+
+	// max_speed is default 400 or 4m/s
+	// (wp_distance * 50) = 1/2 of the distance converted to speed
+	// wp_distance is always in m/s and not cm/s - I know it's stupid that way
+	// for example 4m from target = 200cm/s speed
+	// we choose the lowest speed based on disance
 	max_speed 		= min(max_speed, (wp_distance * 50));
 
 	// limit the ramp up of the speed
+	// waypoint_speed_gov is reset to 0 at each new WP command
 	if(waypoint_speed_gov < max_speed){
+		waypoint_speed_gov += (int)(100.0 * dTnav); // increase at 1.5/ms
 
-		waypoint_speed_gov += (int)(150.0 * dTnav); // increase at 1.5/ms
-
-		// go at least 1m/s
-		max_speed 		= max(100, waypoint_speed_gov);
+		// go at least 50cm/s
+		max_speed 		= max(50, waypoint_speed_gov);
 		// limit with governer
 		max_speed 		= min(max_speed, waypoint_speed_gov);
 	}
 
 	// XXX target_angle should be the original  desired target angle!
-	float temp		= radians((original_target_bearing - g_gps->ground_course)/100.0);
+	float temp		= radians((target_bearing - g_gps->ground_course)/100.0);
 
+	// push us towards the original track
+	update_crosstrack();
+
+	// heading laterally, we want a zero speed here
 	x_actual_speed 	= -sin(temp) * (float)g_gps->ground_speed;
-	x_rate_error 	= -x_actual_speed;
+	x_rate_error 	= crosstrack_error -x_actual_speed;
 	x_rate_error 	= constrain(x_rate_error, -800, 800);
 	nav_lon		 	= constrain(g.pi_nav_lon.get_pi(x_rate_error, dTnav), -3500, 3500);
 
+	// heading towards target
 	y_actual_speed 	= cos(temp) * (float)g_gps->ground_speed;
 	y_rate_error 	= max_speed - y_actual_speed; // 413
 	y_rate_error 	= constrain(y_rate_error, -800, 800);	// added a rate error limit to keep pitching down to a minimum
 	nav_lat		 	= constrain(g.pi_nav_lat.get_pi(y_rate_error, dTnav), -3500, 3500);
+	// 400cm/s * 3 = 1200 or 12 deg pitch
+	// 800cm/s * 3 = 2400 or 24 deg pitch MAX
+
+
+	// nav_lat and nav_lon will be rotated to the angle of the quad in calc_nav_pitch_roll()
 
 	/*Serial.printf("max_speed: %d, xspeed: %d, yspeed: %d, x_re: %d, y_re: %d, nav_lon: %ld, nav_lat: %ld  ",
 					max_speed,
@@ -183,6 +203,24 @@ static void calc_nav_rate(int max_speed)
 					nav_lon,
 					nav_lat);*/
 }
+
+static void update_crosstrack(void)
+{
+	// Crosstrack Error
+	// ----------------
+	if (cross_track_test() < 5000) {	 // If we are too far off or too close we don't do track following
+		crosstrack_error = sin(radians((target_bearing - original_target_bearing) / 100)) * wp_distance;	 // Meters we are off track line
+		crosstrack_error = constrain(crosstrack_error * 4, -1200, 1200);
+	}
+}
+
+static int32_t cross_track_test()
+{
+	int32_t temp 	= target_bearing - original_target_bearing;
+	temp 		= wrap_180(temp);
+	return abs(temp);
+}
+
 
 // nav_roll, nav_pitch
 static void calc_nav_pitch_roll()
@@ -205,12 +243,12 @@ static void calc_nav_pitch_roll()
 					nav_pitch);*/
 }
 
-static long get_altitude_error()
+static int32_t get_altitude_error()
 {
 	return next_WP.alt - current_loc.alt;
 }
 
-static int get_loiter_angle()
+/*static int get_loiter_angle()
 {
 	float power;
 	int angle;
@@ -226,16 +264,16 @@ static int get_loiter_angle()
 	}
 
 	return angle;
-}
+}*/
 
-static long wrap_360(long error)
+static int32_t wrap_360(int32_t error)
 {
 	if (error > 36000)	error -= 36000;
 	if (error < 0)		error += 36000;
 	return error;
 }
 
-static long wrap_180(long error)
+static int32_t wrap_180(int32_t error)
 {
 	if (error > 18000)	error -= 36000;
 	if (error < -18000)	error += 36000;
@@ -243,7 +281,7 @@ static long wrap_180(long error)
 }
 
 /*
-static long get_crosstrack_correction(void)
+static int32_t get_crosstrack_correction(void)
 {
 	// Crosstrack Error
 	// ----------------
@@ -253,7 +291,7 @@ static long get_crosstrack_correction(void)
 		float error = sin(radians((target_bearing - crosstrack_bearing) / (float)100)) * (float)wp_distance;
 
 		// take meters * 100 to get adjustment to nav_bearing
-		long _crosstrack_correction = g.pi_crosstrack.get_pi(error, dTnav) * 100;
+		int32_t _crosstrack_correction = g.pi_crosstrack.get_pi(error, dTnav) * 100;
 
 		// constrain answer to 30° to avoid overshoot
 		return constrain(_crosstrack_correction, -g.crosstrack_entry_angle.get(), g.crosstrack_entry_angle.get());
@@ -262,9 +300,9 @@ static long get_crosstrack_correction(void)
 }
 */
 /*
-static long cross_track_test()
+static int32_t cross_track_test()
 {
-	long temp = wrap_180(target_bearing - crosstrack_bearing);
+	int32_t temp = wrap_180(target_bearing - crosstrack_bearing);
 	return abs(temp);
 }
 */
@@ -274,7 +312,7 @@ static void reset_crosstrack()
 	crosstrack_bearing 	= get_bearing(&current_loc, &next_WP);	// Used for track following
 }
 */
-/*static long get_altitude_above_home(void)
+/*static int32_t get_altitude_above_home(void)
 {
 	// This is the altitude above the home location
 	// The GPS gives us altitude at Sea Level
@@ -284,7 +322,7 @@ static void reset_crosstrack()
 }
 */
 // distance is returned in meters
-static long get_distance(struct Location *loc1, struct Location *loc2)
+static int32_t get_distance(struct Location *loc1, struct Location *loc2)
 {
 	//if(loc1->lat == 0 || loc1->lng == 0)
 	//	return -1;
@@ -295,16 +333,16 @@ static long get_distance(struct Location *loc1, struct Location *loc2)
 	return sqrt(sq(dlat) + sq(dlong)) * .01113195;
 }
 /*
-static long get_alt_distance(struct Location *loc1, struct Location *loc2)
+static int32_t get_alt_distance(struct Location *loc1, struct Location *loc2)
 {
 	return abs(loc1->alt - loc2->alt);
 }
 */
-static long get_bearing(struct Location *loc1, struct Location *loc2)
+static int32_t get_bearing(struct Location *loc1, struct Location *loc2)
 {
-	long off_x = loc2->lng - loc1->lng;
-	long off_y = (loc2->lat - loc1->lat) * scaleLongUp;
-	long bearing =	9000 + atan2(-off_y, off_x) * 5729.57795;
+	int32_t off_x = loc2->lng - loc1->lng;
+	int32_t off_y = (loc2->lat - loc1->lat) * scaleLongUp;
+	int32_t bearing =	9000 + atan2(-off_y, off_x) * 5729.57795;
 	if (bearing < 0) bearing += 36000;
 	return bearing;
 }
