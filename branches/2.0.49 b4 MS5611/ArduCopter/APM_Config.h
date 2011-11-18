@@ -5,9 +5,11 @@
 #define LED_SEQUENCER DISABLED
 #define MAX_SONAR_RANGE 400
 
-// some config need for MegaPirateNG 2.0.40
-#define SONAR_TYPE MAX_SONAR_XL // don't change!!!
-#define HIL_MODE HIL_MODE_DISABLED
+#define BARO_TYPE BARO_BMP085
+/*
+#define BARO_BMP085	0
+#define BARO_MS5611	1 
+*/
 
 // MPNG: AP_COMPASS lib make additional ROTATION_YAW_90 for 5883L mag, so in result we have ROTATION_YAW_270 
 #define MAG_ORIENTATION	ROTATION_YAW_180 
@@ -43,7 +45,6 @@
 #define SERIAL0_BAUD			 115200	// If one want a wireless modem (like APC220) on the console port, lower that to 57600. Default is 115200 
 #define SERIAL2_BAUD			 38400	// GPS port bps
 #define SERIAL3_BAUD			 57600	// default telemetry BPS rate = 57600
-#define INIT_BLUETOOTH_GPS 0
 
 #define CLI_ENABLED ENABLED
 

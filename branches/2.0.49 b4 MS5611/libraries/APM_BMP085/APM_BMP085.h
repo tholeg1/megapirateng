@@ -1,8 +1,8 @@
 #ifndef APM_BMP085_h
 #define APM_BMP085_h
 
-#define TEMP_FILTER_SIZE 16
-#define PRESS_FILTER_SIZE 10
+#define TEMP_FILTER_SIZE 2
+#define PRESS_FILTER_SIZE 4
 
 #include <APM_BMP085_hil.h>
 
