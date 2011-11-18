@@ -60,10 +60,11 @@ And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
 #include <APM_RC.h>         // ArduPilot Mega RC Library
 #include <AP_GPS.h>         // ArduPilot GPS library
 #include <Wire.h>			// Arduino I2C lib
+#include <AP_I2C.h>
 //#include <SPI.h>
 //#include <DataFlash.h>      // ArduPilot Mega Flash Memory Library
 #include <AP_ADC.h>         // ArduPilot Mega Analog to Digital Converter Library
-#include <APM_BMP085.h>     // ArduPilot Mega BMP085 Library
+#include <APM_Baro.h>
 #include <AP_Compass.h>     // ArduPilot Mega Magnetometer Library
 #include <AP_Math.h>        // ArduPilot Mega Vector/Matrix math Library
 #include <AP_IMU.h>         // ArduPilot Mega IMU Library
@@ -71,7 +72,7 @@ And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
 #include <APM_PI.h>            	// PI library
 #include <RC_Channel.h>     // RC Channel Library
 #include <AP_RangeFinder.h>	// Range finder library
-#include <AP_OpticalFlow.h> // Optical Flow library
+//#include <AP_OpticalFlow.h> // Optical Flow library
 #include <ModeFilter.h>
 #include <AP_Relay.h>		// APM relay
 #include <GCS_MAVLink.h>    // MAVLink GCS definitions
@@ -137,7 +138,12 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 
 	// real sensors
 	AP_ADC_ADS7844          adc;
+	#if BARO_TYPE == BARO_MS5611
+		APM_MS5611_Class        barometer;
+	#else
 	APM_BMP085_Class        barometer;
+	#endif
+	
     AP_Compass_HMC5843      compass(Parameters::k_param_compass);
 
   #ifdef OPTFLOW_ENABLED

@@ -93,6 +93,10 @@
 #define MAX_SONAR_UNKNOWN	0
 #define MAX_SONAR_XL		1
 
+// BARO types:
+#define BARO_BMP085	0
+#define BARO_MS5611	1
+
 // OSD Types
 #define	OSD_PROTOCOL_NONE 0
 #define	OSD_PROTOCOL_SYBERIAN 1
