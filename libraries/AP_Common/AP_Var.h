@@ -302,18 +302,14 @@ public:
     ///
     /// @return             The parent group, or NULL if the variable is not grouped.
     ///
-    AP_Var_group *group(void) {
-        return _group;
-    }
+    AP_Var_group *group(void) { return _group; }
 
     /// Returns the first variable in the global list.
     ///
     /// @return             The first variable in the global list, or NULL if
     ///                     there are none.
     ///
-    static AP_Var *first(void) {
-        return _variables;
-    }
+    static AP_Var *first(void) { return _variables; }
 
     /// Returns the next variable in the global list.
     ///
@@ -371,9 +367,7 @@ public:
     ///
     /// @return             The sum of sizeof(*this) for all constructed AP_Var subclass instances.
     ///
-    static uint16_t     get_memory_use() {
-        return _bytes_in_use;
-    }
+    static uint16_t     get_memory_use() { return _bytes_in_use; }
 
 protected:
     // Memory statistics

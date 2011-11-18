@@ -135,13 +135,9 @@ private:
     uint16_t    _parameter_count;                   ///< cache of reportable parameters
     AP_Var      *_find_parameter(uint16_t index);   ///< find a reportable parameter by index
 
+
 	mavlink_channel_t chan;
     uint16_t packet_drops;
-
-#if CLI_ENABLED == ENABLED
-    // this allows us to detect the user wanting the CLI to start
-    uint8_t crlf_count;
-#endif
 
 	// waypoints
 	uint16_t waypoint_request_i; // request index
@@ -152,9 +148,9 @@ private:
 	uint16_t waypoint_count;
 	uint32_t waypoint_timelast_send; // milliseconds
 	uint32_t waypoint_timelast_receive; // milliseconds
-	uint32_t waypoint_timelast_request; // milliseconds
 	uint16_t waypoint_send_timeout; // milliseconds
 	uint16_t waypoint_receive_timeout; // milliseconds
+	float junk; //used to return a junk value for interface
 
 	// data stream rates
 	AP_Var_group	    _group;

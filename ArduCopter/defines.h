@@ -154,7 +154,6 @@
 
 #define CH6_NAV_P 11
 #define CH6_LOITER_P 12
-#define CH6_HELI_EXTERNAL_GYRO 13
 
 // nav byte mask
 // -------------

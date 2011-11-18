@@ -6,7 +6,7 @@
 // are defined below. Order matters to the compiler.
 static int8_t	test_radio_pwm(uint8_t argc, 	const Menu::arg *argv);
 static int8_t	test_radio(uint8_t argc, 		const Menu::arg *argv);
-//static int8_t	test_failsafe(uint8_t argc, 	const Menu::arg *argv);
+static int8_t	test_failsafe(uint8_t argc, 	const Menu::arg *argv);
 //static int8_t	test_stabilize(uint8_t argc, 	const Menu::arg *argv);
 static int8_t	test_gps(uint8_t argc, 			const Menu::arg *argv);
 static int8_t	test_tri(uint8_t argc, 			const Menu::arg *argv);
@@ -56,7 +56,7 @@ static int8_t	test_rawgps(uint8_t argc, 		const Menu::arg *argv);
 const struct Menu::command test_menu_commands[] PROGMEM = {
 	{"pwm",			test_radio_pwm},
 	{"radio",		test_radio},
-//	{"failsafe",	test_failsafe},
+	{"failsafe",	test_failsafe},
 //	{"stabilize",	test_stabilize},
 	{"gps",			test_gps},
 #if HIL_MODE != HIL_MODE_ATTITUDE
@@ -70,7 +70,7 @@ const struct Menu::command test_menu_commands[] PROGMEM = {
 	{"tri",			test_tri},
 	{"current",		test_current},
 	{"relay",		test_relay},
-	{"wp",			test_wp},
+	{"waypoints",	test_wp},
 	//{"nav",			test_nav},
 #if HIL_MODE != HIL_MODE_ATTITUDE
 	{"altitude",	test_baro},
@@ -246,7 +246,6 @@ test_radio(uint8_t argc, const Menu::arg *argv)
 	}
 }
 
-/*
 static int8_t
 test_failsafe(uint8_t argc, const Menu::arg *argv)
 {
@@ -300,7 +299,6 @@ test_failsafe(uint8_t argc, const Menu::arg *argv)
 		return (0);
 	#endif
 }
-*/
 
 /*static int8_t
 test_stabilize(uint8_t argc, const Menu::arg *argv)
@@ -443,7 +441,7 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 
 	while(1){
 		//delay(20);
-		if (millis() - fast_loopTimer >=20) {
+		if (millis() - fast_loopTimer >= 5) {
 
 			// IMU
 			// ---
@@ -461,7 +459,7 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 				update_trig();
 			}
 
-			if(medium_loopCounter == 1){
+			if(medium_loopCounter == 20){
 				//read_radio();
 				medium_loopCounter = 0;
 				//tuning();
@@ -475,13 +473,10 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 								dcm.kp_roll_pitch(),
 								(float)g.rc_6.control_in / 2000.0);
 				*/
-				Serial.printf_P(PSTR("%ld, %ld, %ld,  |  %ld, %ld, %ld\n"),
+				Serial.printf_P(PSTR("%ld, %ld, %ld\n"),
 								dcm.roll_sensor,
 								dcm.pitch_sensor,
-								dcm.yaw_sensor,
-								(long)(degrees(omega.x) * 100.0),
-								(long)(degrees(omega.y) * 100.0),
-								(long)(degrees(omega.z) * 100.0));
+								dcm.yaw_sensor);
 
 				if(g.compass_enabled){
 					compass.read();		 				// Read magnetometer
@@ -757,7 +752,7 @@ test_wp(uint8_t argc, const Menu::arg *argv)
 		Serial.printf_P(PSTR("of %dm\n"), (int)g.RTL_altitude / 100);
 	}
 
-	Serial.printf_P(PSTR("%d wp\n"), (int)g.command_total);
+	Serial.printf_P(PSTR("%d wp\n"), (int)g.waypoint_total);
 	Serial.printf_P(PSTR("Hit rad: %d\n"), (int)g.waypoint_radius);
 	//Serial.printf_P(PSTR("Loiter radius: %d\n\n"), (int)g.loiter_radius);
 
@@ -808,16 +803,8 @@ test_baro(uint8_t argc, const Menu::arg *argv)
 
 	while(1){
 		delay(100);
-		barometer.Read();
-		delay(100);
 		baro_alt 		= read_barometer();
-
-		int temp_alt	= (barometer._offset_press - barometer.RawPress) << 1; // invert and scale
-		baro_rate 		= (temp_alt - old_baro_alt) * 10;
-		old_baro_alt	= temp_alt;
-
-						//			1			2	3	4	 5		 1        2				3   				4					5
-		Serial.printf_P(PSTR("Baro: %dcm, rate:%d, %ld, %ld, %d, Sonar: %dcm\n"), baro_alt, climb_rate, barometer.RawTemp, barometer.RawPress, temp_alt, sonar.read());
+		Serial.printf_P(PSTR("Baro: %dcm, Sonar: %dcm\n"), baro_alt,sonar.read());
 		//Serial.printf_P(PSTR("Baro, %d, %ld, %ld, %ld, %ld\n"), baro_alt, barometer.RawTemp, barometer.RawTemp2, barometer.RawPress, barometer.RawPress2);
 		if(Serial.available() > 0){
 			return (0);
@@ -1006,7 +993,7 @@ test_mission(uint8_t argc, const Menu::arg *argv)
 	}
 
 	g.RTL_altitude.set_and_save(300);
-	g.command_total.set_and_save(4);
+	g.waypoint_total.set_and_save(4);
 	g.waypoint_radius.set_and_save(3);
 
 	test_wp(NULL, NULL);
@@ -1042,7 +1029,7 @@ static void fake_out_gps()
 }
 
 */
-/*
+
 static void print_motor_out(){
 	Serial.printf("out: R: %d,  L: %d  F: %d  B: %d\n",
 				(motor_out[CH_1] 	- g.rc_3.radio_min),
@@ -1050,5 +1037,5 @@ static void print_motor_out(){
 				(motor_out[CH_3] 	- g.rc_3.radio_min),
 				(motor_out[CH_4] 	- g.rc_3.radio_min));
 }
-*/
+
 #endif // CLI_ENABLED

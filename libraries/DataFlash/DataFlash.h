@@ -44,47 +44,47 @@ class DataFlash_Class
 	// DataFlash Log variables...	
 	unsigned char df_BufferNum;
 	unsigned char df_Read_BufferNum;
-	uint16_t df_BufferIdx;
-	uint16_t df_Read_BufferIdx;
-	uint16_t df_PageAdr;
-	uint16_t df_Read_PageAdr;
+	unsigned int df_BufferIdx;
+	unsigned int df_Read_BufferIdx;
+	unsigned int df_PageAdr;
+	unsigned int df_Read_PageAdr;
 	unsigned char df_Read_END;
 	unsigned char df_Stop_Write;
 	//Methods
-	unsigned char BufferRead (unsigned char BufferNum, uint16_t IntPageAdr);
-	void BufferWrite (unsigned char BufferNum, uint16_t IntPageAdr, unsigned char Data);
-	void BufferToPage (unsigned char BufferNum, uint16_t PageAdr, unsigned char wait);
-	void PageToBuffer(unsigned char BufferNum, uint16_t PageAdr);
+	unsigned char BufferRead (unsigned char BufferNum, unsigned int IntPageAdr);
+	void BufferWrite (unsigned char BufferNum, unsigned int IntPageAdr, unsigned char Data);
+	void BufferToPage (unsigned char BufferNum, unsigned int PageAdr, unsigned char wait);
+	void PageToBuffer(unsigned char BufferNum, unsigned int PageAdr);
 	void WaitReady();
 	unsigned char ReadStatusReg();
 	unsigned char ReadStatus();
-	uint16_t PageSize();
+	unsigned int PageSize();
 
   public:
 	unsigned char df_manufacturer;
 	unsigned char df_device_0;
 	unsigned char df_device_1;
-	uint16_t df_PageSize;
+	unsigned int df_PageSize;
 
 	DataFlash_Class(); // Constructor
 	void Init();
 	void ReadManufacturerID();
-	int16_t GetPage();
-	int16_t GetWritePage();
-	void PageErase (uint16_t PageAdr);
+	int GetPage();
+	int GetWritePage();
+	void PageErase (unsigned int PageAdr);
 	void ChipErase ();
 	// Write methods
-	void StartWrite(int16_t PageAdr);
+	void StartWrite(int PageAdr);
 	void FinishWrite();
 	void WriteByte(unsigned char data);
-	void WriteInt(int16_t data);
-	void WriteLong(int32_t data);
+	void WriteInt(int data);
+	void WriteLong(long data);
 
 	// Read methods
-	void StartRead(int16_t PageAdr);
+	void StartRead(int PageAdr);
 	unsigned char ReadByte();
-	int16_t ReadInt();
-	int32_t ReadLong();
+	int ReadInt();
+	long ReadLong();
 };
 
 extern DataFlash_Class DataFlash;

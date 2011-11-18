@@ -77,8 +77,7 @@ public:
 	///
 	/// @returns		The updated control output.
 	///
-	//long 	get_pi(int32_t error, float	 dt);
-	long 	get_pi(int32_t error, float dt, bool calc_i=true);
+	long 	get_pi(int32_t error, float	 dt);
 
 	/// Reset the PI integrator
 	///

@@ -26,10 +26,9 @@ class RC_Channel{
         radio_trim(&_group, 1, 1500, name ? PSTR("TRIM") : 0),
         radio_max (&_group, 2, 1900, name ? PSTR("MAX") : 0),
 		_high(1),
-		_filter(false),
+		_filter(true),
 		_reverse  (&_group, 3,    1, name ? PSTR("REV") : 0),
-		_dead_zone (&_group, 4,   0, name ? PSTR("DZ") : 0),
-		//_dead_zone(0),
+		_dead_zone(0),
 		scale_output(1.0)
 	{}
 
@@ -98,8 +97,7 @@ class RC_Channel{
 	bool		_filter;
 	AP_Int8 	_reverse;
 
-	AP_Int16 	_dead_zone;
-	//int16_t 	_dead_zone; // used to keep noise down and create a dead zone.
+	int16_t 	_dead_zone; // used to keep noise down and create a dead zone.
 	uint8_t 	_type;
 	int16_t 	_high;
 	int16_t 	_low;

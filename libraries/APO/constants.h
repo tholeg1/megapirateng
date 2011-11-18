@@ -21,4 +21,3 @@ const float degInt2Rad = deg2Rad / scale_deg; // degrees x 1e7 to radians
 #define MAV_MODE_FAILSAFE MAV_MODE_TEST3
 
 #endif /* CONSTANTS_H_ */
-// vim:ts=4:sw=4:expandtab

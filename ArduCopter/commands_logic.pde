@@ -7,23 +7,23 @@ static void handle_process_must()
 {
 	switch(next_command.id){
 
-		case MAV_CMD_NAV_TAKEOFF:	// 22
+		case MAV_CMD_NAV_TAKEOFF:
 			do_takeoff();
 			break;
 
-		case MAV_CMD_NAV_WAYPOINT:	// 16  Navigate to Waypoint
+		case MAV_CMD_NAV_WAYPOINT:	// Navigate to Waypoint
 			do_nav_wp();
 			break;
 
-		case MAV_CMD_NAV_LAND:	// 21 LAND to Waypoint
+		case MAV_CMD_NAV_LAND:	// LAND to Waypoint
 			do_land();
 			break;
 
-		case MAV_CMD_NAV_LOITER_UNLIM:	// 17 Loiter indefinitely
+		case MAV_CMD_NAV_LOITER_UNLIM:	// Loiter indefinitely
 			do_loiter_unlimited();
 			break;
 
-		case MAV_CMD_NAV_LOITER_TURNS:	//18 Loiter N Times
+		case MAV_CMD_NAV_LOITER_TURNS:	// Loiter N Times
 			do_loiter_turns();
 			break;
 
@@ -31,7 +31,7 @@ static void handle_process_must()
 			do_loiter_time();
 			break;
 
-		case MAV_CMD_NAV_RETURN_TO_LAUNCH: //20
+		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
 			do_RTL();
 			break;
 
@@ -45,19 +45,19 @@ static void handle_process_may()
 {
 	switch(next_command.id){
 
-		case MAV_CMD_CONDITION_DELAY: // 112
+		case MAV_CMD_CONDITION_DELAY:
 			do_wait_delay();
 			break;
 
-		case MAV_CMD_CONDITION_DISTANCE: // 114
+		case MAV_CMD_CONDITION_DISTANCE:
 			do_within_distance();
 			break;
 
-		case MAV_CMD_CONDITION_CHANGE_ALT: // 113
+		case MAV_CMD_CONDITION_CHANGE_ALT:
 			do_change_alt();
 			break;
 
-		case MAV_CMD_CONDITION_YAW: // 115
+		case MAV_CMD_CONDITION_YAW:
 			do_yaw();
 			break;
 
@@ -70,35 +70,35 @@ static void handle_process_now()
 {
 	switch(next_command.id){
 
-		case MAV_CMD_DO_JUMP:  // 177
+		case MAV_CMD_DO_JUMP:
 			do_jump();
 			break;
 
-		case MAV_CMD_DO_CHANGE_SPEED: // 178
+		case MAV_CMD_DO_CHANGE_SPEED:
 			do_change_speed();
 			break;
 
-		case MAV_CMD_DO_SET_HOME: // 179
+		case MAV_CMD_DO_SET_HOME:
 			do_set_home();
 			break;
 
-		case MAV_CMD_DO_SET_SERVO: // 183
+		case MAV_CMD_DO_SET_SERVO:
 			do_set_servo();
 			break;
 
-		case MAV_CMD_DO_SET_RELAY: // 181
+		case MAV_CMD_DO_SET_RELAY:
 			do_set_relay();
 			break;
 
-		case MAV_CMD_DO_REPEAT_SERVO: // 184
+		case MAV_CMD_DO_REPEAT_SERVO:
 			do_repeat_servo();
 			break;
 
-		case MAV_CMD_DO_REPEAT_RELAY: // 182
+		case MAV_CMD_DO_REPEAT_RELAY:
 			do_repeat_relay();
 			break;
 
-		case MAV_CMD_DO_SET_ROI: // 201
+		case MAV_CMD_DO_SET_ROI:
 			do_target_yaw();
 	}
 }
@@ -313,9 +313,9 @@ static void do_loiter_turns()
 static void do_loiter_time()
 {
 	if(next_command.lat == 0){
-		wp_control 		= LOITER_MODE;
+	wp_control = LOITER_MODE;
 		loiter_time 	= millis();
-		set_next_WP(&current_loc);
+	set_next_WP(&current_loc);
 	}else{
 		wp_control 		= WP_MODE;
 		set_next_WP(&next_command);
@@ -437,9 +437,9 @@ static bool verify_loiter_unlim()
 static bool verify_loiter_time()
 {
 	if(wp_control == LOITER_MODE){
-		if ((millis() - loiter_time) > loiter_time_max) {
-			return true;
-		}
+	if ((millis() - loiter_time) > loiter_time_max) {
+		return true;
+	}
 	}
 	if(wp_control == WP_MODE &&  wp_distance <= g.waypoint_radius){
 		// reset our loiter time
@@ -466,13 +466,7 @@ static bool verify_loiter_turns()
 
 static bool verify_RTL()
 {
-	// loiter at the WP
-	wp_control 	= WP_MODE;
-	// Did we pass the WP?	// Distance checking
-
-	if((wp_distance <= g.waypoint_radius) || check_missed_wp()){
-		wp_control 	= LOITER_MODE;
-
+	if (wp_distance <= g.waypoint_radius) {
 		//gcs_send_text_P(SEVERITY_LOW,PSTR("Reached home"));
 		return true;
 	}else{
@@ -488,7 +482,7 @@ static void do_wait_delay()
 {
 	//Serial.print("dwd ");
 	condition_start = millis();
-	condition_value	= next_command.lat * 1000; // convert to milliseconds
+	condition_value	 = next_command.lat * 1000; // convert to milliseconds
 	//Serial.println(condition_value,DEC);
 }
 
@@ -496,7 +490,7 @@ static void do_change_alt()
 {
 	Location temp	= next_WP;
 	condition_start = current_loc.alt;
-	condition_value	= next_command.alt;
+		condition_value		= next_command.alt;
 	temp.alt		= next_command.alt;
 	set_next_WP(&temp);
 }
@@ -666,7 +660,7 @@ static void do_jump()
 		command_may_index 	= 0;
 
 		// set pointer to desired index
-		g.command_index 	= next_command.p1 - 1;
+		g.waypoint_index 	= next_command.p1 - 1;
 
 	} else if (jump == 0){
 		// we're done, move along
@@ -674,7 +668,7 @@ static void do_jump()
 
 	} else if (jump == -1) {
 		// repeat forever
-	    g.command_index 	= next_command.p1 - 1;
+	    g.waypoint_index 	= next_command.p1 - 1;
 	}
 }
 
