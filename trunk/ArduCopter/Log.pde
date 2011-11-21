@@ -20,8 +20,8 @@ static int8_t	select_logs(uint8_t argc, 		const Menu::arg *argv);
 // This is the help function
 // PSTR is an AVR macro to read strings from flash memory
 // printf_P is a version of print_f that reads from flash memory
-static int8_t	help_log(uint8_t argc, 			const Menu::arg *argv)
-{
+//static int8_t	help_log(uint8_t argc, 			const Menu::arg *argv)
+/*{
 	Serial.printf_P(PSTR("\n"
 						 "Commands:\n"
 						 "  dump <n>"
@@ -30,7 +30,7 @@ static int8_t	help_log(uint8_t argc, 			const Menu::arg *argv)
 						 "  disable <name> | all\n"
 						 "\n"));
     return 0;
-}
+}*/
 
 // Creates a constant array of structs representing menu options
 // and stores them in Flash memory, not RAM.
@@ -40,8 +40,7 @@ const struct Menu::command log_menu_commands[] PROGMEM = {
 	{"dump",	dump_log},
 	{"erase",	erase_logs},
 	{"enable",	select_logs},
-	{"disable",	select_logs},
-	{"help",	help_log}
+	{"disable",	select_logs}
 };
 
 // A Macro to create the Menu
@@ -698,15 +697,16 @@ static void Log_Write_Control_Tuning()
 	DataFlash.WriteInt(angle_boost);					//8
 	DataFlash.WriteInt(manual_boost);					//9
 	DataFlash.WriteInt(climb_rate);						//10
-//#if HIL_MODE == HIL_MODE_ATTITUDE
-//	DataFlash.WriteInt(0);								//10
-//#else
-//	DataFlash.WriteInt((int)(barometer.RawPress - barometer._offset_press));//10
-//#endif
 
-	DataFlash.WriteInt(g.rc_3.servo_out);				//11
-	DataFlash.WriteInt(g.pi_alt_hold.get_integrator());	//12
-	DataFlash.WriteInt(g.pi_throttle.get_integrator());	//13
+#if HIL_MODE == HIL_MODE_ATTITUDE
+	DataFlash.WriteInt(0);								//11
+#else
+	DataFlash.WriteInt((int)(barometer.RawPress - barometer._offset_press));//11
+#endif
+
+	DataFlash.WriteInt(g.rc_3.servo_out);				//12
+	DataFlash.WriteInt(g.pi_alt_hold.get_integrator());	//13
+	DataFlash.WriteInt(g.pi_throttle.get_integrator());	//14
 
 	DataFlash.WriteByte(END_BYTE);
 }
@@ -718,7 +718,7 @@ static void Log_Read_Control_Tuning()
 
 	Serial.printf_P(PSTR("CTUN, "));
 
-	for(int8_t i = 1; i < 13; i++ ){
+	for(int8_t i = 1; i < 14; i++ ){
 		temp = DataFlash.ReadInt();
 		Serial.printf("%d, ", temp);
 	}
@@ -738,15 +738,14 @@ static void Log_Write_Performance()
 	//DataFlash.WriteByte(	loop_step);
 
 
-	//*
-	//DataFlash.WriteLong(	millis()- perf_mon_timer);
 
-	//DataFlash.WriteByte(	dcm.gyro_sat_count);				//2
-	//DataFlash.WriteByte(	imu.adc_constraints);				//3
-	//DataFlash.WriteByte(	dcm.renorm_sqrt_count);				//4
-	//DataFlash.WriteByte(	dcm.renorm_blowup_count);			//5
-	//DataFlash.WriteByte(	gps_fix_count);						//6
-
+	DataFlash.WriteLong(	millis()- perf_mon_timer);			//1
+	DataFlash.WriteByte(	dcm.gyro_sat_count);				//2
+	DataFlash.WriteByte(	imu.adc_constraints);				//3
+	DataFlash.WriteByte(	dcm.renorm_sqrt_count);				//4
+	DataFlash.WriteByte(	dcm.renorm_blowup_count);			//5
+	DataFlash.WriteByte(	gps_fix_count);						//6
+	DataFlash.WriteByte(END_BYTE);
 
 
 	//DataFlash.WriteInt (	(int)(dcm.get_health() * 1000));	//7
@@ -754,6 +753,7 @@ static void Log_Write_Performance()
 
 
 	// control_mode
+	/*
 	DataFlash.WriteByte(control_mode);					//1
 	DataFlash.WriteByte(yaw_mode);						//2
 	DataFlash.WriteByte(roll_pitch_mode);				//3
@@ -761,20 +761,22 @@ static void Log_Write_Performance()
 	DataFlash.WriteInt(g.throttle_cruise.get());		//5
 	DataFlash.WriteLong(throttle_integrator);			//6
 	DataFlash.WriteByte(END_BYTE);
+	*/
+
 }
 
 // Read a performance packet
 static void Log_Read_Performance()
 {
-	int8_t temp1 	= DataFlash.ReadByte();
-	int8_t temp2 	= DataFlash.ReadByte();
-	int8_t temp3 	= DataFlash.ReadByte();
-	int8_t temp4 	= DataFlash.ReadByte();
-	int16_t temp5 	= DataFlash.ReadInt();
-	int32_t temp6 	= DataFlash.ReadLong();
+	int32_t temp1 	= DataFlash.ReadLong();
+	int8_t  temp2 	= DataFlash.ReadByte();
+	int8_t  temp3 	= DataFlash.ReadByte();
+	int8_t  temp4 	= DataFlash.ReadByte();
+	int8_t 	temp5 	= DataFlash.ReadByte();
+	int8_t	temp6 	= DataFlash.ReadByte();
 
 							 //1   2   3   4   5   6
-	Serial.printf_P(PSTR("PM, %d, %d, %d, %d, %d, %ld\n"),
+	Serial.printf_P(PSTR("PM, %ld, %d, %d, %d, %d, %d\n"),
 		temp1,
 		temp2,
 		temp3,
@@ -852,9 +854,9 @@ static void Log_Read_Attitude()
 	int16_t temp1 	= DataFlash.ReadInt();
 	int16_t temp2 	= DataFlash.ReadInt();
 	uint16_t temp3 	= DataFlash.ReadInt();
-	int16_t temp4 	= DataFlash.ReadByte();
-	int16_t temp5 	= DataFlash.ReadByte();
-	int16_t temp6 	= DataFlash.ReadByte();
+	int16_t temp4 	= DataFlash.ReadInt();
+	int16_t temp5 	= DataFlash.ReadInt();
+	int16_t temp6 	= DataFlash.ReadInt();
 
 							// 1   2   3    4   5   6
 	Serial.printf_P(PSTR("ATT, %d, %d, %u, %d, %d, %d\n"),
@@ -897,6 +899,29 @@ static void Log_Write_Startup()
 static void Log_Read_Startup()
 {
 	Serial.printf_P(PSTR("START UP\n"));
+}
+
+static void Log_Write_Data(int8_t _type, float _data)
+{
+	Log_Write_Data(_type, (int32_t)(_data * 1000));
+}
+
+static void Log_Write_Data(int8_t _type, int32_t _data)
+{
+	DataFlash.WriteByte(HEAD_BYTE1);
+	DataFlash.WriteByte(HEAD_BYTE2);
+	DataFlash.WriteByte(LOG_DATA_MSG);
+	DataFlash.WriteByte(_type);
+	DataFlash.WriteLong(_data);
+	DataFlash.WriteByte(END_BYTE);
+}
+
+// Read a mode packet
+static void Log_Read_Data()
+{
+	int8_t  temp1 = DataFlash.ReadByte();
+	int32_t temp2 = DataFlash.ReadLong();
+	Serial.printf_P(PSTR("DATA: %d, %ld\n"), temp1, temp2);
 }
 
 
@@ -979,6 +1004,10 @@ static void Log_Read(int start_page, int end_page)
 					case LOG_GPS_MSG:
 						Log_Read_GPS();
 						break;
+
+					case LOG_DATA_MSG:
+						Log_Read_Data();
+						break;
 				}
 				break;
 		}
@@ -998,6 +1027,8 @@ static void Log_Write_Raw() {}
 static void Log_Write_GPS() {}
 static void Log_Write_Current() {}
 static void Log_Write_Attitude() {}
+static void Log_Write_Data(int8_t _type, float _data){}
+static void Log_Write_Data(int8_t _type, int32_t _data){}
 #ifdef OPTFLOW_ENABLED
 static void Log_Write_Optflow() {}
 #endif

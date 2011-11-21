@@ -5,6 +5,12 @@
 #define LED_SEQUENCER DISABLED
 #define MAX_SONAR_RANGE 400
 
+#define BARO_TYPE BARO_BMP085
+/*
+#define BARO_BMP085	0
+#define BARO_MS5611	1  // Beta version, not tested in flight
+*/
+
 // MPNG: AP_COMPASS lib make additional ROTATION_YAW_90 for 5883L mag, so in result we have ROTATION_YAW_270 
 #define MAG_ORIENTATION	ROTATION_YAW_180 
 
@@ -12,7 +18,7 @@
 	/*
 		OSD_PROTOCOL_NONE
 		OSD_PROTOCOL_SYBERIAN
-		OSD_PROTOCOL_REMZIBI
+		OSD_PROTOCOL_REMZIBI  // Read more at: http://www.rcgroups.com/forums/showthread.php?t=921467
 	*/
 
 // New in 2.0.43, but unused in MegairateNG
@@ -36,6 +42,7 @@
 	GPS_PROTOCOL_UBLOX_I2C
 	GPS_PROTOCOL_BLACKVORTEX
 	*/
+	
 #define SERIAL0_BAUD			 115200	// If one want a wireless modem (like APC220) on the console port, lower that to 57600. Default is 115200 
 #define SERIAL2_BAUD			 38400	// GPS port bps
 #define SERIAL3_BAUD			 57600	// default telemetry BPS rate = 57600

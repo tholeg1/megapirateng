@@ -2,22 +2,12 @@
 
 static void init_commands()
 {
-	// Zero is home, the curren command
-    g.command_index = 0;
-
-    // This are registers for the current may and must commands
-    // setting to zero will allow them to be written to by new commands
-	command_must_index	= NO_COMMAND;
-	command_may_index	= NO_COMMAND;
-
-	// clear the command queue
-	clear_command_queue();
-}
-
-// forces the loading of a new command
-// queue is emptied after a new command is processed
-static void clear_command_queue(){
-	next_command.id 	= NO_COMMAND;
+    g.command_index 		= NO_COMMAND;
+	command_nav_index		= NO_COMMAND;
+	command_cond_index		= NO_COMMAND;
+	prev_nav_index 			= NO_COMMAND;
+	command_cond_queue.id 	= NO_COMMAND;
+	command_nav_queue.id 	= NO_COMMAND;
 }
 
 // Getters
@@ -60,7 +50,7 @@ static struct Location get_cmd_with_index(int i)
 	}
 
 	// Add on home altitude if we are a nav command (or other command with altitude) and stored alt is relative
-	//if((temp.id < MAV_CMD_NAV_LAST || temp.id == MAV_CMD_CONDITION_CHANGE_ALT) && temp.options & WP_OPTION_ALT_RELATIVE){
+	//if((temp.id < MAV_CMD_NAV_LAST || temp.id == MAV_CMD_CONDITION_CHANGE_ALT) && temp.options & MASK_OPTIONS_RELATIVE_ALT){
 		//temp.alt += home.alt;
 	//}
 
@@ -75,8 +65,9 @@ static struct Location get_cmd_with_index(int i)
 
 // Setters
 // -------
-static void set_command_with_index(struct Location temp, int i)
+static void set_cmd_with_index(struct Location temp, int i)
 {
+
 	i = constrain(i, 0, g.command_total.get());
 	//Serial.printf("set_command: %d with id: %d\n", i, temp.id);
 
@@ -111,7 +102,8 @@ static void set_command_with_index(struct Location temp, int i)
 		g.command_total.set_and_save(i+1);
 }
 
-static void increment_WP_index()
+/*
+//static void increment_WP_index()
 {
     if (g.command_index < (g.command_total-1)) {
         g.command_index++;
@@ -119,9 +111,9 @@ static void increment_WP_index()
 
     SendDebugln(g.command_index,DEC);
 }
-
+*/
 /*
-static void decrement_WP_index()
+//static void decrement_WP_index()
 {
     if (g.command_index > 0) {
         g.command_index.set_and_save(g.command_index - 1);
@@ -130,7 +122,7 @@ static void decrement_WP_index()
 
 static int32_t read_alt_to_hold()
 {
-	if(g.RTL_altitude < 0)
+	if(g.RTL_altitude <= 0)
 		return current_loc.alt;
 	else
 		return g.RTL_altitude;// + home.alt;
@@ -212,7 +204,7 @@ static void init_home()
 	// Save Home to EEPROM
 	// -------------------
 	// no need to save this to EPROM
-	set_command_with_index(home, 0);
+	set_cmd_with_index(home, 0);
 	print_wp(&home, 0);
 
 	// Save prev loc this makes the calcs look better before commands are loaded
