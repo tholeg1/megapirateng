@@ -4,7 +4,6 @@
 
 #define YAW_DIRECTION 1
 
-
 static void init_motors_out()
 {
 	// Set 400Hz to all outputs except camstab
