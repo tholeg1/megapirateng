@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.0.50 beta1"
+#define THISFIRMWARE "MegaPirateNG V2.1.0 Alpha"
 /*
 ArduCopter Version 2.0 Beta
 Authors:	Jason Short
@@ -57,17 +57,24 @@ And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
 // Libraries
 #include <FastSerial.h>
 #include <AP_Common.h>
+#include <Arduino_Mega_ISR_Registry.h>
 #include <APM_RC.h>         // ArduPilot Mega RC Library
 #include <AP_GPS.h>         // ArduPilot GPS library
 #include <Wire.h>			// Arduino I2C lib
 #include <AP_I2C.h>
-//#include <SPI.h>
+#include <SPI.h>
 //#include <DataFlash.h>      // ArduPilot Mega Flash Memory Library
 #include <AP_ADC.h>         // ArduPilot Mega Analog to Digital Converter Library
+#include <AP_AnalogSource.h>
 #include <APM_Baro.h>
 #include <AP_Compass.h>     // ArduPilot Mega Magnetometer Library
 #include <AP_Math.h>        // ArduPilot Mega Vector/Matrix math Library
+#include <AP_InertialSensor.h> // ArduPilot Mega Inertial Sensor (accel & gyro) Library
 #include <AP_IMU.h>         // ArduPilot Mega IMU Library
+#include <AP_PeriodicProcess.h>         // Parent header of Timer and TimerAperiodic
+                                        // (only included for makefile libpath to work)
+#include <AP_TimerProcess.h>            // TimerProcess is the scheduler for MPU6000 reads.
+#include <AP_TimerAperiodicProcess.h>   // TimerAperiodicProcess is the scheduler for ADC reads.
 #include <AP_DCM.h>         // ArduPilot Mega DCM Library
 #include <APM_PI.h>            	// PI library
 #include <RC_Channel.h>     // RC Channel Library
@@ -101,6 +108,8 @@ FastSerialPort0(Serial);        // FTDI/console
 FastSerialPort2(Serial2);       // GPS port
 FastSerialPort3(Serial3);       // Telemetry port
 
+Arduino_Mega_ISR_Registry isr_registry;
+
 ////////////////////////////////////////////////////////////////////////////////
 // Parameters
 ////////////////////////////////////////////////////////////////////////////////
@@ -113,6 +122,26 @@ static Parameters      g;
 ////////////////////////////////////////////////////////////////////////////////
 // prototypes
 static void update_events(void);
+
+////////////////////////////////////////////////////////////////////////////////
+// RC Hardware
+////////////////////////////////////////////////////////////////////////////////
+#if CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
+    APM_RC_PIRATES APM_RC;
+#elif CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
+    APM_RC_APM2 APM_RC;
+#else
+    APM_RC_APM1 APM_RC;
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+// Dataflash
+////////////////////////////////////////////////////////////////////////////////
+#if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
+    DataFlash_APM2 DataFlash;
+#elif CONFIG_APM_HARDWARE == APM_HARDWARE_APM1
+    DataFlash_APM1 DataFlash;
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -137,7 +166,14 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 #if HIL_MODE == HIL_MODE_DISABLED
 
 	// real sensors
+#if CONFIG_ADC == ENABLED
 	AP_ADC_ADS7844          adc;
+#endif
+
+#ifdef DESKTOP_BUILD
+    APM_BMP085_HIL_Class    barometer;
+    AP_Compass_HIL          compass;
+#else
 	#if BARO_TYPE == BARO_MS5611
 		APM_MS5611_Class        barometer;
 	#else
@@ -145,6 +181,7 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 	#endif
 	
 	AP_Compass_HMC5843      compass(Parameters::k_param_compass);
+#endif
 
   #ifdef OPTFLOW_ENABLED
     AP_OpticalFlow_ADNS3080 optflow;
@@ -182,12 +219,30 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 		#error Unrecognised GPS_PROTOCOL setting.
 	#endif // GPS PROTOCOL
 
+	#if CONFIG_IMU_TYPE == CONFIG_IMU_MPU6000
+		AP_InertialSensor_MPU6000 ins( CONFIG_MPU6000_CHIP_SELECT_PIN );
+	#elif CONFIG_IMU_TYPE == CONFIG_IMU_PIRATES
+		AP_InertialSensor_Pirates ins;
+	#else
+		AP_InertialSensor_Oilpan ins(&adc);
+	#endif
+	
+	AP_IMU_INS  imu(&ins, Parameters::k_param_IMU_calibration);
+	AP_DCM  dcm(&imu, g_gps);
+	AP_TimerProcess timer_scheduler;
+
 #elif HIL_MODE == HIL_MODE_SENSORS
 	// sensor emulators
 	AP_ADC_HIL              adc;
 	APM_BMP085_HIL_Class    barometer;
 	AP_Compass_HIL          compass;
 	AP_GPS_HIL              g_gps_driver(NULL);
+    AP_IMU_Shim imu;
+    AP_DCM  dcm(&imu, g_gps);
+    AP_PeriodicProcessStub timer_scheduler;
+    AP_InertialSensor_Stub ins;
+
+    static int32_t          gps_base_alt;
 
 #elif HIL_MODE == HIL_MODE_ATTITUDE
 	AP_ADC_HIL              adc;
@@ -195,6 +250,8 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 	AP_GPS_HIL              g_gps_driver(NULL);
 	AP_Compass_HIL          compass; // never used
 	AP_IMU_Shim             imu; // never used
+    AP_InertialSensor_Stub ins;
+    AP_PeriodicProcessStub timer_scheduler;
 	#ifdef OPTFLOW_ENABLED
 		AP_OpticalFlow_ADNS3080 optflow;
 	#endif
@@ -203,17 +260,7 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 	#error Unrecognised HIL_MODE setting.
 #endif // HIL MODE
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
-	#if HIL_MODE != HIL_MODE_SENSORS
-		// Normal
-		AP_IMU_Oilpan imu(&adc, Parameters::k_param_IMU_calibration);
-	#else
-		// hil imu
-		AP_IMU_Shim imu;
-	#endif
-	// normal dcm
-	AP_DCM  dcm(&imu, g_gps);
-#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // GCS selection
@@ -226,11 +273,22 @@ GCS_MAVLINK	gcs3(Parameters::k_param_streamrates_port3);
 ////////////////////////////////////////////////////////////////////////////////
 //
 ModeFilter sonar_mode_filter;
-
-#if SONAR_TYPE == MAX_SONAR_XL
-	AP_RangeFinder_MaxsonarXL sonar(&adc, &sonar_mode_filter);//(SONAR_PORT, &adc);
-#else
-    #error Unrecognised SONAR_TYPE setting.
+#if CONFIG_SONAR == ENABLED
+	#if CONFIG_SONAR_SOURCE == SONAR_SOURCE_ADC
+		AP_AnalogSource_ADC sonar_analog_source( &adc, CONFIG_SONAR_SOURCE_ADC_CHANNEL, 0.25);
+	#elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_PIRATES
+		AP_AnalogSource_PIRATES sonar_analog_source;
+	#elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ANALOG_PIN
+		AP_AnalogSource_Arduino sonar_analog_source(CONFIG_SONAR_SOURCE_ANALOG_PIN);
+	#endif
+		
+	#if SONAR_TYPE == MAX_SONAR_XL
+			AP_RangeFinder_MaxsonarXL sonar(&sonar_analog_source, &sonar_mode_filter);
+	#elif SONAR_TYPE == SONAR_ME007
+			AP_RangeFinder_ME007 sonar(&sonar_analog_source, &sonar_mode_filter);
+	#else
+	    #error Unrecognised SONAR_TYPE setting.
+	#endif
 #endif
 
 // agmatthews USERHOOKS
@@ -368,7 +426,6 @@ static int16_t		airspeed;							// m/s * 100
 
 // Location Errors
 // ---------------
-static int32_t 	yaw_error;							// how off are we pointed
 static int32_t	long_error, lat_error;				// temp for debugging
 
 // Battery Sensors
@@ -530,6 +587,11 @@ static bool				GPS_enabled 	= false;
 static bool				new_radio_frame;
 
 AP_Relay relay;
+
+#if USB_MUX_PIN > 0
+	static bool usb_connected;
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Top-level logic
@@ -730,7 +792,7 @@ static void medium_loop()
 			// --------------------
 			if(control_mode == AUTO){
 				if(home_is_set == true && g.command_total > 1){
-					update_commands(true);
+					update_commands();
 				}
 			}
 
@@ -801,9 +863,12 @@ static void fifty_hz_loop()
 
 	// Read Sonar
 	// ----------
+    # if CONFIG_SONAR == ENABLED
 	if(g.sonar_enabled){
 		sonar_alt = sonar.read();
 	}
+    #endif
+
 	// agmatthews - USERHOOKS
 	#ifdef USERHOOK_50HZLOOP
 	  USERHOOK_50HZLOOP
@@ -892,8 +957,8 @@ static void slow_loop()
 			update_lights();
 
 				// send all requested output streams with rates requested
-				// between 1 and 5 Hz
-            gcs_data_stream_send(1,5);
+            // between 3 and 5 Hz
+            gcs_data_stream_send(3,5);
 
 			if(g.radio_tuning > 0)
 				tuning();
@@ -902,6 +967,9 @@ static void slow_loop()
 				update_motor_leds();
 			#endif
 
+			#if USB_MUX_PIN > 0
+            check_usb_mux();
+			#endif
 			break;
 
 		default:
@@ -923,6 +991,7 @@ static void super_slow_loop()
 		Log_Write_Current();
 
     gcs_send_message(MSG_HEARTBEAT);
+    gcs_data_stream_send(1,3);
 	// agmatthews - USERHOOKS
 	#ifdef USERHOOK_SUPERSLOWLOOP
 	   USERHOOK_SUPERSLOWLOOP
@@ -1124,9 +1193,9 @@ void update_throttle_mode(void)
 
 					//remove alt_hold_velocity when implemented
 				#if FRAME_CONFIG == HELI_FRAME
-					g.rc_3.servo_out = heli_get_angle_boost(g.throttle_cruise + manual_boost + get_z_damping());
+					g.rc_3.servo_out = heli_get_angle_boost(g.throttle_cruise + manual_boost);
 				#else
-					g.rc_3.servo_out = g.throttle_cruise + angle_boost + manual_boost + get_z_damping();
+					g.rc_3.servo_out = g.throttle_cruise + angle_boost + manual_boost;
 				#endif
 
 					// reset next_WP.alt
@@ -1245,7 +1314,7 @@ static void read_AHRS(void)
 	#endif
 
 	dcm.update_DCM_fast();
-	omega = dcm.get_gyro();
+	omega = imu.get_gyro();
 }
 
 static void update_trig(void){
@@ -1298,15 +1367,9 @@ static void update_altitude()
 		baro_alt 			= (baro_alt + read_barometer()) >> 1;
 
 		// calc the vertical accel rate
-		#if CLIMB_RATE_BARO == 1
-		int temp_baro_alt	= (barometer._offset_press - barometer.RawPress) << 1; // invert and scale
-		baro_rate 			= (temp_baro_alt - old_baro_alt) * 10;
-		old_baro_alt		= temp_baro_alt;
-
-		#else
-		baro_rate 			= (baro_alt - old_baro_alt) * 10;
+		int temp			= (baro_alt - old_baro_alt) * 10;
+		baro_rate 			= (temp + baro_rate) >> 1;
 		old_baro_alt		= baro_alt;
-		#endif
 
 		// sonar_alt is calculaed in a faster loop and filtered with a mode filter
 	#endif
@@ -1356,6 +1419,9 @@ static void update_altitude()
 		current_loc.alt = baro_alt + home.alt;
 		climb_rate 		= baro_rate;
 	}
+
+	// manage bad data
+	climb_rate = constrain(climb_rate, -300, 300);
 }
 
 static void
@@ -1379,14 +1445,14 @@ adjust_altitude()
 		// we remove 0 to 100 PWM from hover
 		manual_boost = g.rc_3.control_in - 180;
 		manual_boost = max(-120, manual_boost);
-		g.throttle_cruise += (g.pi_alt_hold.get_integrator() * g.pi_throttle.kP() + g.pi_throttle.get_integrator());
+		g.throttle_cruise += g.pi_alt_hold.get_integrator();
 		g.pi_alt_hold.reset_I();
 		g.pi_throttle.reset_I();
 
 	}else if  (g.rc_3.control_in >= 650){
 		// we add 0 to 100 PWM to hover
 		manual_boost = g.rc_3.control_in - 650;
-		g.throttle_cruise += (g.pi_alt_hold.get_integrator() * g.pi_throttle.kP() + g.pi_throttle.get_integrator());
+		g.throttle_cruise += g.pi_alt_hold.get_integrator();
 		g.pi_alt_hold.reset_I();
 		g.pi_throttle.reset_I();
 
@@ -1420,7 +1486,7 @@ static void tuning(){
 			break;
 
 		case CH6_RATE_KP:
-			g.rc_6.set_range(0,300);		 // 0 to .3
+			g.rc_6.set_range(40,300);		 // 0 to .3
 			g.pi_rate_roll.kP(tuning_value);
 			g.pi_rate_pitch.kP(tuning_value);
 			break;

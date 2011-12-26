@@ -19,12 +19,6 @@
 
 
 // Public Methods //////////////////////////////////////////////////////////////
-void RangeFinder::set_analog_port(int analogPort)
-{
-    // store the analog port to be used
-    _analogPort = analogPort;
-	pinMode(analogPort, INPUT);
-}
 
 void RangeFinder::set_orientation(int x, int y, int z)
 {
@@ -36,8 +30,17 @@ void RangeFinder::set_orientation(int x, int y, int z)
 // Read Sensor data - only the raw_value is filled in by this parent class
 int RangeFinder::read()
 {
-	//raw_value = _ap_adc->Ch(7) ; // in MPNG we use ADC library for sonar value and custom made filter with blackjack and...(realy the same)
-	//distance = raw_value;
-	return _ap_adc->Ch(7);
+	raw_value = _analog_source->read();
+
+	raw_value = convert_raw_to_distance(raw_value);
+
+	// convert analog value to distance in cm (using child implementation most likely)
+	raw_value = convert_raw_to_distance(raw_value);
+
+	// ensure distance is within min and max
+	raw_value = constrain(raw_value, min_distance, max_distance);
+
+	distance = _mode_filter->get_filtered_with_sample(raw_value);
+	return distance;
 }
 

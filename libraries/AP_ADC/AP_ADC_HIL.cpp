@@ -39,18 +39,18 @@ AP_ADC_HIL::AP_ADC_HIL()
 	last_hil_time = millis();
 }
 
-void AP_ADC_HIL::Init(void)
+void AP_ADC_HIL::Init( AP_PeriodicProcess * scheduler )
 {
 }
 
 // Read one channel value
-int AP_ADC_HIL::Ch(unsigned char ch_num)
+uint16_t AP_ADC_HIL::Ch(unsigned char ch_num)
 {
-  return adcValue[ch_num];
+	return adcValue[ch_num];
 }
 
 // Read 6 channel values
-uint32_t AP_ADC_HIL::Ch6(const uint8_t *channel_numbers, int *result)
+uint32_t AP_ADC_HIL::Ch6(const uint8_t *channel_numbers, uint16_t *result)
 {
 	for (uint8_t i=0; i<6; i++) {
 		result[i] = Ch(channel_numbers[i]);

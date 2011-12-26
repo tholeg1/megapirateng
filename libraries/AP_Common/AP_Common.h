@@ -26,7 +26,7 @@
 // auto-detect at compile time if a call to a string function is using
 // a flash-stored string or not
 typedef struct {
-	char c;
+    char c;
 } prog_char_t;
 
 #include <stdint.h>
@@ -97,17 +97,47 @@ typedef struct {
 
 static inline int strcasecmp_P(const char *str1, const prog_char_t *pstr)
 {
-	return strcasecmp_P(str1, (const prog_char *)pstr);
+    return strcasecmp_P(str1, (const prog_char *)pstr);
 }
 
 static inline int strcmp_P(const char *str1, const prog_char_t *pstr)
 {
-	return strcmp_P(str1, (const prog_char *)pstr);
+    return strcmp_P(str1, (const prog_char *)pstr);
 }
 
-static inline size_t strlcat_P(char *buffer, const prog_char_t *pstr, size_t buffer_size)
+static inline size_t strlen_P(const prog_char_t *pstr)
 {
-	return strlcat_P(buffer, (const prog_char *)pstr, buffer_size);
+    return strlen_P((const prog_char *)pstr);
+}
+
+static inline void *memcpy_P(void *dest, const prog_char_t *src, size_t n)
+{
+    return memcpy_P(dest, (const prog_char *)src, n);
+}
+
+// strlcat_P() in AVR libc seems to be broken 
+static inline size_t strlcat_P(char *d, const prog_char_t *s, size_t bufsize)
+{
+	size_t len1 = strlen(d);
+	size_t len2 = strlen_P(s);
+	size_t ret = len1 + len2;
+    
+	if (len1+len2 >= bufsize) {
+		if (bufsize < (len1+1)) {
+			return ret;
+		}
+		len2 = bufsize - (len1+1);
+	}
+	if (len2 > 0) {
+		memcpy_P(d+len1, s, len2);
+		d[len1+len2] = 0;
+	}
+	return ret;
+}
+
+static inline char *strncpy_P(char *buffer, const prog_char_t *pstr, size_t buffer_size)
+{
+    return strncpy_P(buffer, (const prog_char *)pstr, buffer_size);
 }
 
 
@@ -165,12 +195,12 @@ static inline uintptr_t pgm_read_pointer(const void *s)
 //@{
 
 struct Location {
-	uint8_t		id;					///< command id
-	uint8_t		options;			///< options bitmask (1<<0 = relative altitude)
-	uint8_t		p1;					///< param 1
-	int32_t		alt;				///< param 2 - Altitude in centimeters (meters * 100)
-	int32_t		lat;				///< param 3 - Lattitude * 10**7
-	int32_t		lng;				///< param 4 - Longitude * 10**7
+    uint8_t		id;					///< command id
+    uint8_t		options;			///< options bitmask (1<<0 = relative altitude)
+    uint8_t		p1;					///< param 1
+    int32_t		alt;				///< param 2 - Altitude in centimeters (meters * 100)
+    int32_t		lat;				///< param 3 - Lattitude * 10**7
+    int32_t		lng;				///< param 4 - Longitude * 10**7
 };
 
 //@}

@@ -19,6 +19,11 @@ class Compass;
 class BetterStream;
 class RangeFinder;
 class FastSerial;
+class AP_IMU_INS;
+class AP_InertialSensor;
+class APM_RC_Class;
+class AP_TimerProcess;
+class Arduino_Mega_ISR_Registry;
 
 namespace apo {
 
@@ -34,9 +39,6 @@ enum halMode_t {
 enum board_t {
     BOARD_ARDUPILOTMEGA_1280, BOARD_ARDUPILOTMEGA_2560, BOARD_ARDUPILOTMEGA_2
 };
-enum vehicle_t {
-    VEHICLE_CAR, VEHICLE_QUAD, VEHICLE_PLANE, VEHICLE_BOAT, VEHICLE_TANK
-};
 
 class AP_HardwareAbstractionLayer {
 
@@ -45,12 +47,11 @@ public:
     // default ctors on pointers called on pointers here, this
     // allows NULL to be used as a boolean for if the device was
     // initialized
-    AP_HardwareAbstractionLayer(halMode_t mode, board_t board,
-                                vehicle_t vehicle, uint8_t heartBeatTimeout) :
-        adc(), gps(), baro(), compass(), rangeFinders(), imu(), batteryMonitor(), rc(), gcs(),
-        hil(), debug(), load(), lastHeartBeat(),
-        _heartBeatTimeout(heartBeatTimeout), _mode(mode),
-        _board(board), _vehicle(vehicle), _state(MAV_STATE_UNINIT) {
+    AP_HardwareAbstractionLayer(halMode_t mode, board_t board, MAV_TYPE vehicle) :
+        adc(), gps(), baro(), compass(), rangeFinders(), imu(), batteryMonitor(), 
+        radio(), rc(), gcs(),
+        hil(), debug(), load(), _mode(mode),
+        _board(board), _vehicle(vehicle) {
 
         /*
          * Board specific hardware initialization
@@ -105,8 +106,20 @@ public:
     APM_BMP085_Class * baro;
     Compass * compass;
     Vector<RangeFinder *> rangeFinders;
-    IMU * imu;
     AP_BatteryMonitor * batteryMonitor;
+    AP_IMU_INS * imu;
+    AP_InertialSensor * ins;
+
+    /**
+     * Scheduler
+     */
+    AP_TimerProcess * scheduler;
+    Arduino_Mega_ISR_Registry * isr_registry;
+
+    /**
+     * Actuators
+     */
+    APM_RC_Class * radio;
 
     /**
      * Radio Channels
@@ -124,7 +137,6 @@ public:
      * data
      */
     uint8_t load;
-    uint32_t lastHeartBeat;
 
     /**
      * settings
@@ -143,31 +155,16 @@ public:
     board_t getBoard() {
         return _board;
     }
-    vehicle_t getVehicle() {
+    MAV_TYPE getVehicle() {
         return _vehicle;
-    }
-    MAV_STATE getState() {
-        return _state;
-    }
-    void setState(MAV_STATE state) {
-        _state = state;
-    }
-
-    bool heartBeatLost() {
-        if (_heartBeatTimeout == 0)
-            return false;
-        else
-            return ((micros() - lastHeartBeat) / 1e6) > _heartBeatTimeout;
     }
 
 private:
 
     // enumerations
-    uint8_t _heartBeatTimeout;
     halMode_t _mode;
     board_t _board;
-    vehicle_t _vehicle;
-    MAV_STATE _state;
+    MAV_TYPE _vehicle;
 };
 
 } // namespace apo

@@ -29,6 +29,10 @@
 #define SONAR 0
 #define BARO 1
 
+#define SONAR_SOURCE_ADC 1
+#define SONAR_SOURCE_ANALOG_PIN 2
+#define SONAR_SOURCE_PIRATES 3
+
 // CH 7 control
 #define CH7_DO_NOTHING 0
 #define CH7_SET_HOVER 1
@@ -92,6 +96,7 @@
 // SONAR types:
 #define MAX_SONAR_UNKNOWN	0
 #define MAX_SONAR_XL		1
+#define SONAR_ME007		2
 
 // BARO types:
 #define BARO_BMP085	0
@@ -350,7 +355,9 @@ enum gcs_severity {
 #define C_LED_PIN 30
 
 // RADIANS
-#define RADX100 0.000174533
+#define RADX100 0.000174532925
+#define DEGX100 5729.57795
+
 
 // EEPROM addresses
 #define EEPROM_MAX_ADDR		4096
@@ -363,5 +370,15 @@ enum gcs_severity {
 
 // mark a function as not to be inlined
 #define NOINLINE __attribute__((noinline))
+
+// IMU selection
+#define CONFIG_IMU_OILPAN 1
+#define CONFIG_IMU_MPU6000 2
+#define CONFIG_IMU_PIRATES 3
+
+// APM Hardware selection
+#define APM_HARDWARE_APM1 1
+#define APM_HARDWARE_APM2 2
+#define APM_HARDWARE_PIRATES 3
 
 #endif // _DEFINES_H

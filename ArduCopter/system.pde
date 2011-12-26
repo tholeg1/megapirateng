@@ -55,6 +55,24 @@ static void run_cli(void)
 
 static void init_ardupilot()
 {
+#if USB_MUX_PIN > 0
+    // on the APM2 board we have a mux thet switches UART0 between
+    // USB and the board header. If the right ArduPPM firmware is
+    // installed we can detect if USB is connected using the
+    // USB_MUX_PIN
+    pinMode(USB_MUX_PIN, INPUT);
+
+    usb_connected = !digitalRead(USB_MUX_PIN);
+    if (!usb_connected) {
+        // USB is not connected, this means UART0 may be a Xbee, with
+        // its darned bricking problem. We can't write to it for at
+        // least one second after powering up. Simplest solution for
+        // now is to delay for 1 second. Something more elegant may be
+        // added later
+        delay(1000);
+    }
+#endif
+
 	// Console serial port
 	//
 	// The console port buffers are defined to be sufficiently large to support
@@ -85,6 +103,10 @@ static void init_ardupilot()
 						 "\n\nFree RAM: %u\n"),
                     memcheck_available_memory());
 
+	//
+	// Initialize the isr_registry.
+	//
+    isr_registry.init();
 
 	//
 	// Check the EEPROM format version before loading any parameters from EEPROM.
@@ -92,9 +114,15 @@ static void init_ardupilot()
 	report_version();
 
 	// setup IO pins
-	pinMode(C_LED_PIN, OUTPUT);				// GPS status LED
 	pinMode(A_LED_PIN, OUTPUT);				// GPS status LED
-	pinMode(B_LED_PIN, OUTPUT);				// GPS status LED
+  digitalWrite(A_LED_PIN, LED_OFF);
+
+  pinMode(B_LED_PIN, OUTPUT);				// GPS status LED
+  digitalWrite(B_LED_PIN, LED_OFF);
+
+  pinMode(C_LED_PIN, OUTPUT);				// GPS status LED
+  digitalWrite(C_LED_PIN, LED_OFF);
+
 	pinMode(SLIDE_SWITCH_PIN, INPUT);		// To enter interactive mode
     digitalWrite(SLIDE_SWITCH_PIN, HIGH);           // Pull-UP the switch port
 	//pinMode(PUSHBUTTON_PIN, INPUT);			// unused
@@ -135,6 +163,12 @@ static void init_ardupilot()
 		delay(100); // wait for serial send
 		AP_Var::erase_all();
 
+		// erase DataFlash on format version change
+		#if LOGGING_ENABLED == ENABLED
+		DataFlash.Init();
+		erase_logs(NULL, NULL);
+		#endif
+
 		// save the new format version
 		g.format_version.set_and_save(Parameters::k_format_version);
 
@@ -145,13 +179,13 @@ static void init_ardupilot()
 		while (true) {
 			delay(1000);
 			if(motor_light){
-				digitalWrite(A_LED_PIN, HIGH);
-				digitalWrite(B_LED_PIN, HIGH);
-				digitalWrite(C_LED_PIN, HIGH);
+				digitalWrite(A_LED_PIN, LED_ON);
+				digitalWrite(B_LED_PIN, LED_ON);
+				digitalWrite(C_LED_PIN, LED_ON);
 			}else{
-				digitalWrite(A_LED_PIN, LOW);
-				digitalWrite(B_LED_PIN, LOW);
-				digitalWrite(C_LED_PIN, LOW);
+				digitalWrite(A_LED_PIN, LED_OFF);
+				digitalWrite(B_LED_PIN, LED_OFF);
+				digitalWrite(C_LED_PIN, LED_OFF);
 			}
 			motor_light = !motor_light;
 		}
@@ -164,15 +198,23 @@ static void init_ardupilot()
 	    AP_Var::load_all();
 	}
 
-	// Telemetry port.
-	//
-	// Not used if telemetry is going to the console.
-	//
-	// XXX for unidirectional protocols, we could (should) minimize
-	// the receive buffer, and the transmit buffer could also be
-	// shrunk for protocols that don't send large messages.
-	//
+	// init the GCS
+    gcs0.init(&Serial);
+
+#if USB_MUX_PIN > 0
+    if (!usb_connected) {
+        // we are not connected via USB, re-init UART0 with right
+        // baud rate
+        Serial.begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
+    }
+#else
+    // we have a 2nd serial port for telemetry
 	Serial3.begin(map_baudrate(g.serial3_baud,SERIAL3_BAUD), 128, 128);
+	gcs3.init(&Serial3);
+#endif
+
+    // identify ourselves correctly with the ground station
+	mavlink_system.sysid = g.sysid_this_mav;
 
 	#ifdef RADIO_OVERRIDE_DEFAULTS
 	{
@@ -186,18 +228,28 @@ static void init_ardupilot()
 		heli_init_swash();  // heli initialisation
 	#endif
 
+    RC_Channel::set_apm_rc(&APM_RC);
 	init_rc_in();		// sets up rc channels from radio
 	init_rc_out();		// sets up the timer libs
 
 	init_camera();
 
+    timer_scheduler.init( &isr_registry );
+
 	#if HIL_MODE != HIL_MODE_ATTITUDE
+#if CONFIG_ADC == ENABLED
 	        // begin filtering the ADC Gyros
         	adc.filter_result = true;
+        adc.Init(&timer_scheduler);       // APM ADC library initialization
+#endif // CONFIG_ADC
 
-		adc.Init();	 		// APM ADC library initialization
-		barometer.Init();	// APM Abs Pressure sensor initialization
-	#endif
+#if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
+        barometer.Init(1, true);
+#else
+        barometer.Init(1, false);
+#endif // CONFIG_APM_HARDWARE
+
+#endif // HIL_MODE
 
 	#if OSD_PROTOCOL != OSD_PROTOCOL_NONE
 		osd_init();
@@ -207,10 +259,6 @@ static void init_ardupilot()
 	g_gps = &g_gps_driver;
 	g_gps->init();			// GPS Initialization
     g_gps->callback = mavlink_delay;
-
-	// init the GCS
-    gcs0.init(&Serial);
-    gcs3.init(&Serial3);
 
 	if(g.compass_enabled)
 		init_compass();
@@ -239,7 +287,7 @@ static void init_ardupilot()
 	// menu; they must reset in order to fly.
 	//
 	if (check_startup_for_CLI()) {
-		digitalWrite(A_LED_PIN,HIGH);		// turn on setup-mode LED
+		digitalWrite(A_LED_PIN, LED_ON);		// turn on setup-mode LED
 		Serial.printf_P(PSTR("\nCLI:\n\n"));
         run_cli();
 	}
@@ -251,7 +299,6 @@ static void init_ardupilot()
 	if(g.log_bitmask != 0){
 		//	TODO - Here we will check  on the length of the last log
 		//  We don't want to create a bunch of little logs due to powering on and off
-		Serial.printf("start_new_log");
 		start_new_log();
 	}
 	#endif
@@ -299,10 +346,11 @@ static void init_ardupilot()
 	reset_control_switch();
 
 	#if HIL_MODE != HIL_MODE_ATTITUDE
-		dcm.kp_roll_pitch(0.030000);
+		dcm.kp_roll_pitch(0.130000);
 		dcm.ki_roll_pitch(0.00001278),	// 50 hz I term
 		dcm.kp_yaw(0.08);
 		dcm.ki_yaw(0.00004);
+		dcm._clamp = 5;
 	#endif
 	
 	// init the Z damopener
@@ -314,11 +362,13 @@ static void init_ardupilot()
 
 	startup_ground();
 
+#if LOGGING_ENABLED == ENABLED
 	Log_Write_Startup();
 	Log_Write_Data(10, g.pi_stabilize_roll.kP());
 	Log_Write_Data(11, g.pi_stabilize_pitch.kP());
 	Log_Write_Data(12, g.pi_rate_roll.kP());
 	Log_Write_Data(13, g.pi_rate_pitch.kP());
+#endif
 
 	SendDebug("\nReady to FLY ");
 }
@@ -333,7 +383,7 @@ static void startup_ground(void)
 	#if HIL_MODE != HIL_MODE_ATTITUDE
 		// Warm up and read Gyro offsets
 		// -----------------------------
-		imu.init_gyro(mavlink_delay);
+		imu.init(IMU::COLD_START, mavlink_delay, &timer_scheduler);
 		#if CLI_ENABLED == ENABLED
 		report_imu();
 	#endif
@@ -384,9 +434,6 @@ static void set_mode(byte mode)
 
 	// clearing value used in interactive alt hold
 	manual_boost = 0;
-
-	// clearing value used to set WP's dynamically.
-	CH7_wp_index = 0;
 
 	Serial.println(flight_mode_strings[control_mode]);
 
@@ -552,36 +599,12 @@ init_throttle_cruise()
 	}
 }
 
-#if CLI_ENABLED == ENABLED
-#if BROKEN_SLIDER == 1
-
-static boolean
-check_startup_for_CLI()
-{
-	//return true;
-	if((g.rc_4.radio_max) < 1600){
-		// CLI mode
-		return true;
-
-	}else if(abs(g.rc_4.control_in) > 3000){
-		// CLI mode
-		return true;
-
-	}else{
-		// startup to fly
-		return false;
-	}
-}
-
-#else
-
+#if CLI_SLIDER_ENABLED == ENABLED && CLI_ENABLED == ENABLED
 static boolean
 check_startup_for_CLI()
 {
 	return (digitalRead(SLIDE_SWITCH_PIN) == 0);
 }
-
-#endif // BROKEN_SLIDER
 #endif // CLI_ENABLED
 
 /*
@@ -600,3 +623,21 @@ static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
     //Serial.println_P(PSTR("Invalid SERIAL3_BAUD"));
     return default_baud;
 }
+
+#if USB_MUX_PIN > 0
+static void check_usb_mux(void)
+{
+    bool usb_check = !digitalRead(USB_MUX_PIN);
+    if (usb_check == usb_connected) {
+        return;
+    }
+
+    // the user has switched to/from the telemetry port
+    usb_connected = usb_check;
+    if (usb_connected) {
+        Serial.begin(SERIAL0_BAUD, 128, 128);
+    } else {
+        Serial.begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
+    }
+}
+#endif

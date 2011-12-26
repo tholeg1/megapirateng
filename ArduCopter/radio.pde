@@ -54,37 +54,51 @@ static void init_rc_in()
 
 static void init_rc_out()
 {
-	APM_RC.Init();		// APM Radio initialization
+	APM_RC.Init( &isr_registry );		// APM Radio initialization
 	init_motors_out();
-
-    // fix for crazy output
-    OCR1B = 0xFFFF;     // PB6, OUT3
-    OCR1C = 0xFFFF;     // PB7, OUT4
-    OCR5B = 0xFFFF;     // PL4, OUT1
-    OCR5C = 0xFFFF;     // PL5, OUT2
-    OCR4B = 0xFFFF;     // PH4, OUT6
-    OCR4C = 0xFFFF;     // PH5, OUT5
 
 	// this is the camera pitch5 and roll6
 	APM_RC.OutputCh(CH_5, 1500);
 	APM_RC.OutputCh(CH_6, 1500);
-
-	// don't fuss if we are calibrating
-	if(g.esc_calibrate == 1)
-		return;
-
-        output_min();
 
 	for(byte i = 0; i < 5; i++){
 		delay(20);
 		read_radio();
 	}
 
-    // sanity check
+    // sanity check - prevent unconfigured radios from outputting
     if(g.rc_3.radio_min >= 1300){
         g.rc_3.radio_min = g.rc_3.radio_in;
-        output_min();
     }
+
+	// we are full throttle
+	if(g.rc_3.control_in == 800){
+		if(g.esc_calibrate == 0){
+			// we will enter esc_calibrate mode on next reboot
+			g.esc_calibrate.set_and_save(1);
+			// send miinimum throttle out to ESC
+			output_min();
+			// block until we restart
+			while(1){
+				//Serial.println("esc");
+				delay(200);
+				dancing_light();
+			}
+		}else{
+			//Serial.println("esc init");
+			// clear esc flag
+			g.esc_calibrate.set_and_save(0);
+			// block until we restart
+	        init_esc();
+		}
+	}else{
+		// did we abort the calibration?
+		if(g.esc_calibrate == 1)
+			g.esc_calibrate.set_and_save(0);
+
+		// send miinimum throttle out to ESC
+		output_min();
+	}
 }
 
 void output_min()
@@ -125,7 +139,7 @@ static void read_radio()
 			g.rc_3.control_in = min(g.rc_3.control_in, 800);
 		#endif
 
-		//throttle_failsafe(g.rc_3.radio_in);
+		throttle_failsafe(g.rc_3.radio_in);
 	}
 }
 
@@ -144,8 +158,8 @@ static void throttle_failsafe(uint16_t pwm)
 			SendDebug("MSG FS ON ");
 			SendDebugln(pwm, DEC);
 		}else if(failsafeCounter == 10) {
-			ch3_failsafe = true;
-			//set_failsafe(true);
+			//ch3_failsafe = true;
+			set_failsafe(true);
 			//failsafeCounter = 10;
 		}else if (failsafeCounter > 10){
 			failsafeCounter = 11;
@@ -162,8 +176,8 @@ static void throttle_failsafe(uint16_t pwm)
 			SendDebug("MSG FS OFF ");
 			SendDebugln(pwm, DEC);
 		}else if(failsafeCounter == 0) {
-			ch3_failsafe = false;
-			//set_failsafe(false);
+			//ch3_failsafe = false;
+			set_failsafe(false);
 			//failsafeCounter = -1;
 		}else if (failsafeCounter <0){
 			failsafeCounter = -1;

@@ -14,9 +14,8 @@ static int8_t	setup_batt_monitor		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_sonar				(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_compass			(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_tune				(uint8_t argc, const Menu::arg *argv);
-static int8_t	setup_mag_offset		(uint8_t argc, const Menu::arg *argv);
+//static int8_t	setup_mag_offset		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_declination		(uint8_t argc, const Menu::arg *argv);
-static int8_t	setup_esc				(uint8_t argc, const Menu::arg *argv);
 #ifdef OPTFLOW_ENABLED
 static int8_t	setup_optflow			(uint8_t argc, const Menu::arg *argv);
 #endif
@@ -37,7 +36,6 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
 	{"radio",			setup_radio},
 	{"frame",			setup_frame},
 	{"motors",			setup_motors},
-	{"esc",				setup_esc},
 	{"level",			setup_accel},
 	{"modes",			setup_flightmodes},
 	{"battery",			setup_batt_monitor},
@@ -74,9 +72,9 @@ setup_mode(uint8_t argc, const Menu::arg *argv)
 
 	if(g.rc_1.radio_min >= 1300){
 		delay(1000);
-		Serial.printf_P(PSTR("\n!Warning, your radio is not configured!"));
+		Serial.printf_P(PSTR("\n!Warning, radio not configured!"));
 		delay(1000);
-		Serial.printf_P(PSTR("\n Type 'radio' to configure now.\n\n"));
+		Serial.printf_P(PSTR("\n Type 'radio' now.\n\n"));
 	}
 
 	// Run the setup menu.  When the menu exits, we will return to the main menu.
@@ -204,7 +202,7 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 	g.rc_8.radio_trim = 1500;
 
 
-	Serial.printf_P(PSTR("\nMove all controls to each extreme. Hit Enter for next step: "));
+	Serial.printf_P(PSTR("\nMove all controls to extremes. Enter to save: "));
 	while(1){
 
 		delay(20);
@@ -255,29 +253,6 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
   }
 	report_radio();
 	return(0);
-}
-
-static int8_t
-setup_esc(uint8_t argc, const Menu::arg *argv)
-{
-	Serial.printf_P(PSTR("\nESC Calibration:\n"
-						"-1 Unplug USB and battery\n"
-						"-2 Move CLI/FLY switch to FLY mode\n"
-						"-3 Move throttle to max, connect battery\n"
-						"-4 After two long beeps, throttle to 0, then test\n\n"
-						" Press Enter to cancel.\n"));
-
-
-	g.esc_calibrate.set_and_save(1);
-
-	while(1){
-		delay(20);
-
-		if(Serial.available() > 0){
-			g.esc_calibrate.set_and_save(0);
-			return(0);
-		}
-	}
 }
 
 static int8_t
@@ -1150,7 +1125,6 @@ static void print_enabled(boolean b)
 static void
 init_esc()
 {
-	g.esc_calibrate.set_and_save(0);
 	while(1){
 		read_radio();
 		delay(100);

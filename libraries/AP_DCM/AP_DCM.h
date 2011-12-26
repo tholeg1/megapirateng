@@ -35,7 +35,8 @@ public:
 		_ki_roll_pitch(0.00001278),
 		_kp_yaw(0.8), // .8
 		_ki_yaw(0.00004), // 0.00004
-		_toggle(0)
+		_toggle(0),
+		_clamp(3)
 	{}
 
 	// Accessors
@@ -81,6 +82,7 @@ public:
 	static const float kDCM_kp_rp_high 		= 0.15;
 	static const float kDCM_kp_rp_medium	= 0.05967;
 	static const float kDCM_kp_rp_low		= 0.01;
+	int8_t		_clamp;
 
 
 private:
