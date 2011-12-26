@@ -28,21 +28,21 @@ class AP_ADC_HIL : public AP_ADC
 
 	///
 	// Initializes sensor, part of public AP_ADC interface
-	void Init();
+	void Init(AP_PeriodicProcess*);
 
 	///
 	// Read the sensor, part of public AP_ADC interface
-	int Ch(unsigned char ch_num);
+	uint16_t Ch(unsigned char ch_num);
 
 	///
 	// Read 6 sensors at once
-	uint32_t Ch6(const uint8_t *channel_numbers, int *result);
+	uint32_t Ch6(const uint8_t *channel_numbers, uint16_t *result);
 
 	///
 	// Set the adc raw values given the current rotations rates,
 	// temps, accels, and pressures
 	void setHIL(int16_t p, int16_t q, int16_t r, int16_t gyroTemp,
-    	int16_t aX, int16_t aY, int16_t aZ, int16_t diffPress);
+	int16_t aX, int16_t aY, int16_t aZ, int16_t diffPress);
 
   private:
 
@@ -57,12 +57,12 @@ class AP_ADC_HIL : public AP_ADC
 	// sensor constants
 	// constants declared in cpp file
 	// @see AP_ADC_HIL.cpp
-    static const uint8_t sensors[6];
-    static const float gyroBias[3];
-    static const float gyroScale[3];
+	static const uint8_t sensors[6];
+	static const float gyroBias[3];
+	static const float gyroScale[3];
 	static const float accelBias[3];
-    static const float accelScale[3];
-    static const int8_t sensorSign[6];
+	static const float accelScale[3];
+	static const int8_t sensorSign[6];
 
 	///
 	// gyro set function

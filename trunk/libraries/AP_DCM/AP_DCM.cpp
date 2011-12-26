@@ -1,3 +1,6 @@
+
+#define RADX100 0.000174532925
+#define DEGX100 5729.57795
 /*
 	APM_DCM_FW.cpp - DCM AHRS Library, fixed wing version, for Ardupilot Mega
 		Code by Doug Weibel, Jordi Mu�oz and Jose Julio. DIYDrones.com
@@ -55,7 +58,7 @@ AP_DCM::update_DCM_fast(void)
 
 	switch(_toggle++){
 		case 0:
-		normalize();			// Normalize the DCM matrix
+			normalize();				// Normalize the DCM matrix
 		break;
 
 		case 1:
@@ -170,7 +173,10 @@ void
 AP_DCM::accel_adjust(void)
 {
 	Vector3f veloc, temp;
+
+	if (_gps) {
 	veloc.x = _gps->ground_speed / 100;		// We are working with acceleration in m/s^2 units
+	}
 
 	// We are working with a modified version of equation 26 as our IMU object reports acceleration in the positive axis direction as positive
 
@@ -274,7 +280,7 @@ AP_DCM::drift_correction(void)
 
 	// Dynamic weighting of accelerometer info (reliability filter)
 	// Weight for accelerometer info (<0.5G = 0.0, 1G = 1.0 , >1.5G = 0.0)
-	accel_weight = constrain(1 - 3 * fabs(1 - accel_magnitude), 0, 1);	// upped to (<0.66G = 0.0, 1G = 1.0 , >1.33G = 0.0)
+	accel_weight = constrain(1 - _clamp * fabs(1 - accel_magnitude), 0, 1);	// upped to (<0.66G = 0.0, 1G = 1.0 , >1.33G = 0.0)
 
 	//	We monitor the amount that the accelerometer based drift correction is deweighted for performance reporting
 	_health = constrain(_health+(0.02 * (accel_weight - .5)), 0, 1);
@@ -298,7 +304,7 @@ AP_DCM::drift_correction(void)
 		// We make the gyro YAW drift correction based on compass magnetic heading
 		error_course = (_dcm_matrix.a.x * _compass->heading_y) - (_dcm_matrix.b.x * _compass->heading_x);	// Equation 23, Calculating YAW error
 
-	} else {
+	} else if (_gps) {
 
 		// Use GPS Ground course to correct yaw gyro drift
 		if (_gps->ground_speed >= SPEEDFILT) {
@@ -346,7 +352,7 @@ AP_DCM::drift_correction(void)
 	//	Here we will place a limit on the integrator so that the integrator cannot ever exceed ~30 degrees/second
 	integrator_magnitude = _omega_I.length();
 	if (integrator_magnitude > radians(30)) {
-		_omega_I *= (radians(30) / integrator_magnitude);		
+		_omega_I *= (radians(30) / integrator_magnitude);
 	}
 	//Serial.print("*");
 }
@@ -379,18 +385,16 @@ AP_DCM::euler_rp(void)
 {
 	pitch 			= -asin(_dcm_matrix.c.x);
 	roll 			= atan2(_dcm_matrix.c.y, _dcm_matrix.c.z);
-	roll_sensor 	= degrees(roll)  * 100;
-	pitch_sensor 	= degrees(pitch) * 100;
+	roll_sensor 	= roll * DEGX100;	//degrees(roll)  * 100;
+	pitch_sensor 	= pitch * DEGX100; //degrees(pitch) * 100;
 }
 
 void
 AP_DCM::euler_yaw(void)
 {
 	yaw 			= atan2(_dcm_matrix.b.x, _dcm_matrix.a.x);
-	yaw_sensor 		= degrees(yaw)   * 100;
+	yaw_sensor 		= yaw * DEGX100; //degrees(yaw)   * 100;
 
 	if (yaw_sensor < 0)
 		yaw_sensor += 36000;
 }
-
-

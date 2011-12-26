@@ -13,6 +13,7 @@
 
 #include "AP_GPS_MTK16.h"
 #include <stdint.h>
+#include <wiring.h>
 
 // Constructors ////////////////////////////////////////////////////////////////
 AP_GPS_MTK16::AP_GPS_MTK16(Stream *s) : GPS(s)
@@ -141,6 +142,15 @@ restart:
 
 			parsed = true;
 			
+#ifdef FAKE_GPS_LOCK_TIME
+			if (millis() > FAKE_GPS_LOCK_TIME*1000) {
+				fix				= true;
+				latitude		= -35000000UL;
+				longitude		= 149000000UL;
+				altitude		= 584;
+			}
+#endif
+
 			/*	Waiting on clarification of MAVLink protocol!
 			if(!_offset_calculated && parsed) {
 				long tempd1 = date;

@@ -81,9 +81,6 @@
 
 #define ACCEL_ALT_HOLD 0		// disabled by default, work in progress
 
-// See the config.h and defines.h files for how to set this up!
-//
-
 // lets use Manual throttle during Loiter
 //#define LOITER_THR			THROTTLE_MANUAL
 # define RTL_YAW 			YAW_HOLD
@@ -108,3 +105,5 @@
 #define USERHOOK_VARIABLES "UserVariables.h"
 
 
+// enable this for the new 'APM2' hardware
+// #define CONFIG_APM_HARDWARE APM_HARDWARE_APM2

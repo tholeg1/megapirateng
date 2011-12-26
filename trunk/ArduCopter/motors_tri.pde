@@ -5,9 +5,7 @@ static void init_motors_out()
 {
 	// Set 400Hz to all outputs except camstab
 	#if INSTANT_PWM == 0
-		ICR1 = 5000; 
-		ICR3 = 5000;
-		ICR4 = 5000;	
+    APM_RC.SetFastOutputChannels( MSK_CH_1 | MSK_CH_2 | MSK_CH_4 );
 	#endif
 }
 

@@ -29,7 +29,7 @@ static NOINLINE void send_heartbeat(mavlink_channel_t chan)
 {
     mavlink_msg_heartbeat_send(
         chan,
-        mavlink_system.type,
+        2 /*mavlink_system.type*/,  //MAV_TYPE_QUADROTOR
         MAV_AUTOPILOT_ARDUPILOTMEGA);
 }
 
@@ -687,7 +687,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
 	switch (msg->msgid) {
 
-	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
+	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM: //66
 		{
 			// decode
 			mavlink_request_data_stream_t packet;
@@ -762,7 +762,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			break;
 		}
 
-	case MAVLINK_MSG_ID_ACTION:
+	case MAVLINK_MSG_ID_ACTION: //10
 		{
 			// decode
 			mavlink_action_t packet;
@@ -895,7 +895,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			break;
 		}
 
-	case MAVLINK_MSG_ID_SET_MODE:
+	case MAVLINK_MSG_ID_SET_MODE:  //11
 		{
 			// decode
 			mavlink_set_mode_t packet;
@@ -934,7 +934,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			break;
 		}
 	*/
-	case MAVLINK_MSG_ID_WAYPOINT_REQUEST_LIST:
+	case MAVLINK_MSG_ID_WAYPOINT_REQUEST_LIST: //43
 		{
 			//send_text_P(SEVERITY_LOW,PSTR("waypoint request list"));
 
@@ -959,7 +959,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 		}
 
 	// XXX read a WP from EEPROM and send it to the GCS
-	case MAVLINK_MSG_ID_WAYPOINT_REQUEST:
+	case MAVLINK_MSG_ID_WAYPOINT_REQUEST: // 40
 		{
 			//send_text_P(SEVERITY_LOW,PSTR("waypoint request"));
 
@@ -1081,7 +1081,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			break;
 		}
 
-	case MAVLINK_MSG_ID_WAYPOINT_ACK:
+	case MAVLINK_MSG_ID_WAYPOINT_ACK: //47
 		{
 			//send_text_P(SEVERITY_LOW,PSTR("waypoint ack"));
 
@@ -1095,7 +1095,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			break;
 		}
 
-	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
+	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: // 21
 		{
 			//send_text_P(SEVERITY_LOW,PSTR("param request list"));
 
@@ -1112,7 +1112,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			break;
 		}
 
-	case MAVLINK_MSG_ID_WAYPOINT_CLEAR_ALL:
+	case MAVLINK_MSG_ID_WAYPOINT_CLEAR_ALL: // 45
 		{
 			//send_text_P(SEVERITY_LOW,PSTR("waypoint clear all"));
 
@@ -1132,7 +1132,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			break;
 		}
 
-	case MAVLINK_MSG_ID_WAYPOINT_SET_CURRENT:
+	case MAVLINK_MSG_ID_WAYPOINT_SET_CURRENT: // 41
 		{
 			//send_text_P(SEVERITY_LOW,PSTR("waypoint set current"));
 
@@ -1148,7 +1148,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			break;
 		}
 
-	case MAVLINK_MSG_ID_WAYPOINT_COUNT:
+	case MAVLINK_MSG_ID_WAYPOINT_COUNT: // 44
 		{
 			//send_text_P(SEVERITY_LOW,PSTR("waypoint count"));
 
@@ -1183,7 +1183,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 #endif
 
 	// XXX receive a WP from GCS and store in EEPROM
-	case MAVLINK_MSG_ID_WAYPOINT:
+	case MAVLINK_MSG_ID_WAYPOINT: //39
 		{
 			// decode
 			mavlink_waypoint_t packet;
@@ -1347,7 +1347,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			break;
 		}
 
-	case MAVLINK_MSG_ID_PARAM_SET:
+	case MAVLINK_MSG_ID_PARAM_SET: // 23
 		{
 			AP_Var				  *vp;
 			AP_Meta_class::Type_id  var_type;
@@ -1383,27 +1383,32 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 				// handle variables with standard type IDs
 				if (var_type == AP_Var::k_typeid_float) {
 					((AP_Float *)vp)->set_and_save(packet.param_value);
+#if LOGGING_ENABLED == ENABLED
 					Log_Write_Data(1, (float)((AP_Float *)vp)->get());
-
+#endif
 				} else if (var_type == AP_Var::k_typeid_float16) {
 					((AP_Float16 *)vp)->set_and_save(packet.param_value);
+#if LOGGING_ENABLED == ENABLED
 					Log_Write_Data(2, (float)((AP_Float *)vp)->get());
-
+#endif
 				} else if (var_type == AP_Var::k_typeid_int32) {
 					if (packet.param_value < 0) rounding_addition = -rounding_addition;
 					((AP_Int32 *)vp)->set_and_save(packet.param_value+rounding_addition);
+#if LOGGING_ENABLED == ENABLED
 					Log_Write_Data(3, (int32_t)((AP_Float *)vp)->get());
-
+#endif
 				} else if (var_type == AP_Var::k_typeid_int16) {
 					if (packet.param_value < 0) rounding_addition = -rounding_addition;
 					((AP_Int16 *)vp)->set_and_save(packet.param_value+rounding_addition);
+#if LOGGING_ENABLED == ENABLED
 					Log_Write_Data(4, (int32_t)((AP_Float *)vp)->get());
-
+#endif
 				} else if (var_type == AP_Var::k_typeid_int8) {
 					if (packet.param_value < 0) rounding_addition = -rounding_addition;
 					((AP_Int8 *)vp)->set_and_save(packet.param_value+rounding_addition);
+#if LOGGING_ENABLED == ENABLED
 					Log_Write_Data(5, (int32_t)((AP_Float *)vp)->get());
-
+#endif
 				} else {
 					// we don't support mavlink set on this parameter
 					break;
@@ -1425,7 +1430,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			break;
 		} // end case
 
-    case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
+    case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE: //70
         {
             // allow override of RC channel values for HIL
             // or for complete GCS control of switch position
@@ -1453,7 +1458,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 #if HIL_MODE != HIL_MODE_DISABLED
         // This is used both as a sensor and to pass the location
         // in HIL_ATTITUDE mode.
-	case MAVLINK_MSG_ID_GPS_RAW:
+	case MAVLINK_MSG_ID_GPS_RAW: //32
         {
             // decode
             mavlink_gps_raw_t packet;
@@ -1474,7 +1479,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
         }
 #if HIL_MODE == HIL_MODE_ATTITUDE
-    case MAVLINK_MSG_ID_ATTITUDE:
+    case MAVLINK_MSG_ID_ATTITUDE: //30
         {
             // decode
             mavlink_attitude_t packet;
@@ -1541,7 +1546,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 */
 #if HIL_MODE == HIL_MODE_SENSORS
 
-    case MAVLINK_MSG_ID_RAW_IMU:
+    case MAVLINK_MSG_ID_RAW_IMU: // 28
         {
             // decode
             mavlink_raw_imu_t packet;
@@ -1573,7 +1578,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
         }
 
-    case MAVLINK_MSG_ID_RAW_PRESSURE:
+    case MAVLINK_MSG_ID_RAW_PRESSURE: //29
         {
             // decode
             mavlink_raw_pressure_t packet;
@@ -1653,6 +1658,7 @@ GCS_MAVLINK::queued_param_send()
     value = vp->cast_to_float();
     if (!isnan(value)) {
         char param_name[ONBOARD_PARAM_NAME_LENGTH];         /// XXX HACK
+        memset(param_name, 0, sizeof(param_name));
         vp->copy_name(param_name, sizeof(param_name));
 
         mavlink_msg_param_value_send(
@@ -1716,6 +1722,9 @@ static void mavlink_delay(unsigned long t)
             gcs_update();
         }
         delay(1);
+		#if USB_MUX_PIN > 0
+        check_usb_mux();
+		#endif
     } while (millis() - tstart < t);
 
 	in_mavlink_delay = false;
@@ -1727,7 +1736,9 @@ static void mavlink_delay(unsigned long t)
 static void gcs_send_message(enum ap_message id)
 {
     gcs0.send_message(id);
+    if (gcs3.initialised) {
     gcs3.send_message(id);
+}
 }
 
 /*
@@ -1736,7 +1747,9 @@ static void gcs_send_message(enum ap_message id)
 static void gcs_data_stream_send(uint16_t freqMin, uint16_t freqMax)
 {
     gcs0.data_stream_send(freqMin, freqMax);
+    if (gcs3.initialised) {
     gcs3.data_stream_send(freqMin, freqMax);
+}
 }
 
 /*
@@ -1745,19 +1758,25 @@ static void gcs_data_stream_send(uint16_t freqMin, uint16_t freqMax)
 static void gcs_update(void)
 {
 	gcs0.update();
+    if (gcs3.initialised) {
     gcs3.update();
+}
 }
 
 static void gcs_send_text(gcs_severity severity, const char *str)
 {
     gcs0.send_text(severity, str);
+    if (gcs3.initialised) {
     gcs3.send_text(severity, str);
+}
 }
 
 static void gcs_send_text_P(gcs_severity severity, const prog_char_t *str)
 {
     gcs0.send_text(severity, str);
+    if (gcs3.initialised) {
     gcs3.send_text(severity, str);
+}
 }
 
 /*
@@ -1780,5 +1799,7 @@ static void gcs_send_text_fmt(const prog_char_t *fmt, ...)
     vsnprintf((char *)pending_status.text, sizeof(pending_status.text), fmtstr, ap);
     va_end(ap);
     mavlink_send_message(MAVLINK_COMM_0, MSG_STATUSTEXT, 0);
-    mavlink_send_message(MAVLINK_COMM_1, MSG_STATUSTEXT, 0);
+    if (gcs3.initialised) {
+        mavlink_send_message(MAVLINK_COMM_1, MSG_STATUSTEXT, 0);
+    }
 }
