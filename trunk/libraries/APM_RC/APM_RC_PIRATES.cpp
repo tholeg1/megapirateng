@@ -21,7 +21,7 @@ mw: 0,1,3,4,5,6 - motors
 */
 
 
-#include "APM_RC.h"
+#include "APM_RC_PIRATES.h"
 
 #include <avr/interrupt.h>
 #include "WProgram.h"
@@ -208,13 +208,13 @@ timer usage:
 */
 // Constructors ////////////////////////////////////////////////////////////////
 
-APM_RC_Class::APM_RC_Class()
+APM_RC_PIRATES::APM_RC_PIRATES()
 {
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
 
-void APM_RC_Class::Init(void)
+void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
 {
 	//We are using JUST 1 timer1 for 16 PPM outputs!!! (Syberian)
   pinMode(2,OUTPUT);
@@ -275,7 +275,7 @@ D	Port PWM
 7	h4	5 4B
 8	h5	6 5C
 9	h6	7
-//2nd gro6up
+//2nd group
 22	a0	8
 23	a1	9
 24	a2	10
@@ -313,7 +313,7 @@ Pin			D2	D3	D5	D6	D7	D8	D11		D12
 For motor mapping, see release_notes.txt
 */
 
-void APM_RC_Class::OutputCh(uint8_t ch, uint16_t pwm)
+void APM_RC_PIRATES::OutputCh(uint8_t ch, uint16_t pwm)
 {
   pwm=constrain(pwm,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
   pwm<<=1;   // pwm*2;
@@ -340,7 +340,7 @@ void APM_RC_Class::OutputCh(uint8_t ch, uint16_t pwm)
   } 
 }
 
-uint16_t APM_RC_Class::InputCh(uint8_t ch)
+uint16_t APM_RC_PIRATES::InputCh(uint8_t ch)
 {
   uint16_t result;
   uint16_t result2;
@@ -355,14 +355,19 @@ result=readRawRC(ch);
   return(result);
 }
 
-uint8_t APM_RC_Class::GetState(void)
+uint8_t APM_RC_PIRATES::GetState(void)
 {
 return(1);// always 1
 }
 
 // InstantPWM implementation
+void APM_RC_PIRATES::Force_Out(void)
+{
+    Force_Out0_Out1();
+}
+
 // This function forces the PWM output (reset PWM) on Out0 and Out1 (Timer5). For quadcopters use
-void APM_RC_Class::Force_Out0_Out1(void)
+void APM_RC_PIRATES::Force_Out0_Out1(void)
 {
   if (TCNT3>5000)  // We take care that there are not a pulse in the output
     TCNT3=39990;   // This forces the PWM output to reset in 5us (10 counts of 0.5us). The counter resets at 40000
@@ -372,22 +377,94 @@ void APM_RC_Class::Force_Out0_Out1(void)
     TCNT1=39990; 
 }
 // This function forces the PWM output (reset PWM) on Out2 and Out3 (Timer1). For quadcopters use
-void APM_RC_Class::Force_Out2_Out3(void)
+void APM_RC_PIRATES::Force_Out2_Out3(void)
 {
  // if (TCNT1>5000)
  //   TCNT1=39990;
 }
 // This function forces the PWM output (reset PWM) on Out6 and Out7 (Timer3). For quadcopters use
-void APM_RC_Class::Force_Out6_Out7(void)
+void APM_RC_PIRATES::Force_Out6_Out7(void)
 {
 //  if (TCNT3>5000)
 //    TCNT3=39990;
 }
 
+/* --------------------- OUTPUT SPEED CONTROL --------------------- */
+
+// Output rate options:
+#define OUTPUT_SPEED_50HZ 0
+#define OUTPUT_SPEED_200HZ 1
+
+void APM_RC_PIRATES::SetFastOutputChannels(uint32_t chmask)
+{
+    /*if ((chmask & ( MSK_CH_1 | MSK_CH_2 | MSK_CH_9)) != 0)
+        _set_speed_ch1_ch2_ch9(OUTPUT_SPEED_200HZ);
+
+    if ((chmask & ( MSK_CH_3 | MSK_CH_4 | MSK_CH_10 )) != 0)
+        _set_speed_ch3_ch4_ch10(OUTPUT_SPEED_200HZ);
+
+    if ((chmask & ( MSK_CH_5 | MSK_CH_6 )) != 0)
+        _set_speed_ch5_ch6(OUTPUT_SPEED_200HZ);
+
+    if ((chmask & ( MSK_CH_7 | MSK_CH_8 | MSK_CH_11 )) != 0)
+        _set_speed_ch7_ch8_ch11(OUTPUT_SPEED_200HZ);
+*/
+}
+
+void APM_RC_PIRATES::_set_speed_ch1_ch2_ch9(uint8_t speed)
+{
+  switch(speed) {
+  case OUTPUT_SPEED_200HZ:
+    ICR1= 10000;
+    break;
+  case OUTPUT_SPEED_50HZ:
+  default:
+    ICR1 = 40000;
+    break;
+  }
+}
+
+void APM_RC_PIRATES::_set_speed_ch3_ch4_ch10(uint8_t speed)
+{
+  switch(speed) {
+  case OUTPUT_SPEED_200HZ:
+    ICR5= 10000;
+    break;
+  case OUTPUT_SPEED_50HZ:
+  default:
+    ICR5 = 40000;
+    break;
+  }
+}
+
+void APM_RC_PIRATES::_set_speed_ch7_ch8_ch11(uint8_t speed)
+{
+  switch(speed) {
+  case OUTPUT_SPEED_200HZ:
+    ICR3 = 10000;
+    break;
+  case OUTPUT_SPEED_50HZ:
+  default:
+    ICR3 = 40000;
+    break;
+  }
+}
+
+void APM_RC_PIRATES::_set_speed_ch5_ch6(uint8_t speed)
+{
+  /* This function intentionally left blank:
+   * Can't change output speed of ch5 (OCR4B) and ch6 (OCR4C).
+   * Timer 4 period controlled by OCR4A, and used for input
+   * capture on ICR4.
+   * If the period of Timer 4 must be changed, the input capture
+   * code will have to be adjusted as well
+   */
+}
+
 // allow HIL override of RC values
 // A value of -1 means no change
 // A value of 0 means no override, use the real RC values
-bool APM_RC_Class::setHIL(int16_t v[NUM_CHANNELS])
+bool APM_RC_PIRATES::setHIL(int16_t v[NUM_CHANNELS])
 {
 /*
 	uint8_t sum = 0;
@@ -410,15 +487,12 @@ bool APM_RC_Class::setHIL(int16_t v[NUM_CHANNELS])
 	return 1;
 }
 
-void APM_RC_Class::clearOverride(void)
+void APM_RC_PIRATES::clearOverride(void)
 {
 	for (uint8_t i=0; i<NUM_CHANNELS; i++) {
 		_HIL_override[i] = 0;
 	}
 }
 
-
-// make one instance for the user to use
-APM_RC_Class APM_RC;
 
 #endif // defined(ATMega1280)

@@ -53,7 +53,7 @@ extern "C" {
 //}
 
 // Public Methods //////////////////////////////////////////////////////////////
-void APM_BMP085_Class::Init(int initialiseWireLib)
+bool APM_BMP085_Class::Init(int initialiseWireLib, bool apm2_hardware)
 {
 	byte buff[22];
 	int i = 0;
@@ -96,6 +96,7 @@ void APM_BMP085_Class::Init(int initialiseWireLib)
   //Send a command to read Temp
 	Command_ReadTemp();
 	BMP085_State = 1;
+	return true; 
 }
 
 
