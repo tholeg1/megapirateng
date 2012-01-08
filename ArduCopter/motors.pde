@@ -22,7 +22,7 @@ static void arm_motors()
 		if (arming_counter == LEVEL_DELAY){
 			//Serial.printf("\nAL\n");
 			// begin auto leveling
-			auto_level_counter = 200;
+			auto_level_counter = 250;
 			arming_counter = 0;
 
 		}else if (arming_counter == ARM_DELAY){
@@ -42,7 +42,7 @@ static void arm_motors()
 			//Serial.printf("\nLEV\n");
 
 			// begin manual leveling
-			imu.init_accel(mavlink_delay);
+			imu.init_accel(mavlink_delay, flash_leds);
 			arming_counter = 0;
 
 		}else if (arming_counter == DISARM_DELAY){
@@ -65,6 +65,11 @@ static void arm_motors()
 
 static void init_arm_motors()
 {
+	// Flag used to track if we have armed the motors the first time.
+	// This is used to decide if we should run the ground_start routine
+	// which calibrates the IMU
+	static bool did_ground_start = false;
+
 	//Serial.printf("\nARM\n");
     #if HIL_MODE != HIL_MODE_DISABLED || defined(DESKTOP_BUILD)
                     gcs_send_text_P(SEVERITY_HIGH, PSTR("ARMING MOTORS"));
@@ -80,6 +85,8 @@ static void init_arm_motors()
 					// Remember Orientation
 					// --------------------
 					init_simple_bearing();
+
+	init_z_damper();
 
 					// Reset home position
 	// -------------------
@@ -103,7 +110,7 @@ static void init_arm_motors()
 					#endif
 					// temp hack
 					motor_light = true;
-					digitalWrite(A_LED_PIN, HIGH);
+	digitalWrite(A_LED_PIN, LED_ON);
 			}
 
 
@@ -116,6 +123,9 @@ static void init_disarm_motors()
 
 				motor_armed 	= false;
 				compass.save_offsets();
+
+	// we are not in the air
+	takeoff_complete = false;
 
 				#if PIEZO_ARMING == 1
 				piezo_beep();

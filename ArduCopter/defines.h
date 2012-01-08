@@ -98,10 +98,6 @@
 #define MAX_SONAR_XL		1
 #define SONAR_ME007		2
 
-// BARO types:
-#define BARO_BMP085	0
-#define BARO_MS5611	1
-
 // OSD Types
 #define	OSD_PROTOCOL_NONE 0
 #define	OSD_PROTOCOL_SYBERIAN 1
@@ -112,7 +108,6 @@
 #define CH_THROTTLE CH_3
 #define CH_RUDDER CH_4
 #define CH_YAW CH_4
-
 
 #define RC_CHANNEL_ANGLE 0
 #define RC_CHANNEL_RANGE 1
@@ -134,7 +129,8 @@
 #define RTL 6				// AUTO control
 #define CIRCLE 7			// AUTO control
 #define POSITION 8			// AUTO control
-#define NUM_MODES 9
+#define LAND 9				// AUTO control
+#define NUM_MODES 10
 
 #define INITIALISING 9     // in startup routines
 
@@ -169,6 +165,9 @@
 
 // altitude controller
 #define CH6_THR_HOLD_KP 14
+#define CH6_Z_GAIN 15
+#define CH6_DAMP 16
+
 
 // nav byte mask
 // -------------
@@ -185,6 +184,7 @@
 #define LOITER_MODE 1
 #define WP_MODE 2
 #define CIRCLE_MODE 3
+#define NO_NAV_MODE 4
 
 // Waypoint options
 #define MASK_OPTIONS_RELATIVE_ALT 		1
@@ -296,8 +296,8 @@ enum gcs_severity {
 #define	ALTITUDE_HISTORY_LENGTH 8	//Number of (time,altitude) points to regress a climb rate from
 
 
-#define BATTERY_VOLTAGE(x) (x*(g.input_voltage/1024.0))*VOLT_DIV_RATIO
-#define CURRENT_AMPS(x) ((x*(g.input_voltage/1024.0))-CURR_AMPS_OFFSET)*CURR_AMP_PER_VOLT
+#define BATTERY_VOLTAGE(x) (x*(g.input_voltage/1023.0))*VOLT_DIV_RATIO
+#define CURRENT_AMPS(x) ((x*(g.input_voltage/1023.0))-CURR_AMPS_OFFSET)*CURR_AMP_PER_VOLT
 //#define BARO_FILTER_SIZE 8
 
 /* ************************************************************** */
@@ -334,7 +334,6 @@ enum gcs_severity {
 
 #define RELAY_PIN 47
 
-#define	AIRSPEED_CH 7			// The external ADC channel for the airspeed sensor
 #define BATTERY_PIN1 0		        // These are the pins for the voltage dividers
 #define BATTERY_PIN2 1
 #define BATTERY_PIN3 2
@@ -345,14 +344,6 @@ enum gcs_severity {
 
 // sonar
 //#define SonarToCm(x) (x*1.26)   // Sonar raw value to centimeters
-
-// Hardware Parameters
-#define SLIDE_SWITCH_PIN 59     // MegaPirate - 59=A5
-#define PUSHBUTTON_PIN 41
-
-#define A_LED_PIN 13			//Original ArduCopter: 36 = B,	37 = A,	35 = C
-#define B_LED_PIN 31
-#define C_LED_PIN 30
 
 // RADIANS
 #define RADX100 0.000174532925
@@ -375,10 +366,26 @@ enum gcs_severity {
 #define CONFIG_IMU_OILPAN 1
 #define CONFIG_IMU_MPU6000 2
 #define CONFIG_IMU_PIRATES 3
+#define CONFIG_IMU_MPU6000_I2C 4
 
 // APM Hardware selection
 #define APM_HARDWARE_APM1 1
 #define APM_HARDWARE_APM2 2
 #define APM_HARDWARE_PIRATES 3
+
+// Pirates sensors boards
+#define PIRATES_ALLINONE 0
+#define PIRATES_FFIMU 1
+#define PIRATES_FREEIMU 2
+#define PIRATES_BLACKVORTEX 3
+#define PIRATES_FREEIMU_4 4
+
+#define AP_BARO_BMP085    1
+#define AP_BARO_MS5611    2
+#define AP_BARO_BMP085_PIRATES    3
+#define AP_BARO_MS5611_I2C    4
+
+#define LOGGING_SIMPLE    1
+#define LOGGING_VERBOSE   2
 
 #endif // _DEFINES_H

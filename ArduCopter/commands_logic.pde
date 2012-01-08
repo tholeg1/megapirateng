@@ -103,17 +103,17 @@ static void process_now_command()
 	}
 }
 
+
 //static void handle_no_commands()
-//{
-	/*
+/*{
 	switch (control_mode){
 		default:
 			set_mode(RTL);
 			break;
-	}*/
-	//return;
-	//Serial.println("Handle No CMDs");
-//}
+	}
+	return;
+	Serial.println("Handle No CMDs");
+}*/
 
 /********************************************************************************/
 // Verify command Handlers
@@ -230,9 +230,6 @@ static void do_takeoff()
 		//Serial.printf("abs alt: %ld",temp.alt);
 	}
 
-	takeoff_complete = false;
-	// set flag to use g_gps ground course during TO.  IMU will be doing yaw drift correction
-
 	// Set our waypoint
 	set_next_WP(&temp);
 }
@@ -273,9 +270,6 @@ static void do_land()
 	// not really used right now, might be good for debugging
 	land_complete		= false;
 
-	// A value that drives to 0 when the altitude doesn't change
-	velocity_land		= 2000;
-
 	// used to limit decent rate
 	land_start 			= millis();
 
@@ -301,10 +295,18 @@ static void do_loiter_turns()
 {
 	wp_control = CIRCLE_MODE;
 
-	if(command_nav_queue.lat == 0)
+	// reset desired location
+	circle_angle = 0;
+
+	if(command_nav_queue.lat == 0){
+		// allow user to specify just the altitude
+		if(command_nav_queue.alt > 0){
+			current_loc.alt = command_nav_queue.alt;
+		}
 		set_next_WP(&current_loc);
-	else
+	}else{
 		set_next_WP(&command_nav_queue);
+	}
 
 	loiter_total = command_nav_queue.p1 * 360;
 	loiter_sum	 = 0;
@@ -336,47 +338,57 @@ static bool verify_takeoff()
 	if(g.rc_3.control_in == 0){
 		return false;
 	}
-
-	if (current_loc.alt > next_WP.alt){
-		//Serial.println("Y");
-		takeoff_complete = true;
-		return true;
-
-	}else{
-
-		//Serial.println("N");
-		return false;
-	}
+	// are we above our target altitude?
+	return (current_loc.alt > next_WP.alt);
 }
 
 static bool verify_land()
 {
-	// land at 1 meter per second
-	next_WP.alt  = original_alt - ((millis() - land_start) / 20);			// condition_value = our initial
+	static int32_t 	old_alt = 0;
+	static int16_t	velocity_land = -1;
 
-	velocity_land  = ((old_alt - current_loc.alt) *.2) + (velocity_land * .8);
-	old_alt = current_loc.alt;
+	// land at .62 meter per second
+	next_WP.alt  = original_alt - ((millis() - land_start) / 16);			// condition_value = our initial
 
-	if(g.sonar_enabled){
-		// decide which sensor we're using
-		if(sonar_alt < 300){
-			next_WP = current_loc; // don't pitch or roll
-			next_WP.alt = -200; // force us down
-		}
-		if(sonar_alt < 40){
-			land_complete = true;
-			//Serial.println("Y");
-			//return true;
-		}
+	if (old_alt == 0)
+		old_alt = current_loc.alt;
+
+	if (velocity_land == -1)
+		velocity_land = 2000;
+
+
+	if ((current_loc.alt - home.alt) < 300){
+		// a LP filter used to tell if we have landed
+		// will drive to 0 if we are on the ground - maybe, the baro is noisy
+		velocity_land  = ((velocity_land * 7) + (old_alt - current_loc.alt)) / 8;
 	}
 
-	if(velocity_land <= 0){
+	// remenber altitude for climb_rate
+	old_alt = current_loc.alt;
+
+	if ((current_loc.alt - home.alt) < 200){
+		// don't bank to hold position
+		wp_control = NO_NAV_MODE;
+
+		// Update by JLN for a safe AUTO landing
+		manual_boost = -10;
+		g.throttle_cruise += g.pi_alt_hold.get_integrator();
+		g.pi_alt_hold.reset_I();
+		g.pi_throttle.reset_I();
+	}
+
+	if((current_loc.alt - home.alt)  < 100 && velocity_land <= 100){
 		land_complete = true;
-		//return true;
+		// reset manual_boost hack
+		manual_boost = 0;
+
+		// reset old_alt
+		old_alt = 0;
+		//init_disarm_motors();
+		return true;
 	}
 	//Serial.printf("N, %d\n", velocity_land);
 	//Serial.printf("N_alt, %ld\n", next_WP.alt);
-
 	return false;
 }
 
@@ -660,6 +672,11 @@ static void do_loiter_at_location()
 
 static void do_jump()
 {
+	// Used to track the state of the jump command in Mission scripting
+	// -10 is a value that means the register is unused
+	// when in use, it contains the current remaining jumps
+	static int8_t jump = -10;								// used to track loops in jump command
+
 	//Serial.printf("do Jump: %d\n", jump);
 
 	if(jump == -10){

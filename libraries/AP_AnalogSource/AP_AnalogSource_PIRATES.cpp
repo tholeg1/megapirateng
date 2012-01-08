@@ -10,29 +10,36 @@ extern "C" {
 volatile char sonar_meas=0;
 volatile unsigned int sonar_data=0, sonar_data_start=0, pre_sonar_data=0; // Variables for calculating length of Echo impulse
 volatile uint8_t sonar_error_cnt=0;
+volatile char sonar_skip=0;
 
 // Sonar read interrupts
 ISR(TIMER5_COMPA_vect) // This event occurs when counter = 65510
 {
+	if (sonar_skip == 0){
 		if (sonar_meas == 0) // sonar_meas=1 if we not found Echo pulse, so skip this measurement
-				sonar_data = 0;
-		PORTH |= B01000000; // set Sonar TX pin to 1 and after ~12us set it to 0 (below) to start new measurement
+			sonar_data = 0;
+		sonar_meas=0; // Clean "Measurement finished" flag
+		PORTH|=B01000000; // set Sonar TX pin to 1 and after ~12us set it to 0 (below) to start new measurement
+		sonar_skip = 6; // next line will decrease it, 5*65535 = 163ms - sonar measurement cycle 
+	}
+	sonar_skip--; 
 } 
 
 ISR(TIMER5_OVF_vect) // Counter overflowed, 12us elapsed
 {
-	PORTH &= B10111111; // set TX pin to 0, and wait for 1 on Echo pin (below)
-	sonar_meas = 0; // Clean "Measurement finished" flag
+	PORTH&=B10111111; // set TX pin to 0, and wait for 1 on Echo pin (below) 
 }
 
 ISR(PCINT0_vect)
 {
-	if (PINB & B00010000) { 
-		sonar_data_start = TCNT5; // We got 1 on Echo pin, remeber current counter value
-	} else {
-		sonar_data = TCNT5-sonar_data_start; // We got 0 on Echo pin, calculate impulse length in counter ticks
-		sonar_meas = 1; // Set "Measurement finished" flag
-	}
+	if (sonar_meas==0) {
+		if (PINB & B00010000) { 
+			sonar_data_start = TCNT5; // We got 1 on Echo pin, remeber current counter value
+		} else {
+			sonar_data=(uint32_t)TCNT5+((uint32_t)(5-sonar_skip)*65535)-sonar_data_start; // We got 0 on Echo pin, calculate impulse length in counter ticks
+			sonar_meas=1; // Set "Measurement finished" flag
+		}
+	} 
 }
 void AP_AnalogSource_PIRATES::init(void)
 {
@@ -46,29 +53,27 @@ void AP_AnalogSource_PIRATES::init(void)
 
 	// div64 = 0.5 us/bit
 	// Using timer5, warning! Timer5 also share with RC PPM decoder
-  TCCR5A = 0; //standard mode with overflow at A and OC B and C interrupts
-  TCCR5B = (1<<CS11); //Prescaler set to 8, resolution of 0.5us
-  TIMSK5 = B00000111; // ints: overflow, capture, compareA
-  OCR5A = 65510; // approx 10m limit, 33ms period
-  OCR5B = 3000;
+	TCCR5A = 0; //standard mode with overflow at A and OC B and C interrupts
+	TCCR5B = (1<<CS11); //Prescaler set to 8, resolution of 0.5us
+	TIMSK5 = B00000111; // ints: overflow, capture, compareA
+	OCR5A = 65510; // approx 10m limit, 33ms period
+	OCR5B = 3000;
 }
 
-int AP_AnalogSource_PIRATES::read(void)
+float AP_AnalogSource_PIRATES::read(void)
 {
-		if (first_call==1) {
-			init();
-			first_call = 0;
-		}
-		if ( ((sonar_data < 354) || (sonar_data < 59000)) && (pre_sonar_data > 0) ) {	//value must be 3cm > X < 5m
+		float result;
+		if (((sonar_data < 590) || (sonar_data > 59000)) && (pre_sonar_data > 0) ) {	//value must be 5cm > X < 5m
 			if (sonar_error_cnt > 50) {
-				sonar_data = 65490; // set as maximum value 5.55m - fallback to Baro (in arducopter.pde)
+				result = 65490; // set as maximum value 5.55m - fallback to Baro (in arducopter.pde)
 			} else {
 				sonar_error_cnt++;
-				sonar_data = pre_sonar_data; // use previous valid data
+				result = pre_sonar_data; // use previous valid data
 			}
 		} else {
 			sonar_error_cnt = 0; // Valid data received, reset counter
 			pre_sonar_data = sonar_data;
+			result = sonar_data;
 		}
-		return(sonar_data); // Magic conversion sonar_data to cm
+		return(result/118);
 }

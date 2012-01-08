@@ -1,16 +1,20 @@
+/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 #include "Compass.h"
 
 // Default constructor.
 // Note that the Vector/Matrix constructors already implicitly zero
 // their values.
 //
+bool Compass::healthy = false;        ///< true if last read OK
+
+int Compass::product_id = AP_COMPASS_TYPE_UNKNOWN;
+	
 Compass::Compass(AP_Var::Key key) :
     _group(key, PSTR("COMPASS_")),
     _orientation_matrix	(&_group, 0),
     _offset				(&_group, 1),
     _declination		(&_group, 2, 0.0, PSTR("DEC")),
-    _null_init_done(false),
-	product_id(AP_COMPASS_TYPE_UNKNOWN)
+    _null_init_done(false)
 {
     // Default the orientation matrix to none - will be overridden at group load time
     // if an orientation has previously been saved.

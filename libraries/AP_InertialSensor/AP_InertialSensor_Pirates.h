@@ -13,7 +13,7 @@ class AP_InertialSensor_Pirates : public AP_InertialSensor
 {
   public:
 
-  AP_InertialSensor_Pirates();
+  AP_InertialSensor_Pirates(uint8_t brd);
 
   void init( AP_PeriodicProcess * scheduler );
 
@@ -32,10 +32,9 @@ class AP_InertialSensor_Pirates : public AP_InertialSensor
   uint32_t sample_time();
   void reset_sample_time();
 
-  static void read();
-  static void hardware_init();
-
   private:
+  static void read(uint32_t);
+  static void hardware_init();
 
   Vector3f _gyro;
   Vector3f _accel;
@@ -48,15 +47,23 @@ class AP_InertialSensor_Pirates : public AP_InertialSensor
   static const float _accel_scale;
   static const float _gyro_scale;
 
-  static const uint8_t _gyro_data_index[3];
-  static const  int8_t _gyro_data_sign[3];
+  static uint8_t _gyro_data_index[3];
+  static int8_t _gyro_data_sign[3];
 
-  static const uint8_t _accel_data_index[3];
-  static const  int8_t _accel_data_sign[3];
+  static uint8_t _accel_data_index[3];
+  static int8_t _accel_data_sign[3];
 
   static const uint8_t _temp_data_index;
+  
+  static bool healthy;
 
   static int16_t _data[7];
+  
+  static uint8_t _board_Type;
+  static int accel_addr;
+  
+ // ensure we can't initialise twice
+  unsigned _initialised:1; 
 };
 
 #endif // __AP_INERTIAL_SENSOR_PIRATES_H__

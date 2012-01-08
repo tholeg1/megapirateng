@@ -3,7 +3,6 @@
 
 static void init_motors_out()
 {
-	// Set 400Hz to all outputs except camstab
 	#if INSTANT_PWM == 0
     APM_RC.SetFastOutputChannels( MSK_CH_1 | MSK_CH_2 | MSK_CH_4 );
 	#endif
@@ -16,7 +15,7 @@ static void output_motors_armed()
 	int out_max = g.rc_3.radio_max;
 
 	// Throttle is 0 to 1000 only
-	g.rc_3.servo_out 	= constrain(g.rc_3.servo_out, 0, 1000);
+	g.rc_3.servo_out 	= constrain(g.rc_3.servo_out, 0, MAXIMUM_THROTTLE);
 
 	if(g.rc_3.servo_out > 0)
 		out_min = g.rc_3.radio_min + MINIMUM_THROTTLE;

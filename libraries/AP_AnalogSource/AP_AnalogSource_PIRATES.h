@@ -11,7 +11,7 @@ class AP_AnalogSource_PIRATES : public AP_AnalogSource
     AP_AnalogSource_PIRATES() {
     	first_call = 1;
     }
-    int read(void);
+    float read(void);
     void init(void);
     
     private:
