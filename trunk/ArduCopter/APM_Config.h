@@ -3,7 +3,7 @@
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_FREEIMU_4
+#define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
