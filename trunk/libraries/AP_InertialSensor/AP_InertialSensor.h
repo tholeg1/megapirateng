@@ -1,3 +1,4 @@
+/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #ifndef __AP_INERTIAL_SENSOR_H__
 #define __AP_INERTIAL_SENSOR_H__
@@ -57,6 +58,7 @@ class AP_InertialSensor
 
 #include "AP_InertialSensor_Oilpan.h"
 #include "AP_InertialSensor_MPU6000.h"
+#include "AP_InertialSensor_MPU6000_I2C.h"
 #include "AP_InertialSensor_Pirates.h"
 #include "AP_InertialSensor_Stub.h"
 

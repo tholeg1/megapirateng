@@ -5,13 +5,26 @@
 
 static void ReadSCP1000(void) {}
 
+#if CONFIG_SONAR == ENABLED
+static void init_sonar(void)
+{
+	#if CONFIG_SONAR_SOURCE == SONAR_SOURCE_ADC
+		sonar.calculate_scaler(g.sonar_type, 3.3);
+	#elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ADC
+		sonar.init();
+	#elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ANALOG_PIN
+		sonar.calculate_scaler(g.sonar_type, 5.0);
+	#endif
+}
+#endif
+
 static void init_barometer(void)
 {
 	#if HIL_MODE == HIL_MODE_SENSORS
 		gcs_update();					// look for inbound hil packets for initialization
 	#endif
 
-	ground_temperature = barometer.Temp;
+	ground_temperature = barometer.get_temperature();
 	int i;
 
 	// We take some readings...
@@ -19,7 +32,7 @@ static void init_barometer(void)
 		delay(20);
 
 		// get new data from absolute pressure sensor
-		barometer.Read();
+		barometer.read();
 
 		//Serial.printf("init %ld, %d, -, %ld, %ld\n", barometer.RawTemp, barometer.Temp, barometer.RawPress,  barometer.Press);
 	}
@@ -32,77 +45,63 @@ static void init_barometer(void)
 		#endif
 
 		// Get initial data from absolute pressure sensor
-		barometer.Read();
-		ground_pressure = barometer.Press;
-		ground_temperature	= (ground_temperature * 9 + barometer.Temp) / 10;
+		barometer.read();
+		ground_pressure = barometer.get_pressure();
+		ground_temperature	= (ground_temperature * 7 + barometer.get_temperature()) / 8;
 		//Serial.printf("init %ld, %d, -, %ld, %ld, -, %d, %ld\n", barometer.RawTemp, barometer.Temp, barometer.RawPress,  barometer.Press, ground_temperature, ground_pressure);
 	}
-
-	abs_pressure  		= ground_pressure;
-
-	//Serial.printf("init %ld\n", abs_pressure);
-	//SendDebugln("barometer calibration complete.");
 }
 
-/*
-static int32_t read_baro_filtered(void)
+static void reset_baro(void)
 {
-
-	// get new data from absolute pressure sensor
-	barometer.Read();
-
-	return barometer.Press;
-
-	int32_t pressure = 0;
-	// add new data into our filter
-	baro_filter[baro_filter_index] = barometer.Press;
-	baro_filter_index++;
-
-	// loop our filter
-	if(baro_filter_index >= BARO_FILTER_SIZE)
-		baro_filter_index = 0;
-
-	// zero out our accumulator
-
-	// sum our filter
-	for(byte i = 0; i < BARO_FILTER_SIZE; i++){
-		pressure += baro_filter[i];
+		ground_pressure 	= barometer.get_pressure();
+		ground_temperature	= barometer.get_temperature();
 	}
 
-
-	// average our sampels
-	return pressure /= BARO_FILTER_SIZE;
-	//
-}
-*/
 static int32_t read_barometer(void)
 {
  	float x, scaling, temp;
 
-	barometer.Read();
-	abs_pressure = barometer.Press;
+	barometer.read();
+	float abs_pressure = barometer.get_pressure();
 
 
 	//Serial.printf("%ld, %ld, %ld, %ld\n", barometer.RawTemp, barometer.RawPress, barometer.Press, abs_pressure);
 
-	scaling 				= (float)ground_pressure / (float)abs_pressure;
+	scaling 				= (float)ground_pressure / abs_pressure;
 	temp 					= ((float)ground_temperature / 10.0f) + 273.15f;
 	x 						= log(scaling) * temp * 29271.267f;
 	return 	(x / 10);
 }
 
-// in M/S * 100
-static void read_airspeed(void)
-{
-
-}
-
-static void zero_airspeed(void)
-{
-
-}
 
 #endif // HIL_MODE != HIL_MODE_ATTITUDE
+
+static void init_compass()
+{
+	compass.set_orientation(MAG_ORIENTATION);						// set compass's orientation on aircraft
+	dcm.set_compass(&compass);
+	#if CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
+		((AP_Compass_HMC5843_Pirates*) &compass)->init(&timer_scheduler);
+	#else
+		compass.init();
+	#endif
+	compass.get_offsets();					// load offsets to account for airframe magnetic interference 
+}
+
+static void init_optflow()
+{
+#ifdef OPTFLOW_ENABLED
+	if( optflow.init(false) == false ) {
+	    g.optflow_enabled = false;
+	    SendDebug("\nFailed to Init OptFlow ");
+	}
+	optflow.set_orientation(OPTFLOW_ORIENTATION);			// set optical flow sensor's orientation on aircraft
+	optflow.set_field_of_view(OPTFLOW_FOV);					// set optical flow sensor's field of view
+	// setup timed read of sensor
+	//timer_scheduler.register_process(&AP_OpticalFlow::read);
+#endif
+}
 
 static void read_battery(void)
 {

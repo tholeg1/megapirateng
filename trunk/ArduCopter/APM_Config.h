@@ -2,17 +2,25 @@
 
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
-#define LED_SEQUENCER DISABLED
-#define MAX_SONAR_RANGE 400
-
-#define BARO_TYPE BARO_BMP085
+// Select your sensor board
+#define PIRATES_SENSOR_BOARD PIRATES_FREEIMU_4
 /*
-#define BARO_BMP085	0
-#define BARO_MS5611	1  // Beta version, not tested in flight
+	PIRATES_ALLINONE
+	PIRATES_FFIMU
+	PIRATES_FREEIMU
+	PIRATES_BLACKVORTEX
+	PIRATES_FREEIMU_4 // New FreeIMU 0.4.1 with MPU6000, MS5611 and 5883L
 */
 
-// MPNG: AP_COMPASS lib make additional ROTATION_YAW_90 for 5883L mag, so in result we have ROTATION_YAW_270 
-#define MAG_ORIENTATION	ROTATION_YAW_180 
+// Select your baro sensor
+#define CONFIG_BARO AP_BARO_BMP085_PIRATES
+/*
+	AP_BARO_BMP085_PIRATES
+	AP_BARO_MS5611_I2C
+*/
+
+#define LED_SEQUENCER DISABLED
+#define MAX_SONAR_RANGE 400
 
 #define OSD_PROTOCOL OSD_PROTOCOL_NONE
 	/*
@@ -27,6 +35,7 @@
 #define PIEZO_LOW_VOLTAGE	DISABLED
 #define PIEZO_ARMING		DISABLED
 
+// For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will select automatically 
 #define GPS_PROTOCOL GPS_PROTOCOL_NONE
 	/*
 	options:
@@ -88,6 +97,7 @@
 //#define RATE_ROLL_I 	0.18
 //#define RATE_PITCH_I	0.18
 //#define MOTORS_JD880
+//#define MOTORS_JD850
 
 
 // agmatthews USERHOOKS
@@ -104,6 +114,5 @@
 // Ensure the defined file exists and is in the arducopter directory
 #define USERHOOK_VARIABLES "UserVariables.h"
 
-
-// enable this for the new 'APM2' hardware
-// #define CONFIG_APM_HARDWARE APM_HARDWARE_APM2
+#define LOITER_METHOD 0
+// set to 1 to try an alternative Loiter control method

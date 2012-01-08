@@ -1,11 +1,15 @@
-Release Notes for MegaPirateNG 2.0.50
+Release Notes for MegaPirateNG 2.1.1
+
+IMPORTANT NOTICE!!!
+2560 users - you must use a patched version of Arduino 22 located here:
+http://code.google.com/p/ardupilot-mega/downloads/list
+Look for "relax" in the name.
 
 === Before you go ===
 *** See additional requirements for BlackVortex boards in the release_notes_BlackVortex.txt
 *** make clean your arduino libraries folder prior copying the libraries
-*** Select your frame type in the apm_config.h because the CLI frame type selection is not working anymore! (Quad X by default)
-*** Select your RC Channel mapping in /libraries/APM_RC/APM_RC.cpp
-*** Do not forget to select your sensors type in the /libraries/AP_ADC/AP_ADC_ADS7844.cpp prior to compiling (ALLINONE by default)
+*** Select your frame, sensors type in the apm_config.h (Quad X, ALLINONE by default)
+*** Select your RC Channel mapping in /libraries/APM_RC/APM_RC_PIRATES.cpp
 *** For tuning the LED sequencer open the LED.pde and read the descriptions
 
 

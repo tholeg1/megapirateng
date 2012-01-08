@@ -39,13 +39,13 @@ mw: 0,1,3,4,5,6 - motors
 
 //#define TX_set1				//Graupner/Spektrum					PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 
-//#define TX_standard				//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
+#define TX_standard				//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
 
 //#define TX_standard_mode6				//standard, Mode channel is 6  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,AUX1,MODE,CAMPITCH,CAMROLL
 
 //#define TX_set2				// some Hitec/Sanwa/others				PITCH,ROLL,THROTTLE,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
 
-#define TX_mwi				// MultiWii layout					ROLL,THROTTLE,PITCH,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
+//#define TX_mwi				// MultiWii layout					ROLL,THROTTLE,PITCH,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
 
 //##################################################
 
