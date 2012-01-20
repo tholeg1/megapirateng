@@ -31,9 +31,9 @@
 
 // Constructor //////////////////////////////////////////////////////////////
 
-AP_RangeFinder_MaxsonarXL::AP_RangeFinder_MaxsonarXL(AP_AnalogSource *source,
-                                                     ModeFilter *filter) :
-	RangeFinder(source, filter), _scaler(AP_RANGEFINDER_MAXSONARXL_SCALER)
+AP_RangeFinder_MaxsonarXL::AP_RangeFinder_MaxsonarXL(AP_AnalogSource *source, ModeFilter *filter):
+		RangeFinder(source, filter),
+		_scaler(AP_RANGEFINDER_MAXSONARXL_SCALER)
 {
     max_distance = AP_RANGEFINDER_MAXSONARXL_MAX_DISTANCE;
 	min_distance = AP_RANGEFINDER_MAXSONARXL_MIN_DISTANCE;

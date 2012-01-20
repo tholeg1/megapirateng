@@ -107,10 +107,11 @@ static void init_ardupilot()
 	// Initialize Wire and SPI libraries
 	//
 #ifndef DESKTOP_BUILD
-		I2c.begin();
-		I2c.timeOut(5);
-		I2c.setSpeed(true); // set fast I2C
-		I2c.pullup(false);
+	I2c.begin();
+	I2c.timeOut(5);
+	// initially set a fast I2c speed, and drop it on first failures
+	I2c.setSpeed(true); // set fast I2C
+	I2c.pullup(false);
 #endif
 
     //SPI.begin();
@@ -137,6 +138,7 @@ static void init_ardupilot()
 
 #if SLIDE_SWITCH_PIN > 0
   pinMode(SLIDE_SWITCH_PIN, INPUT);		// To enter interactive mode
+	digitalWrite(SLIDE_SWITCH_PIN, HIGH);           // Pull-UP the switch port 
 #endif
 #if CONFIG_PUSHBUTTON == ENABLED
 	pinMode(PUSHBUTTON_PIN, INPUT);			// unused
@@ -330,7 +332,7 @@ static void init_ardupilot()
 	#endif
 
 	// initialise sonar
-	#if HIL_MODE != HIL_MODE_ATTITUDE && CONFIG_SONAR == ENABLED
+	#if CONFIG_SONAR == ENABLED
 		init_sonar();
 	#endif
 
@@ -392,6 +394,8 @@ static void reset_I_all(void)
 	g.pi_throttle.reset_I();
 	g.pi_acro_roll.reset_I();
 	g.pi_acro_pitch.reset_I();
+	g.pi_optflow_roll.reset_I();
+	g.pi_optflow_pitch.reset_I();
 }
 
 
@@ -438,12 +442,6 @@ static void startup_ground(void)
 
 static void set_mode(byte mode)
 {
-	//if(control_mode == mode){
-		// don't switch modes if we are already in the correct mode.
-	//	Serial.print("Double mode\n");
-		//return;
-	//}
-
 	// if we don't have GPS lock
 	if(home_is_set == false){
 		// our max mode should be
@@ -467,6 +465,9 @@ static void set_mode(byte mode)
 
 	// clearing value used in interactive alt hold
 	manual_boost = 0;
+
+	// clearing value used to force the copter down in landing mode
+	landing_boost = 0;
 
 	// do not auto_land if we are leaving RTL
 	auto_land_timer = 0;
@@ -500,9 +501,7 @@ static void set_mode(byte mode)
 			roll_pitch_mode = ALT_HOLD_RP;
 			throttle_mode 	= ALT_HOLD_THR;
 
-			next_WP = current_loc;
-			// 1m is the alt hold limit
-			next_WP.alt = max(next_WP.alt, 100);
+			set_next_WP(&current_loc);
 			break;
 
 		case AUTO:
@@ -518,9 +517,7 @@ static void set_mode(byte mode)
 			yaw_mode 		= CIRCLE_YAW;
 			roll_pitch_mode = CIRCLE_RP;
 			throttle_mode 	= CIRCLE_THR;
-			next_WP = current_loc;
-
-			// reset the desired circle angle
+			set_next_WP(&current_loc);
 			circle_angle 	= 0;
 			break;
 
@@ -528,14 +525,14 @@ static void set_mode(byte mode)
 			yaw_mode 		= LOITER_YAW;
 			roll_pitch_mode = LOITER_RP;
 			throttle_mode 	= LOITER_THR;
-			next_WP = current_loc;
+			set_next_WP(&current_loc);
 			break;
 
 		case POSITION:
 			yaw_mode 		= YAW_HOLD;
 			roll_pitch_mode = ROLL_PITCH_AUTO;
 			throttle_mode 	= THROTTLE_MANUAL;
-			next_WP = current_loc;
+			set_next_WP(&current_loc);
 			break;
 
 		case GUIDED:
@@ -575,9 +572,7 @@ static void set_mode(byte mode)
 
 	if(throttle_mode == THROTTLE_MANUAL){
 		// reset all of the throttle iterms
-		g.pi_alt_hold.reset_I();
-		g.pi_throttle.reset_I();
-
+		update_throttle_cruise();
 	}else {
 		// an automatic throttle
 		// todo: replace with a throttle cruise estimator
@@ -588,12 +583,6 @@ static void set_mode(byte mode)
 		// We are under manual attitude control
 		// removes the navigation from roll and pitch commands, but leaves the wind compensation
 		reset_nav();
-
-		// removes the navigation from roll and pitch commands, but leaves the wind compensation
-		if(GPS_enabled)
-			wp_control = NO_NAV_MODE;
-			update_nav_wp();
-
 	}
 
 	Log_Write_Mode(control_mode);
@@ -628,15 +617,27 @@ init_simple_bearing()
 	initial_simple_bearing = dcm.yaw_sensor;
 }
 
+static void update_throttle_cruise()
+{
+	int16_t tmp = g.pi_alt_hold.get_integrator();
+	if(tmp != 0){
+		g.throttle_cruise += tmp;
+		g.pi_alt_hold.reset_I();
+		g.pi_throttle.reset_I();
+	}
+}
+
 static void
 init_throttle_cruise()
 {
+#if AUTO_THROTTLE_HOLD == 0
 	// are we moving from manual throttle to auto_throttle?
 	if((old_control_mode <= STABILIZE) && (g.rc_3.control_in > MINIMUM_THROTTLE)){
 		g.pi_throttle.reset_I();
 		g.pi_alt_hold.reset_I();
 		g.throttle_cruise.set_and_save(g.rc_3.control_in);
 	}
+#endif
 }
 
 #if CLI_SLIDER_ENABLED == ENABLED && CLI_ENABLED == ENABLED
@@ -689,5 +690,5 @@ static void check_usb_mux(void)
 void flash_leds(bool on)
 {
     digitalWrite(A_LED_PIN, on?LED_OFF:LED_ON);
-    digitalWrite(C_LED_PIN, on?LED_ON:LED_OFF);
+    digitalWrite(B_LED_PIN, on?LED_ON:LED_OFF);
 }

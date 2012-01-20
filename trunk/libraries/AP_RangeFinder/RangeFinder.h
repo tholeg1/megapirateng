@@ -24,8 +24,7 @@ class RangeFinder
   protected:
 	RangeFinder(AP_AnalogSource * source, ModeFilter *filter) :
 		_analog_source(source),
-		_mode_filter(filter)
-	{}
+		_mode_filter(filter) {}
   public:
 
 	int raw_value;     // raw value from the sensor

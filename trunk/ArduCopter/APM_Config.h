@@ -3,7 +3,7 @@
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
+#define PIRATES_SENSOR_BOARD PIRATES_FREEIMU_4
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -22,7 +22,7 @@
 #define LED_SEQUENCER DISABLED
 #define MAX_SONAR_RANGE 400
 
-#define OSD_PROTOCOL OSD_PROTOCOL_NONE
+#define OSD_PROTOCOL OSD_PROTOCOL_REMZIBI
 	/*
 		OSD_PROTOCOL_NONE
 		OSD_PROTOCOL_SYBERIAN
@@ -36,7 +36,7 @@
 #define PIEZO_ARMING		DISABLED
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will select automatically 
-#define GPS_PROTOCOL GPS_PROTOCOL_NONE
+#define GPS_PROTOCOL GPS_PROTOCOL_MTK16
 	/*
 	options:
 	GPS_PROTOCOL_NONE 	without GPS
@@ -55,8 +55,6 @@
 #define SERIAL0_BAUD			 115200	// If one want a wireless modem (like APC220) on the console port, lower that to 57600. Default is 115200 
 #define SERIAL2_BAUD			 38400	// GPS port bps
 #define SERIAL3_BAUD			 57600	// default telemetry BPS rate = 57600
-
-//#define BROKEN_SLIDER		0		// 1 = yes (use Yaw to enter CLI mode)
 
 #define FRAME_CONFIG QUAD_FRAME
 	/*
@@ -90,9 +88,6 @@
 
 #define ACCEL_ALT_HOLD 0		// disabled by default, work in progress
 
-// lets use Manual throttle during Loiter
-//#define LOITER_THR			THROTTLE_MANUAL
-# define RTL_YAW 			YAW_HOLD
 
 //#define RATE_ROLL_I 	0.18
 //#define RATE_PITCH_I	0.18
@@ -114,5 +109,7 @@
 // Ensure the defined file exists and is in the arducopter directory
 #define USERHOOK_VARIABLES "UserVariables.h"
 
-#define LOITER_METHOD 0
-// set to 1 to try an alternative Loiter control method
+
+// to enable, set to 1
+// to disable, set to 0
+#define AUTO_THROTTLE_HOLD 1

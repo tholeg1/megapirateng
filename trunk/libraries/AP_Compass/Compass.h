@@ -117,6 +117,16 @@ public:
 	void null_offsets(const Matrix3f &dcm_matrix);
 
 
+	/// Enable/Start automatic offset updates 
+	///
+	void null_offsets_enable(void);
+
+
+	/// Disable/Stop automatic offset updates
+	///
+	void null_offsets_disable(void);
+
+
 	/// Sets the local magnetic field declination.
 	///
 	/// @param  radians             Local field declination.
@@ -130,6 +140,7 @@ protected:
 	AP_VarS<Vector3f>   _offset;
 	AP_Float            _declination;
 
+	bool                _null_enable;        	///< enabled flag for offset nulling
 	bool                _null_init_done;        ///< first-time-around flag used by offset nulling
 	Matrix3f            _last_dcm_matrix;       ///< previous DCM matrix used by offset nulling
 	Vector3f            _mag_body_last;         ///< ?? used by offset nulling
