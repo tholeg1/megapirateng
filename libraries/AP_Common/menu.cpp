@@ -30,7 +30,8 @@ Menu::Menu(const prog_char *prompt, const Menu::command *commands, uint8_t entri
 void
 Menu::run(void)
 {
-    uint8_t		len, i, ret;
+    int8_t		ret;
+    uint8_t		len, i;
     uint8_t		argc;
     int			c;
     char		*s;

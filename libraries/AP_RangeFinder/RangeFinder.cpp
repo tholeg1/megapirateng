@@ -33,7 +33,6 @@ int RangeFinder::read()
     int temp_dist;
 
 	raw_value = _analog_source->read();
-
 	// convert analog value to distance in cm (using child implementation most likely)
 	temp_dist = convert_raw_to_distance(raw_value);
 

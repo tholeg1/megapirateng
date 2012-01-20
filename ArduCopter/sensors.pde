@@ -87,6 +87,7 @@ static void init_compass()
 		compass.init();
 	#endif
 	compass.get_offsets();					// load offsets to account for airframe magnetic interference 
+	compass.null_offsets_enable();
 }
 
 static void init_optflow()

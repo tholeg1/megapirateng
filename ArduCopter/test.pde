@@ -82,7 +82,7 @@ const struct Menu::command test_menu_commands[] PROGMEM = {
 //  {"xbee",		test_xbee},
 	{"eedump",		test_eedump},
 	{"logging",		test_logging},
-//	{"rawgps",		test_rawgps},
+	{"rawgps",		test_rawgps},
 //	{"mission",		test_mission},
 	//{"reverse",		test_reverse},
 	//{"wp",			test_wp_nav},
@@ -167,7 +167,7 @@ test_eedump(uint8_t argc, const Menu::arg *argv)
 							g.rc_4.control_in,
 							g.rc_4.radio_out);
 
-		APM_RC.OutputCh(CH_7, g.rc_4.radio_out);
+		APM_RC.OutputCh(CH_TRI_YAW, g.rc_4.radio_out);
 
 		if(Serial.available() > 0){
 			return (0);
@@ -569,7 +569,6 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_gps(uint8_t argc, const Menu::arg *argv)
 {
-/*
 	print_hit_enter();
 	delay(1000);
 
@@ -596,7 +595,6 @@ test_gps(uint8_t argc, const Menu::arg *argv)
 			return (0);
 		}
 	}
-	*/
 	return 0;
 }
 
@@ -765,10 +763,10 @@ test_current(uint8_t argc, const Menu::arg *argv)
 						current_amps,
 						current_total);
 
-		APM_RC.OutputCh(CH_1, g.rc_3.radio_in);
-		APM_RC.OutputCh(CH_2, g.rc_3.radio_in);
-		APM_RC.OutputCh(CH_3, g.rc_3.radio_in);
-		APM_RC.OutputCh(CH_4, g.rc_3.radio_in);
+		APM_RC.OutputCh(MOT_1, g.rc_3.radio_in);
+		APM_RC.OutputCh(MOT_2, g.rc_3.radio_in);
+		APM_RC.OutputCh(MOT_3, g.rc_3.radio_in);
+		APM_RC.OutputCh(MOT_4, g.rc_3.radio_in);
 
 		if(Serial.available() > 0){
 			return (0);
@@ -823,22 +821,20 @@ test_wp(uint8_t argc, const Menu::arg *argv)
 	return (0);
 }
 
-//static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
-	/*
+static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
    print_hit_enter();
    delay(1000);
     while(1){
         if (Serial2.available()){
-			digitalWrite(B_LED_PIN, LED_ON); 		// Blink Yellow LED if we are sending data to GPS
-			Serial.write(Serial2.read());
-			digitalWrite(B_LED_PIN, LED_OFF);
-		}
+					digitalWrite(C_LED_PIN, LED_ON); 		// Blink C LED if we are receiving data from GPS
+					Serial.write(Serial2.read());
+					digitalWrite(C_LED_PIN, LED_OFF);
+				}
 		if(Serial.available() > 0){
 			return (0);
 		}
    }
-   */
- //}
+}
 
 /*static int8_t
 //test_xbee(uint8_t argc, const Menu::arg *argv)
@@ -872,15 +868,17 @@ test_baro(uint8_t argc, const Menu::arg *argv)
                 Serial.println_P(PSTR("not healthy"));
 		} else {
 	        int32_t pres = barometer.get_pressure();
-	        int16_t temp = barometer.get_temperature();
+	        float temp = barometer.get_temperature()/10;
 	        int32_t raw_pres = barometer.get_raw_pressure();
 	        int32_t raw_temp = barometer.get_raw_temp();
 			#if defined( __AVR_ATmega1280__ )
 	        Serial.printf_P(PSTR("alt: %ldcm\n"),alt);
 			#else
-	        Serial.printf_P(PSTR("alt: %ldcm, pres: %ldmbar, temp: %d/100degC,"
-	                             " raw pres: %ld, raw temp: %ld\n"),
+	        Serial.printf_P(PSTR("%ld\t%ld\t%3.3f\t%ld\t%ld\n"),
 	                             alt, pres ,temp, raw_pres, raw_temp);
+/*	        Serial.printf_P(PSTR("alt: %ldcm\tpres: %ldmbar, temp: %3.1fdegC\t"
+	                             " raw pres: %ld, raw temp: %ld\n"),
+	                             alt, pres ,temp, raw_pres, raw_temp);*/
 			#endif
 		}
 		if(Serial.available() > 0){

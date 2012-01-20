@@ -1,5 +1,7 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 //
+#ifndef __ARDUCOPTER_CONFIG_H__
+#define __ARDUCOPTER_CONFIG_H__
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -218,7 +220,7 @@
 # endif
 #elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ANALOG_PIN
 # ifndef CONFIG_SONAR_SOURCE_ANALOG_PIN
-#  define CONFIG_SONAR_SOURCE_ANALOG_PIN AN4
+#  define CONFIG_SONAR_SOURCE_ANALOG_PIN A1
 # endif
 #elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_PIRATES
 #else
@@ -357,7 +359,6 @@
 #if defined( __AVR_ATmega2560__ )  // determines if optical flow code is included
   //#define OPTFLOW_ENABLED
 #endif
-
 #ifndef OPTFLOW					// sets global enabled/disabled flag for optflow (as seen in CLI)
 # define OPTFLOW				DISABLED
 #endif
@@ -367,6 +368,23 @@
 #ifndef OPTFLOW_FOV
 # define OPTFLOW_FOV 			AP_OPTICALFLOW_ADNS3080_08_FOV
 #endif
+// optical flow based loiter PI values
+#ifndef OPTFLOW_ROLL_P
+  #define OPTFLOW_ROLL_P 6.4
+#endif
+#ifndef OPTFLOW_ROLL_I
+  #define OPTFLOW_ROLL_I 0.068
+#endif
+#ifndef OPTFLOW_PITCH_P
+  #define OPTFLOW_PITCH_P 6.4
+#endif
+#ifndef OPTFLOW_PITCH_I
+  #define OPTFLOW_PITCH_I 0.068
+#endif
+#ifndef OPTFLOW_IMAX
+  #define OPTFLOW_IMAX 4
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // RADIO CONFIGURATION
@@ -525,13 +543,6 @@
 #endif
 
 
-// experimental feature for
-#ifndef WIND_COMP_STAB
-# define WIND_COMP_STAB		0
-#endif
-
-
-
 //////////////////////////////////////////////////////////////////////////////
 // Attitude Control
 //
@@ -653,18 +664,21 @@
 
 
 //////////////////////////////////////////////////////////////////////////////
-// Navigation control gains
+// Loiter control gains
 //
 #ifndef LOITER_P
-# define LOITER_P			.25		//
+# define LOITER_P			2.0		// was .25 in previous
 #endif
 #ifndef LOITER_I
-# define LOITER_I			0.1	// Wind control
+# define LOITER_I			0.04	// Wind control
 #endif
 #ifndef LOITER_IMAX
 # define LOITER_IMAX		30		// degrees°
 #endif
 
+//////////////////////////////////////////////////////////////////////////////
+// WP Navigation control gains
+//
 #ifndef NAV_P
 # define NAV_P				2.2			// 3 was causing rapid oscillations in Loiter
 #endif
@@ -895,3 +909,7 @@
 #ifndef MAVLINK_TELEMETRY_PORT_DELAY
 # define MAVLINK_TELEMETRY_PORT_DELAY 2000
 #endif
+
+
+
+#endif // __ARDUCOPTER_CONFIG_H__

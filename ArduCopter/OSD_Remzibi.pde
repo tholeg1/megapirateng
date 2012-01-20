@@ -54,9 +54,7 @@ byte readOSDSwitch(void){
 }
 */
 void osd_init(){
-	Serial1.begin(57600);
-//	Serial1.begin(38400);
-
+	Serial1.begin(38400);
 	set_osd_mode(1);
 }
 
