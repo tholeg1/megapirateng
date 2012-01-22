@@ -119,7 +119,7 @@ void osd_heartbeat_10Hz(void)
 
     }
   #endif
-        SendSer ("$M,1,3,0,0, "); //fr3d write flight mode column 1 ligne 3
+        SendSer ("$M,1,4,0,0, "); //fr3d write flight mode column 1 ligne 3
 	switch (control_mode){
 		case STABILIZE:
 			SendSer("STABILIZE       ");

@@ -143,7 +143,10 @@
 # define SLIDE_SWITCH_PIN 40
 # define PUSHBUTTON_PIN   41
 # define USB_MUX_PIN      -1
+# define CLI_SLIDER_ENABLED DISABLED
 # define OPTFLOW_CS_PIN   34
+# define BATTERY_PIN_1      0
+# define CURRENT_PIN_1      1
 #elif CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
 # define A_LED_PIN        13
 # define B_LED_PIN        31
@@ -155,6 +158,8 @@
 # define USB_MUX_PIN      -1
 # define CLI_SLIDER_ENABLED DISABLED
 # define OPTFLOW_CS_PIN   34
+# define BATTERY_PIN_1      0
+# define CURRENT_PIN_1      1
 #elif CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
 # define A_LED_PIN        27
 # define B_LED_PIN        26
@@ -166,6 +171,8 @@
 # define CLI_SLIDER_ENABLED DISABLED
 # define USB_MUX_PIN 23
 # define OPTFLOW_CS_PIN   A6
+# define BATTERY_PIN_1      1
+# define CURRENT_PIN_1      2
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -437,6 +444,10 @@
 # define MAXIMUM_THROTTLE	1000
 #endif
 
+#ifndef AUTO_LAND_TIME
+# define AUTO_LAND_TIME	20
+#endif
+
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -569,7 +580,7 @@
 
 
 #ifndef STABILIZE_D
-# define STABILIZE_D 		.2
+# define STABILIZE_D 		.03
 #endif
 
 // Jasons default values that are good for smaller payload motors.
@@ -577,7 +588,7 @@
 # define STABILIZE_ROLL_P 		4.6
 #endif
 #ifndef STABILIZE_ROLL_I
-# define STABILIZE_ROLL_I 		0.02
+# define STABILIZE_ROLL_I 		0.1
 #endif
 #ifndef STABILIZE_ROLL_IMAX
 # define STABILIZE_ROLL_IMAX 	40		// degrees
@@ -587,7 +598,7 @@
 # define STABILIZE_PITCH_P		4.6
 #endif
 #ifndef STABILIZE_PITCH_I
-# define STABILIZE_PITCH_I		0.02
+# define STABILIZE_PITCH_I		0.1
 #endif
 #ifndef STABILIZE_PITCH_IMAX
 # define STABILIZE_PITCH_IMAX	40		// degrees
@@ -667,23 +678,26 @@
 // Loiter control gains
 //
 #ifndef LOITER_P
-# define LOITER_P			2.0		// was .25 in previous
+# define LOITER_P			1.5		// was .25 in previous
 #endif
 #ifndef LOITER_I
-# define LOITER_I			0.04	// Wind control
+# define LOITER_I			0.09	// Wind control
 #endif
 #ifndef LOITER_IMAX
 # define LOITER_IMAX		30		// degrees°
+#endif
+#ifndef LOITER_D
+# define LOITER_D			2.2		// rate control
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // WP Navigation control gains
 //
 #ifndef NAV_P
-# define NAV_P				2.2			// 3 was causing rapid oscillations in Loiter
+# define NAV_P				3.0			// 3 was causing rapid oscillations in Loiter
 #endif
 #ifndef NAV_I
-# define NAV_I				0.15		// used in traverals
+# define NAV_I				0			//
 #endif
 #ifndef NAV_IMAX
 # define NAV_IMAX			30			// degrees
@@ -691,6 +705,10 @@
 
 #ifndef WAYPOINT_SPEED_MAX
 # define WAYPOINT_SPEED_MAX			600			// for 6m/s error = 13mph
+#endif
+
+#ifndef WAYPOINT_SPEED_MIN
+# define WAYPOINT_SPEED_MIN			100			// for 6m/s error = 13mph
 #endif
 
 
