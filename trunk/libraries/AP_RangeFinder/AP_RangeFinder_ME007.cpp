@@ -1,7 +1,12 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 3; indent-tabs-mode: t -*-
 
 // AVR LibC Includes
-#include "WConstants.h"
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include "Arduino.h"
+#else
+	#include "WConstants.h"
+#endif
+
 #include "RangeFinder.h"
 #include "AP_RangeFinder_ME007.h"
 

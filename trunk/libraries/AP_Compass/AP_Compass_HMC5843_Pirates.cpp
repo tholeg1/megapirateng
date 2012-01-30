@@ -15,8 +15,13 @@
 
 // AVR LibC Includes
 #include <math.h>
-#include "WConstants.h"
 #include <I2C.h>
+
+#if defined(ARDUINO) && ARDUINO >= 100
+  #include "Arduino.h"
+#else
+  #include "WConstants.h"
+#endif
 
 #include "../AP_PeriodicProcess/AP_PeriodicProcess.h" 
 #include "AP_Compass_HMC5843_Pirates.h"

@@ -11,7 +11,11 @@
 
 #include <math.h>
 #include <avr/eeprom.h>
-#include "WProgram.h"
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include "Arduino.h"
+#else
+	#include "WProgram.h"
+#endif
 #include "RC_Channel.h"
 
 #define RC_CHANNEL_ANGLE 0
@@ -191,7 +195,7 @@ RC_Channel::pwm_to_angle()
 {
 	int radio_trim_high = radio_trim + _dead_zone;
 	int radio_trim_low  = radio_trim - _dead_zone;
-
+    
     // prevent div by 0
     if ((radio_trim_low - radio_min) == 0 || (radio_max - radio_trim_high) == 0) 
         return 0;

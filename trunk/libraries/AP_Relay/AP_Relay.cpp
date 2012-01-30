@@ -8,7 +8,11 @@
  */
 
 #include <avr/io.h>
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include "Arduino.h"
+#else
 #include "wiring.h"
+#endif
 
 #include "AP_Relay.h"
 

@@ -146,10 +146,6 @@ static void init_ardupilot()
 #if CONFIG_RELAY == ENABLED
 	DDRL |= B00000100;						// Set Port L, pin 2 to output for the relay
 #endif
-
-    pinMode(37, OUTPUT);		                // rc switch pin
-    DDRF&= B11011111;
-
 	// XXX set Analog out 14 to output
 	//  	   76543210
 	//DDRK |= B01010000;
@@ -368,8 +364,8 @@ static void init_ardupilot()
 	Log_Write_Startup();
 	Log_Write_Data(10, g.pi_stabilize_roll.kP());
 	Log_Write_Data(11, g.pi_stabilize_pitch.kP());
-	Log_Write_Data(12, g.pi_rate_roll.kP());
-	Log_Write_Data(13, g.pi_rate_pitch.kP());
+	Log_Write_Data(12, g.pid_rate_roll.kP());
+	Log_Write_Data(13, g.pid_rate_pitch.kP());
 #endif
 
 	SendDebug("\nReady to FLY ");
@@ -422,13 +418,13 @@ static void set_mode(byte mode)
 	// if we don't have GPS lock
 	if(home_is_set == false){
 		// our max mode should be
-		if (mode > ALT_HOLD)
+		if (mode > ALT_HOLD && mode != OF_LOITER)
 			mode = STABILIZE;
 	}
 
-	// nothing but Loiter for OptFlow only
+	// nothing but OF_LOITER for OptFlow only
 	if (g.optflow_enabled && GPS_enabled == false){
-		if (mode > ALT_HOLD && mode != LOITER)
+		if (mode > ALT_HOLD && mode != OF_LOITER)
 			mode = STABILIZE;
 	}
 
@@ -532,6 +528,13 @@ static void set_mode(byte mode)
 			throttle_mode 	= RTL_THR;
 
 			do_RTL();
+			break;
+
+		case OF_LOITER:
+			yaw_mode 		= OF_LOITER_YAW;
+			roll_pitch_mode = OF_LOITER_RP;
+			throttle_mode 	= OF_LOITER_THR;
+			set_next_WP(&current_loc);
 			break;
 
 		default:
