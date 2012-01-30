@@ -24,8 +24,12 @@ mw: 0,1,3,4,5,6 - motors
 #include "APM_RC_PIRATES.h"
 
 #include <avr/interrupt.h>
-#include "WProgram.h"
 
+#if defined(ARDUINO) && ARDUINO >= 100
+  #include "Arduino.h"
+#else
+  #include "WProgram.h"
+#endif
 
 //######################################################
 // ENABLE serial PPM receiver by uncommenting the line below
@@ -241,21 +245,21 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
   OCR1A = 1800; 
   OCR1B = 1800; 
   ICR1 = 40000; //50hz freq...Datasheet says  (system_freq/prescaler)/target frequency. So (16000000hz/8)/50hz=40000,
-  TCCR1A =((1<<WGM31)|(1<<COM3A1)|(1<<COM3B1)); // A and B used
+  TCCR1A = (1<<WGM31); 
   TCCR1B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
 
   OCR3A = 1800; 
   OCR3B = 1800; 
   OCR3C = 1800; 
   ICR3 = 40000; //50hz freq
-  TCCR3A =((1<<WGM31)|(1<<COM3A1)|(1<<COM3B1)|(1<<COM3C1));
+  TCCR3A = (1<<WGM31);
   TCCR3B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
 
   OCR4A = 1800; 
   OCR4B = 1800; 
   OCR4C = 1800; 
   ICR4 = 40000; //50hz freq
-  TCCR4A =((1<<WGM31)|(1<<COM4A1)|(1<<COM4B1)|(1<<COM4C1));
+  TCCR4A = (1<<WGM31);
   TCCR4B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
 
   configureReceiver();
@@ -289,17 +293,10 @@ ISR(TIMER5_COMPB_vect)
 { // set the corresponding pin to 1
 	OCRstate++;
 	OCRstate&=15;
-switch (OCRstate>>1)
-	{//case 0:  if(OCRstate&1)PORTC&=(1<<5)^255; else PORTC|=(1<<5);break; //d32, cam roll
-	//case 1: if(OCRstate&1)PORTC&=(1<<4)^255; else PORTC|=(1<<4);break;   //d33, cam pitch
-	case 0:  if(OCRstate&1)PORTL&=(1<<5)^255; else PORTL|=(1<<5);break; //d44, cam Roll
-	case 1: if(OCRstate&1)PORTL&=(1<<4)^255; else PORTL|=(1<<4);break;   //d45, cam Pitch
-	//case 2: PORTG|=(1<<5);break;
-	//case 3: PORTE|=(1<<3);break;
-	//case 4: PORTH|=(1<<3);break;
-	//case 5: PORTH|=(1<<4);break;
-	//case 6: PORTH|=(1<<5);break;
-	//case 7: PORTH|=(1<<6);break;
+	switch (OCRstate>>1)
+	{
+		case 0:  if(OCRstate&1)PORTL&=(1<<5)^255; else PORTL|=(1<<5);break; //d44, cam Roll
+		case 1: if(OCRstate&1)PORTL&=(1<<4)^255; else PORTL|=(1<<4);break;   //d45, cam Pitch
 	}
 	if(OCRstate&1)OCR5B+=5000-OCRxx1[OCRstate>>1]; else OCR5B+=OCRxx1[OCRstate>>1];
 }
@@ -315,10 +312,10 @@ For motor mapping, see release_notes.txt
 
 void APM_RC_PIRATES::OutputCh(uint8_t ch, uint16_t pwm)
 {
-  pwm=constrain(pwm,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
-  pwm<<=1;   // pwm*2;
+	pwm = constrain(pwm,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
+	pwm <<= 1;   // pwm*2;
  
- switch(ch)
+	switch(ch)
   {
     case 0:  OCR3A=pwm; break; //5
     case 1:  OCR4A=pwm; break; //6
@@ -331,15 +328,39 @@ void APM_RC_PIRATES::OutputCh(uint8_t ch, uint16_t pwm)
 
     case 9:  OCR1A=pwm;break;// d11
     case 10: OCR1B=pwm;break;// d12
-    case 8:  //2nd group
-    case 11:
-    case 12:
-    case 13:
-    case 14:
-    case 15: break;//OCRxx2[ch-8]=(tempx*5)/79;break;
   } 
 }
 
+void APM_RC_PIRATES::enable_out(uint8_t ch)
+{
+  switch(ch) {
+    case 0: TCCR3A |= (1<<COM3A1); break; // CH_1
+    case 1: TCCR4A |= (1<<COM4A1); break; // CH_2
+    case 2: TCCR3A |= (1<<COM3B1); break; // CH_3
+    case 3: TCCR3A |= (1<<COM3C1); break; // CH_4
+    	// 4,5
+    case 6: TCCR4A |= (1<<COM4B1); break; // CH_7
+    case 7: TCCR4A |= (1<<COM4C1); break; // CH_8
+    case 9: TCCR1A |= (1<<COM1A1); break; // CH_9
+    case 10: TCCR1A |= (1<<COM1B1); break; // CH_10
+  }
+}
+
+void APM_RC_PIRATES::disable_out(uint8_t ch)
+{
+  switch(ch) {
+    case 0: TCCR3A &= ~(1<<COM3A1); break; // CH_1
+    case 1: TCCR4A &= ~(1<<COM4A1); break; // CH_2
+    case 2: TCCR3A &= ~(1<<COM3B1); break; // CH_3
+    case 3: TCCR3A &= ~(1<<COM3C1); break; // CH_4
+    	// 4,5
+    case 6: TCCR4A &= ~(1<<COM4B1); break; // CH_7
+    case 7: TCCR4A &= ~(1<<COM4C1); break; // CH_8
+    case 9: TCCR1A &= ~(1<<COM1A1); break; // CH_9
+    case 10: TCCR1A &= ~(1<<COM1B1); break; // CH_10
+  }
+}
+ 
 uint16_t APM_RC_PIRATES::InputCh(uint8_t ch)
 {
   uint16_t result;
@@ -347,7 +368,7 @@ uint16_t APM_RC_PIRATES::InputCh(uint8_t ch)
   
   // Because servo pulse variables are 16 bits and the interrupts are running values could be corrupted.
   // We dont want to stop interrupts to read radio channels so we have to do two readings to be sure that the value is correct...
-result=readRawRC(ch); 
+	result=readRawRC(ch); 
   
   // Limit values to a valid range
   result = constrain(result,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
@@ -357,13 +378,13 @@ result=readRawRC(ch);
 
 uint8_t APM_RC_PIRATES::GetState(void)
 {
-return(1);// always 1
+	return(1);// always 1
 }
 
 // InstantPWM implementation
 void APM_RC_PIRATES::Force_Out(void)
 {
-    Force_Out0_Out1();
+	Force_Out0_Out1();
 }
 
 // This function forces the PWM output (reset PWM) on Out0 and Out1 (Timer5). For quadcopters use

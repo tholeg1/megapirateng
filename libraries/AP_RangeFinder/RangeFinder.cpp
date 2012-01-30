@@ -13,7 +13,11 @@
 */
 
 // AVR LibC Includes
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include "Arduino.h"
+#else
 #include "WConstants.h"
+#endif
 #include "RangeFinder.h"
 
 

@@ -1,7 +1,7 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 //
 // 	GPS_406.cpp - 406 GPS library for Arduino
-// 	Code by Michael Smith, Jason Short, Jordi Muñoz and Jose Julio. DIYDrones.com
+// 	Code by Michael Smith, Jason Short, Jordi Muï¿½oz and Jose Julio. DIYDrones.com
 // 	This code works with boards based on ATMega168/328 ATMega1280 (Serial port 1)
 //
 // 	This library is free software; you can redistribute it and / or
@@ -11,7 +11,11 @@
 
 #include "../FastSerial/FastSerial.h"	// because we need to change baud rates... ugh.
 #include "AP_GPS_406.h"
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include "Arduino.h"
+#else
 #include "WProgram.h"
+#endif
 
 static const char init_str[] = "$PSRF100,0,57600,8,1,0*37";
 

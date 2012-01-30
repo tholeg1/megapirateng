@@ -1,9 +1,7 @@
-Release Notes for MegaPirateNG 2.2 b3
+Release Notes for MegaPirateNG 2.2 b6
 
-IMPORTANT NOTICE!!!
-2560 users - you must use a patched version of Arduino 22 located here:
-http://code.google.com/p/ardupilot-mega/downloads/list
-Look for "relax" in the name.
+This version is compatible with Arduino IDE 1.0!
+(no more relax builds required)
 
 === Before you go ===
 *** See additional requirements for BlackVortex boards in the release_notes_BlackVortex.txt

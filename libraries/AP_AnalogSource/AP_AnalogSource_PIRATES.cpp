@@ -4,8 +4,13 @@ extern "C" {
   // AVR LibC Includes
   #include <inttypes.h>
   #include <avr/interrupt.h>
-  #include "WConstants.h"
 }
+
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include "Arduino.h"
+#else
+	#include "WConstants.h"
+#endif
 
 volatile char sonar_meas=0;
 volatile unsigned int sonar_data=0, sonar_data_start=0, pre_sonar_data=0; // Variables for calculating length of Echo impulse
