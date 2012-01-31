@@ -2,19 +2,18 @@
 
 #define THISFIRMWARE "MegaPirateNG V2.2 b6"
 /*
-ArduCopter Version 2.2 b6
+Please, read release_notes.txt before you go!
+
+Porting to MegaPirate Next Generation by
+  Sir Alex (rsoft@tut.by)
+  SovGVD sovgvd@gmail.com 
+  Romb89 (UBLOX GPS i2c library)
+  Syberian (libraries from MegaPirate r741)
+
+Original firmware is ArduCopter Version 2.2 b6
 Authors:	Jason Short
 Based on code and ideas from the Arducopter team: Jose Julio, Randy Mackay, Jani Hirvinen
 Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier
-
-Porting to MegaPirate Next Generation by
-  SovGVD sovgvd@gmail.com 
-  Syberian (libraries from MegaPirate r741)
-  Sir Alex (rsoft@tut.by)
-  Romb89 (UBLOX GPS i2c library)
-Manual can be found at:
-  http://code.google.com/p/megapirateng
-
 
 This firmware is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -39,6 +38,8 @@ Jack Dunkle			:Alpha testing
 Christof Schmid		:Alpha testing
 Oliver				:Piezo support
 Guntars				:Arming safety suggestion
+Igor van Airde 		:Control Law optimization
+Jean-Louis Naudin 	:Auto Landing
 
 And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
 
@@ -1750,7 +1751,7 @@ static void update_navigation()
 				next_WP.lat 	= current_loc.lat;
 				next_WP.lng 	= current_loc.lng;
 
-				if(g_gps->ground_speed < 50){
+				if((g.rc_2.control_in + g.rc_1.control_in) == 0){
 					loiter_override 		= false;
 					wp_control = LOITER_MODE;
 				}
@@ -1977,8 +1978,8 @@ static void tuning(){
 
 		case CH6_STABILIZE_KP:
 			g.rc_6.set_range(0,8000); 		// 0 to 8
-			g.pid_rate_roll.kP(tuning_value);
-			g.pid_rate_pitch.kP(tuning_value);
+			g.pi_stabilize_roll.kP(tuning_value);
+			g.pi_stabilize_pitch.kP(tuning_value);
 			break;
 
 		case CH6_STABILIZE_KI:
@@ -2038,9 +2039,15 @@ static void tuning(){
 			break;
 
 		case CH6_NAV_P:
-			g.rc_6.set_range(0,6000);
+			g.rc_6.set_range(0,4000);
 			g.pid_nav_lat.kP(tuning_value);
 			g.pid_nav_lon.kP(tuning_value);
+			break;
+
+		case CH6_NAV_I:
+			g.rc_6.set_range(0,500);
+			g.pid_nav_lat.kI(tuning_value);
+			g.pid_nav_lon.kI(tuning_value);
 			break;
 
 		#if FRAME_CONFIG == HELI_FRAME
