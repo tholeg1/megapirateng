@@ -18,7 +18,9 @@ Build in ultra low noise linear LDO voltage regulator.
 
 Dimensions *55x16mm*
 
-All sensors connected to I2C bus.
+= Where to buy =
+You can send PM to CSG_EU at http://www.rcgroups.com/forums/showthread.php?t=1413106
+or you can find this boards at eBay store.
 
 = Board Photo =
 http://megapirateng.googlecode.com/svn/images/AllInOne2.JPG

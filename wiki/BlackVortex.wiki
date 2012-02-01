@@ -1,6 +1,22 @@
 #Настройка кода для платы Black Vortex.
 
-  * Проверить, что в `librares/AP_ADC/AP_ADC_ADS7844.cpp` строка `#define ALLINONE` раскомменитрована, а строки `//#define FFIMU` и `//#define BMA_020` закомменированы.
-  * В APM_Config задать свою раму и ориентацию (x, +, v).
-  * Там же задать GPS протокол GPS_PROTOCOL GPS_PROTOCOL_BLACKVORTEX (в версиях младше 2.0.49B4, надо указывать GPS_PROTOCOL_AUTO)
-  * Не забыть скопировать boards.txt в arduino-0022/hardware/arduino/
+= Configuring MPNG firmware for BV =
+See release_notes.txt and release_notes_BlackVortex.txt in MPNG distributive.
+
+= Introduction =
+Board features and details....
+
+= Details =
+ * HMC5883L Triple Axis Magnetometer
+ * BMA180 Triple Axis Accelerometer
+ * BMP085 Barometric Pressure Sensor
+ * ITG3200 Triple-Axis Digital-Output Gyro
+ * NEO-6Q Ublox GPS receiver
+ * Atmega2560 16MHz 5V
+
+= Where to buy and more info =
+You can send PM to CSG_EU at http://www.rcgroups.com/forums/showthread.php?t=1455433
+or you can find this boards at eBay store.
+
+= Board Photo =
+http://megapirateng.googlecode.com/svn/images/BlackVortex.jpg
