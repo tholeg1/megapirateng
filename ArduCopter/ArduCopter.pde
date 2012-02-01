@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.2 b6"
+#define THISFIRMWARE "MegaPirateNG V2.3"
 /*
 Please, read release_notes.txt before you go!
 
@@ -10,9 +10,9 @@ Porting to MegaPirate Next Generation by
   Romb89 (UBLOX GPS i2c library)
   Syberian (libraries from MegaPirate r741)
 
-Original firmware is ArduCopter Version 2.2 b6
+Original firmware is ArduCopter Version 2.3
 Authors:	Jason Short
-Based on code and ideas from the Arducopter team: Jose Julio, Randy Mackay, Jani Hirvinen
+Based on code and ideas from the Arducopter team: Randy Mackay, Pat Hickey, Jose Julio, Jani Hirvinen
 Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier
 
 This firmware is free software; you can redistribute it and/or
@@ -40,6 +40,9 @@ Oliver				:Piezo support
 Guntars				:Arming safety suggestion
 Igor van Airde 		:Control Law optimization
 Jean-Louis Naudin 	:Auto Landing
+Sandro Benigno  : Camera support
+Olivier Adler : PPM Encoder
+John Arne Birkeland: PPM Encoder
 
 And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
 
@@ -589,7 +592,7 @@ static bool		low_batt = false;
 static int32_t 	ground_pressure;
 // The ground temperature at home location - calibrated at arming
 static int16_t 		ground_temperature;
-// The cm we are off in altitude from next_WP.alt – Positive value means we are below the WP
+// The cm we are off in altitude from next_WP.alt – Positive value means we are below the WP
 static int32_t		altitude_error;
 // The cm/s we are moving up or down - Positive = UP
 static int16_t		climb_rate;

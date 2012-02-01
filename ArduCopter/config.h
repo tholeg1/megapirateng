@@ -383,7 +383,7 @@
   #define OPTFLOW_ROLL_P 2.5
 #endif
 #ifndef OPTFLOW_ROLL_I
-  #define OPTFLOW_ROLL_I 6.2
+  #define OPTFLOW_ROLL_I 3.2
 #endif
 #ifndef OPTFLOW_ROLL_D
   #define OPTFLOW_ROLL_D 0.12
@@ -392,7 +392,7 @@
   #define OPTFLOW_PITCH_P 2.5
 #endif
 #ifndef OPTFLOW_PITCH_I
-  #define OPTFLOW_PITCH_I 6.2
+  #define OPTFLOW_PITCH_I 3.2
 #endif
 #ifndef OPTFLOW_PITCH_D
   #define OPTFLOW_PITCH_D 0.12
@@ -785,7 +785,7 @@
 #endif
 #elif !defined(LOGGING_ENABLED)
 // Logging is enabled by default for all other builds.
-# define LOGGING_ENABLED		DISABLED
+# define LOGGING_ENABLED		ENABLED
 #endif
 
 
@@ -793,7 +793,7 @@
 # define LOG_ATTITUDE_FAST		DISABLED
 #endif
 #ifndef LOG_ATTITUDE_MED
-# define LOG_ATTITUDE_MED 		DISABLED
+# define LOG_ATTITUDE_MED 		ENABLED
 #endif
 #ifndef LOG_GPS
 # define LOG_GPS 				ENABLED
