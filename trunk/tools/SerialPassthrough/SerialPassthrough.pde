@@ -1,13 +1,21 @@
 #include <FastSerial.h>
+/*
+// You can use this sketch to communicate with devices connected to Arduino board
+// In exampe, you can configure GPS or Bluetooth modules
+*/
 
 FastSerialPort0(Serial);
 FastSerialPort2(Serial2);
 
 void setup(void)
 {
+	// Computer <-> Arduino speed
 	Serial.begin(115200);
+
+	// Arduino <-> your device
 	Serial2.begin(38400);
-	Serial.println("Start");
+	
+	Serial.println("Started");
 }
 
 void
