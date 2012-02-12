@@ -12,15 +12,6 @@
 		
 */
 
-/*
-APM motor remap to the MultiWii-style
-
-Another remap to foolish the original board:
-AP: 0,1,2,3,6,7 - motors, 4,5 - camstab (who the f*ck has implemented this???)
-mw: 0,1,3,4,5,6 - motors
-*/
-
-
 #include "APM_RC_PIRATES.h"
 
 #include <avr/interrupt.h>
@@ -31,28 +22,6 @@ mw: 0,1,3,4,5,6 - motors
   #include "WProgram.h"
 #endif
 
-//######################################################
-// ENABLE serial PPM receiver by uncommenting the line below
-// Connect PPM_SUM signal to A8
-
-//#define SERIAL_SUM
-
-
-//##################################################
-// Define one from your Receiver/Serial channels set. This can be used for both the PPM SUM and the normal point-to-point receiver to arduino connections
-
-//#define TX_set1				//Graupner/Spektrum					PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
-
-//#define TX_standard				//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
-
-//#define TX_standard_mode6				//standard, Mode channel is 6  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,AUX1,MODE,CAMPITCH,CAMROLL
-
-//#define TX_set2				// some Hitec/Sanwa/others				PITCH,ROLL,THROTTLE,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
-
-#define TX_mwi				// MultiWii layout					ROLL,THROTTLE,PITCH,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
-
-//##################################################
-
 
 #if !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__)
 # error Please check the Tools/Board menu to ensure you have selected Arduino Mega as your target.
@@ -60,6 +29,9 @@ mw: 0,1,3,4,5,6 - motors
 
 // Variable definition for Input Capture interrupt
 volatile uint8_t radio_status=0;
+volatile bool use_ppm = 0;
+volatile bool bv_mode;
+uint8_t *pinRcChannel;
 
 // ******************
 // rc functions split channels
@@ -86,105 +58,68 @@ static  uint8_t pin;
 static  uint16_t cTime,dTime;
 static uint16_t edgeTime[8];
 static uint8_t PCintLast;
+
   cTime = TCNT5;         // from sonar
   pin = PINK;             // PINK indicates the state of each PIN for the arduino port dealing with [A8-A15] digital pins (8 bits variable)
 	mask = pin ^ PCintLast;   // doing a ^ between the current interruption and the last one indicates wich pin changed
   sei();                    // re enable other interrupts at this point, the rest of this interrupt is not so time critical and can be interrupted safely
   PCintLast = pin;          // we memorize the current state of all PINs [D0-D7]
 
-#ifdef SERIAL_SUM
-	static uint8_t pps_num=0;
-	static uint16_t pps_etime=0;
-
-  if (pin & 1) { // Rising edge detection
-  	if (cTime < pps_etime) // Timer overflow detection
-  		dTime = (0xFFFF-pps_etime)+cTime;
-  	else
-    	dTime = cTime-pps_etime; 
-		if (dTime < 4400) {
-			rcPinValue[pps_num] = dTime>>1;
-			pps_num++;
-			pps_num&=7; // upto 8 packets in slot
-		} else 
-			pps_num=0; 
-	 	pps_etime = cTime; // Save edge time
-	 }
-
-#else // generic split PPM  
-  // mask is pins [D0-D7] that have changed // the principle is the same on the MEGA for PORTK and [A8-A15] PINs
-  // chan = pin sequence of the port. chan begins at D2 and ends at D7
-  if (mask & 1<<0)
-    if (!(pin & 1<<0)) {
-      dTime = cTime-edgeTime[0]; if (1600<dTime && dTime<4400) rcPinValue[0] = dTime>>1;
-    } else edgeTime[0] = cTime;
-  if (mask & 1<<1)
-    if (!(pin & 1<<1)) {
-      dTime = cTime-edgeTime[1]; if (1600<dTime && dTime<4400) rcPinValue[1] = dTime>>1;
-    } else edgeTime[1] = cTime;
-  if (mask & 1<<2) 
-    if (!(pin & 1<<2)) {
-      dTime = cTime-edgeTime[2]; if (1600<dTime && dTime<4400) rcPinValue[2] = dTime>>1;
-    } else edgeTime[2] = cTime;
-  if (mask & 1<<3)
-    if (!(pin & 1<<3)) {
-      dTime = cTime-edgeTime[3]; if (1600<dTime && dTime<4400) rcPinValue[3] = dTime>>1;
-    } else edgeTime[3] = cTime;
-  if (mask & 1<<4) 
-    if (!(pin & 1<<4)) {
-      dTime = cTime-edgeTime[4]; if (1600<dTime && dTime<4400) rcPinValue[4] = dTime>>1;
-    } else edgeTime[4] = cTime;
-  if (mask & 1<<5)
-    if (!(pin & 1<<5)) {
-      dTime = cTime-edgeTime[5]; if (1600<dTime && dTime<4400) rcPinValue[5] = dTime>>1;
-    } else edgeTime[5] = cTime;
-  if (mask & 1<<6)
-    if (!(pin & 1<<6)) {
-      dTime = cTime-edgeTime[6]; if (1600<dTime && dTime<4400) rcPinValue[6] = dTime>>1;
-    } else edgeTime[6] = cTime;
-  if (mask & 1<<7)
-    if (!(pin & 1<<7)) {
-      dTime = cTime-edgeTime[7]; if (1600<dTime && dTime<4400) rcPinValue[7] = dTime>>1;
-    } else edgeTime[7] = cTime;
-#endif	
+	if (use_ppm) {
+		static uint8_t pps_num=0;
+		static uint16_t pps_etime=0;
+	
+		if (pin & 1) { // Rising edge detection
+			if (cTime < pps_etime) // Timer overflow detection
+				dTime = (0xFFFF-pps_etime)+cTime;
+			else
+				dTime = cTime-pps_etime; 
+			if (dTime < 4400) {
+				rcPinValue[pps_num] = dTime>>1;
+				pps_num++;
+				pps_num&=7; // upto 8 packets in slot
+			} else 
+				pps_num=0; 
+		 	pps_etime = cTime; // Save edge time
+		 }
+	} else {
+		// generic split PPM  
+	  // mask is pins [D0-D7] that have changed // the principle is the same on the MEGA for PORTK and [A8-A15] PINs
+	  // chan = pin sequence of the port. chan begins at D2 and ends at D7
+	  if (mask & 1<<0)
+	    if (!(pin & 1<<0)) {
+	      dTime = cTime-edgeTime[0]; if (1600<dTime && dTime<4400) rcPinValue[0] = dTime>>1;
+	    } else edgeTime[0] = cTime;
+	  if (mask & 1<<1)
+	    if (!(pin & 1<<1)) {
+	      dTime = cTime-edgeTime[1]; if (1600<dTime && dTime<4400) rcPinValue[1] = dTime>>1;
+	    } else edgeTime[1] = cTime;
+	  if (mask & 1<<2) 
+	    if (!(pin & 1<<2)) {
+	      dTime = cTime-edgeTime[2]; if (1600<dTime && dTime<4400) rcPinValue[2] = dTime>>1;
+	    } else edgeTime[2] = cTime;
+	  if (mask & 1<<3)
+	    if (!(pin & 1<<3)) {
+	      dTime = cTime-edgeTime[3]; if (1600<dTime && dTime<4400) rcPinValue[3] = dTime>>1;
+	    } else edgeTime[3] = cTime;
+	  if (mask & 1<<4) 
+	    if (!(pin & 1<<4)) {
+	      dTime = cTime-edgeTime[4]; if (1600<dTime && dTime<4400) rcPinValue[4] = dTime>>1;
+	    } else edgeTime[4] = cTime;
+	  if (mask & 1<<5)
+	    if (!(pin & 1<<5)) {
+	      dTime = cTime-edgeTime[5]; if (1600<dTime && dTime<4400) rcPinValue[5] = dTime>>1;
+	    } else edgeTime[5] = cTime;
+	  if (mask & 1<<6)
+	    if (!(pin & 1<<6)) {
+	      dTime = cTime-edgeTime[6]; if (1600<dTime && dTime<4400) rcPinValue[6] = dTime>>1;
+	    } else edgeTime[6] = cTime;
+	  if (mask & 1<<7)
+	    if (!(pin & 1<<7)) {
+	      dTime = cTime-edgeTime[7]; if (1600<dTime && dTime<4400) rcPinValue[7] = dTime>>1;
+	    } else edgeTime[7] = cTime;
+	}
 }
-/* RC standard matrix (we are using analog inputs A8..A15 of MEGA board)
-0	Aileron
-1	Elevator
-2	Throttle
-3	Rudder
-4	RX CH 5 Gear
-5	RX CH 6 Flaps
-5.bis	RX CH 6 Flaps 3 Switch
-6	RX CH7
-7 *)	RX CH8
-*/
-//MultiWii compatibility layout:
-/*
-THROTTLEPIN              //PIN 62 =  PIN A8
-ROLLPIN                      //PIN 63 =  PIN A9
-PITCHPIN                     //PIN 64 =  PIN A10
-YAWPIN                       //PIN 65 =  PIN A11
-AUX1PIN                      //PIN 66 =  PIN A12
-AUX2PIN                      //PIN 67 =  PIN A13
-CAM1PIN                      //PIN 68 =  PIN A14
-CAM2PIN                      //PIN 69 =  PIN A15
-*/
-#ifdef TX_set1
-static uint8_t pinRcChannel[8] = {1, 3, 2, 0, 4,5,6,7}; //Graupner/Spektrum
-#endif
-#ifdef TX_standard
-static uint8_t pinRcChannel[8] = {0, 1, 2, 3, 4,5,6,7}; //standard  PPM layout Robbe/Hitec/Sanwa
-#endif
-#ifdef TX_standard_mode6
-static uint8_t pinRcChannel[8] = {0, 1, 2, 3, 5,4,6,7}; //standard layout with swapped 5,6 channels (Mode switch on 6 channel)
-#endif
-#ifdef TX_set2
-static uint8_t pinRcChannel[8] = {1, 0, 2, 3, 4,5,6,7}; // some Hitec/Sanwa/others
-#endif
-#ifdef TX_mwi
-static uint8_t pinRcChannel[8] = {1, 2, 0, 3, 4,5,6,7}; // mapped multiwii to APM layout
-#endif
-
 
 uint16_t readRawRC(uint8_t chan) {
   uint16_t data;
@@ -200,20 +135,12 @@ uint16_t readRawRC(uint8_t chan) {
 //######################### END RC split channels
 
 // Constructors ////////////////////////////////////////////////////////////////
-/*
-timer usage:
-0 8bit
-1 general servo
-2 8bit
-3 servo3,5,2 (OCR ABC)
-4 servo6,7,8
-5 rc input and sonar
 
-*/
-// Constructors ////////////////////////////////////////////////////////////////
-
-APM_RC_PIRATES::APM_RC_PIRATES()
+APM_RC_PIRATES::APM_RC_PIRATES(int _use_ppm, int _bv_mode, uint8_t *_pin_map)
 {
+	use_ppm = _use_ppm; // Use serial sum (PPM)
+	bv_mode = _bv_mode; // BlackVortex mode
+	pinRcChannel = _pin_map; // Channel mapping
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
@@ -231,8 +158,13 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
   pinMode(9,OUTPUT);
   pinMode(11,OUTPUT);
   pinMode(12,OUTPUT);
-  pinMode(44,OUTPUT);//cam roll L5
-  pinMode(45,OUTPUT);// cam pitch L4
+  if (bv_mode) {
+		pinMode(32,OUTPUT);//cam roll L5
+		pinMode(33,OUTPUT);// cam pitch L4
+	} else {
+		pinMode(44,OUTPUT);//cam roll L5
+		pinMode(45,OUTPUT);// cam pitch L4
+	}
   
   //general servo
   TCCR5A =0; //standard mode with overflow at A and OC B and C interrupts
@@ -293,10 +225,18 @@ ISR(TIMER5_COMPB_vect)
 { // set the corresponding pin to 1
 	OCRstate++;
 	OCRstate&=15;
-	switch (OCRstate>>1)
-	{
-		case 0:  if(OCRstate&1)PORTL&=(1<<5)^255; else PORTL|=(1<<5);break; //d44, cam Roll
-		case 1: if(OCRstate&1)PORTL&=(1<<4)^255; else PORTL|=(1<<4);break;   //d45, cam Pitch
+	if (bv_mode) {
+		switch (OCRstate>>1)
+		{
+			case 0: if(OCRstate&1)PORTC&=(1<<5)^255; else PORTC|=(1<<5);break;	//d32, cam roll
+			case 1: if(OCRstate&1)PORTC&=(1<<4)^255; else PORTC|=(1<<4);break;	//d33, cam pitch	
+		}
+	} else {
+		switch (OCRstate>>1)
+		{
+			case 0:	if(OCRstate&1)PORTL&=(1<<5)^255; else PORTL|=(1<<5);break;	//d44, cam Roll
+			case 1:	if(OCRstate&1)PORTL&=(1<<4)^255; else PORTL|=(1<<4);break;	//d45, cam Pitch
+		}
 	}
 	if(OCRstate&1)OCR5B+=5000-OCRxx1[OCRstate>>1]; else OCR5B+=OCRxx1[OCRstate>>1];
 }
