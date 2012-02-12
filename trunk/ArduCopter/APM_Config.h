@@ -12,6 +12,17 @@
 	PIRATES_FREEIMU_4 // New FreeIMU 0.4.1 with MPU6000, MS5611 and 5883L
 */
 
+// RC configuration
+//#define SERIAL_PPM ENABLED
+#define TX_CHANNEL_SET	TX_mwi
+/*
+	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
+	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
+	TX_standard_mode6		//standard, Mode channel is 6  						ROLL,PITCH,THROTTLE,YAW,AUX1,MODE,CAMPITCH,CAMROLL
+	TX_set2							//some Hitec/Sanwa/others									PITCH,ROLL,THROTTLE,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
+	TX_mwi							//MultiWii layout													ROLL,THROTTLE,PITCH,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
+*/
+
 // Select your baro sensor
 #define CONFIG_BARO AP_BARO_BMP085_PIRATES
 /*

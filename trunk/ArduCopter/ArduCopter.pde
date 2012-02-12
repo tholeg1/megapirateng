@@ -134,7 +134,24 @@ static void update_events(void);
 // RC Hardware
 ////////////////////////////////////////////////////////////////////////////////
 #if CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
-    APM_RC_PIRATES APM_RC;
+
+	#if TX_CHANNEL_SET == TX_set1
+		static uint8_t pinRcChannel[8] = {1, 3, 2, 0, 4,5,6,7}; //Graupner/Spektrum
+	#elif TX_CHANNEL_SET == TX_standard
+		static uint8_t pinRcChannel[8] = {0, 1, 2, 3, 4,5,6,7}; //standard  PPM layout Robbe/Hitec/Sanwa
+	#elif TX_CHANNEL_SET == TX_standard_mode6
+		static uint8_t pinRcChannel[8] = {0, 1, 2, 3, 5,4,6,7}; //standard layout with swapped 5,6 channels (Mode switch on 6 channel)
+	#elif TX_CHANNEL_SET == TX_set2
+		static uint8_t pinRcChannel[8] = {1, 0, 2, 3, 4,5,6,7}; // some Hitec/Sanwa/others
+	#elif TX_CHANNEL_SET == TX_mwi
+		static uint8_t pinRcChannel[8] = {1, 2, 0, 3, 4,5,6,7}; // mapped multiwii to APM layout
+	#endif
+	
+	#if PIRATES_SENSOR_BOARD == PIRATES_BLACKVORTEX
+		APM_RC_PIRATES APM_RC(SERIAL_PPM, 1, pinRcChannel);
+	#else
+		APM_RC_PIRATES APM_RC(SERIAL_PPM, 0, pinRcChannel);
+	#endif
 #elif CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
     APM_RC_APM2 APM_RC;
 #else

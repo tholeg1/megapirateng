@@ -394,4 +394,12 @@ enum gcs_severity {
 #define LOGGING_SIMPLE    1
 #define LOGGING_VERBOSE   2
 
+// Pirates Transmitter channel mappings
+#define TX_set1	1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
+#define TX_standard	2					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
+#define TX_standard_mode6	3		//standard, Mode channel is 6  						ROLL,PITCH,THROTTLE,YAW,AUX1,MODE,CAMPITCH,CAMROLL
+#define TX_set2	4							//some Hitec/Sanwa/others									PITCH,ROLL,THROTTLE,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
+#define TX_mwi	5							//MultiWii layout													ROLL,THROTTLE,PITCH,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
+
+
 #endif // _DEFINES_H
