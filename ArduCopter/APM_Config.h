@@ -13,7 +13,9 @@
 */
 
 // RC configuration
+// Uncomment if you uses PPM Sum signal from receiver
 //#define SERIAL_PPM ENABLED
+
 #define TX_CHANNEL_SET	TX_mwi
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
@@ -34,11 +36,11 @@
 #define MAX_SONAR_RANGE 400
 
 #define OSD_PROTOCOL OSD_PROTOCOL_NONE
-	/*
-		OSD_PROTOCOL_NONE
-		OSD_PROTOCOL_SYBERIAN
-		OSD_PROTOCOL_REMZIBI  // Read more at: http://www.rcgroups.com/forums/showthread.php?t=921467
-	*/
+/*
+	OSD_PROTOCOL_NONE
+	OSD_PROTOCOL_SYBERIAN
+	OSD_PROTOCOL_REMZIBI  // Read more at: http://www.rcgroups.com/forums/showthread.php?t=921467
+*/
 
 // New in 2.0.43, but unused in MegairateNG
 // MPNG: Piezo uses AN5 pin in ArduCopter, we uses AN5 for CLI switch
@@ -48,8 +50,7 @@
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will select automatically 
 #define GPS_PROTOCOL GPS_PROTOCOL_NONE
-	/*
-	options:
+/*
 	GPS_PROTOCOL_NONE 	without GPS
 	GPS_PROTOCOL_NMEA
 	GPS_PROTOCOL_SIRF
@@ -61,32 +62,31 @@
 	GPS_PROTOCOL_AUTO	auto select GPS
 	GPS_PROTOCOL_UBLOX_I2C
 	GPS_PROTOCOL_BLACKVORTEX
-	*/
+*/
 	
 #define SERIAL0_BAUD			 115200	// If one want a wireless modem (like APC220) on the console port, lower that to 57600. Default is 115200 
 #define SERIAL2_BAUD			 38400	// GPS port bps
 #define SERIAL3_BAUD			 57600	// default telemetry BPS rate = 57600
 
 #define FRAME_CONFIG QUAD_FRAME
-	/*
-	options:
+/*
 	QUAD_FRAME
 	TRI_FRAME
 	HEXA_FRAME
 	Y6_FRAME
 	OCTA_FRAME
 	HELI_FRAME
-	*/
+*/
 
 #define FRAME_ORIENTATION X_FRAME
-	/*
+/*
 	PLUS_FRAME
 	X_FRAME
 	V_FRAME
-	*/
+*/
 
 # define CH7_OPTION		CH7_DO_NOTHING
-	/*
+/*
 	CH7_DO_NOTHING
 	CH7_SET_HOVER
 	CH7_FLIP
@@ -95,7 +95,7 @@
 	CH7_AUTO_TRIM
 	CH7_ADC_FILTER (experimental)
 	CH7_SAVE_WP
-	*/
+*/
 
 #define ACCEL_ALT_HOLD 0		// disabled by default, work in progress
 
