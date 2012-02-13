@@ -1,16 +1,20 @@
-Release Notes for MegaPirateNG 2.3
+Release Notes for MegaPirateNG 2.3 rc1
 
-This version is compatible with Arduino IDE 1.0!
+=== Important info ===
+
+--- 2.3 rc1
+TX configuration moved from APM_RC_PIRATES.cpp to common configuration file APM_config.h
+
+--- 2.3
+Version is compatible with Arduino IDE 1.0!
 
 === How to compile MegaPirateNG ===
 
 1. See additional requirements for BlackVortex boards in the release_notes_BlackVortex.txt
 2. Delete libraries folder in Arduino IDE folder
-3. Copy libraries folder from Arduino IDE installation archive into Arduino IDE folder
+3. Copy libraries folder from Arduino IDE distributive into Arduino IDE folder
 4. Copy libraries folder from MegaPirateNG distributive into Arduino IDE folder
-5. Select your frame, sensors type in the apm_config.h (Quad X, ALLINONE by default)
-6. Select your RC Channel mapping in /libraries/APM_RC/APM_RC_PIRATES.cpp
-7. For tuning the LED sequencer open the LED.pde and read the descriptions
+5. Select your Frame, Sensor, Tranmitter type in the APM_config.h (Quad X, ALLINONE by default)
 
 
 === Arduino board pin mapping ===
