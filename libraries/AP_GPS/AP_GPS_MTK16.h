@@ -23,8 +23,6 @@ public:
     virtual bool	read(void);
 
 private:
-		bool WaitForPreamble(uint16_t timeout_ms);
-		
 // XXX this is being ignored by the compiler #pragma pack(1)
     struct diyd_mtk_msg {
         int32_t		latitude;
