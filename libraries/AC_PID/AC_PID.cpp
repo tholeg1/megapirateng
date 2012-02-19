@@ -6,6 +6,13 @@
 #include <math.h>
 #include "AC_PID.h"
 
+const AP_Param::GroupInfo AC_PID::var_info[] PROGMEM = {
+	AP_GROUPINFO("P",    0, AC_PID, _kp),
+	AP_GROUPINFO("I",    1, AC_PID, _ki),
+	AP_GROUPINFO("D",    2, AC_PID, _kd),
+	AP_GROUPINFO("IMAX", 3, AC_PID, _imax),
+	AP_GROUPEND
+};
 
 int32_t AC_PID::get_p(int32_t error)
 {
@@ -21,8 +28,9 @@ int32_t AC_PID::get_i(int32_t error, float dt)
 		} else if (_integrator > _imax) {
 			_integrator = _imax;
 		}
+		return _integrator;
 	}
-	return _integrator;
+	return 0;
 }
 
 int32_t AC_PID::get_d(int32_t input, float dt)
@@ -42,6 +50,7 @@ int32_t AC_PID::get_d(int32_t input, float dt)
 		// add in derivative component
 		return _kd * _derivative;
 	}
+	return 0;
 }
 
 int32_t AC_PID::get_pi(int32_t error, float dt)
@@ -65,8 +74,7 @@ int32_t AC_PID::get_pid(int32_t error, float dt)
 
 	// Compute derivative component if time has elapsed
 	if ((fabs(_kd) > 0) && (dt > 0)) {
-
-		_derivative = (error - _last_input) / dt;
+		_derivative = (error - _last_error) / dt;
 
 		// discrete low pass filter, cuts out the
 		// high frequency noise that can drive the controller crazy
@@ -74,7 +82,7 @@ int32_t AC_PID::get_pid(int32_t error, float dt)
 		        (dt / ( _filter + dt)) * (_derivative - _last_derivative);
 
 		// update state
-		_last_input 		= error;
+		_last_error 		= error;
 		_last_derivative    = _derivative;
 
 		// add in derivative component
@@ -108,11 +116,17 @@ AC_PID::reset_I()
 void
 AC_PID::load_gains()
 {
-    _group.load();
+	_kp.load();
+	_ki.load();
+	_kd.load();
+	_imax.load();
 }
 
 void
 AC_PID::save_gains()
 {
-    _group.save();
+	_kp.save();
+	_ki.save();
+	_kd.save();
+	_imax.save();
 }

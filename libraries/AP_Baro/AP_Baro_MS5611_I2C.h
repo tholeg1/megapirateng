@@ -28,7 +28,7 @@ class AP_Baro_MS5611_I2C : public AP_Baro
   static bool _updated;
   static uint32_t _s_D1, _s_D2;
   static uint8_t _state;
-  static long _timer;
+  static uint32_t _timer;
   /* Gates access to asynchronous state: */
   static bool _sync_access;
 

@@ -4,7 +4,7 @@
 
 // These are function definitions so the Menu can be constructed before the functions
 // are defined below. Order matters to the compiler.
-//static int8_t	test_radio_pwm(uint8_t argc, 	const Menu::arg *argv);
+static int8_t	test_radio_pwm(uint8_t argc, 	const Menu::arg *argv);
 static int8_t	test_radio(uint8_t argc, 		const Menu::arg *argv);
 //static int8_t	test_failsafe(uint8_t argc, 	const Menu::arg *argv);
 //static int8_t	test_stabilize(uint8_t argc, 	const Menu::arg *argv);
@@ -55,7 +55,7 @@ static int8_t	test_rawgps(uint8_t argc, 		const Menu::arg *argv);
 // User enters the string in the console to call the functions on the right.
 // See class Menu in AP_Coommon for implementation details
 const struct Menu::command test_menu_commands[] PROGMEM = {
-//	{"pwm",			test_radio_pwm},
+	{"pwm",			test_radio_pwm},
 	{"radio",		test_radio},
 //	{"failsafe",	test_failsafe},
 //	{"stabilize",	test_stabilize},
@@ -112,10 +112,14 @@ test_eedump(uint8_t argc, const Menu::arg *argv)
 	return(0);
 }
 
-/*
-//static int8_t
-//test_radio_pwm(uint8_t argc, const Menu::arg *argv)
+
+static int8_t
+test_radio_pwm(uint8_t argc, const Menu::arg *argv)
 {
+	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+		print_test_disabled();
+		return (0);
+	#else
 	print_hit_enter();
 	delay(1000);
 
@@ -143,7 +147,8 @@ test_eedump(uint8_t argc, const Menu::arg *argv)
 			return (0);
 		}
 	}
-}*/
+	#endif
+}
 
 /*
 //static int8_t
@@ -729,9 +734,11 @@ test_tuning(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_battery(uint8_t argc, const Menu::arg *argv)
 {
+	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+		print_test_disabled();
+		return (0);
+	#else
 	print_hit_enter();
-	//delta_ms_medium_loop = 100;
-
 	while(1){
 		delay(100);
 		read_radio();
@@ -757,11 +764,16 @@ test_battery(uint8_t argc, const Menu::arg *argv)
 		}
 	}
 	return (0);
+	#endif
 }
-
 
 static int8_t test_relay(uint8_t argc, const Menu::arg *argv)
 {
+	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+		print_test_disabled();
+		return (0);
+	#else
+
 	print_hit_enter();
 	delay(1000);
 
@@ -780,7 +792,9 @@ static int8_t test_relay(uint8_t argc, const Menu::arg *argv)
 			return (0);
 		}
 	}
+	#endif
 }
+
 
 static int8_t
 test_wp(uint8_t argc, const Menu::arg *argv)
@@ -877,9 +891,11 @@ test_baro(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_mag(uint8_t argc, const Menu::arg *argv)
 {
+	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+		print_test_disabled();
+		return (0);
+	#else
 	if(g.compass_enabled) {
-		//Serial.printf_P(PSTR("MAG_ORIENTATION: %d\n"), MAG_ORIENTATION);
-
 		print_hit_enter();
 
 		while(1){
@@ -906,6 +922,7 @@ test_mag(uint8_t argc, const Menu::arg *argv)
 		return (0);
 	}
 	return (0);
+	#endif
 }
 
 /*

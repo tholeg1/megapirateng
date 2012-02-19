@@ -1,6 +1,6 @@
 /*
 	APM_RC_APM2.cpp - Radio Control Library for Ardupilot Mega 2.0. Arduino
-	Code by Jordi Muï¿½oz and Jose Julio. DIYDrones.com
+	Code by Jordi Muñoz and Jose Julio. DIYDrones.com
 
 	This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,7 @@
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
 #else
-#include "WProgram.h"
+	#include "WProgram.h"
 #endif
 
 #if !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__)
@@ -122,6 +122,8 @@ void APM_RC_APM2::Init( Arduino_Mega_ISR_Registry * isr_reg )
   //--------------- TIMER5: PPM INPUT ---------------------------------
   // Init PPM input on Timer 5
   pinMode(48, INPUT);  // PPM Input (PL1/ICP5)
+  pinMode(45, OUTPUT); // OUT10 (PL4/OC5B)
+  pinMode(44, OUTPUT); // OUT11 (PL5/OC5C)
 
   // WGM: 1 1 1 1. Fast PWM, TOP is OCR5A
   // COM all disabled.
@@ -153,6 +155,8 @@ void APM_RC_APM2::OutputCh(unsigned char ch, uint16_t pwm)
     case 5:  OCR3C=pwm; break;  // out6
     case 6:  OCR3B=pwm; break;  // out7
     case 7:  OCR3A=pwm; break;  // out8
+    case 9:  OCR5B=pwm; break;  // out10
+    case 10: OCR5C=pwm; break;  // out11
   }
 }
 
@@ -167,6 +171,8 @@ void APM_RC_APM2::enable_out(uint8_t ch)
     case 5: TCCR3A |= (1<<COM3C1); break; // CH_6 : OC3C
     case 6: TCCR3A |= (1<<COM3B1); break; // CH_7 : OC3B
     case 7: TCCR3A |= (1<<COM3A1); break; // CH_8 : OC3A
+    case 9: TCCR5A |= (1<<COM5B1); break; // CH_10 : OC5B
+    case 10: TCCR5A |= (1<<COM5C1); break; // CH_11 : OC5C
   }
 }
 
@@ -181,6 +187,8 @@ void APM_RC_APM2::disable_out(uint8_t ch)
     case 5: TCCR3A &= ~(1<<COM3C1); break; // CH_6 : OC3C
     case 6: TCCR3A &= ~(1<<COM3B1); break; // CH_7 : OC3B
     case 7: TCCR3A &= ~(1<<COM3A1); break; // CH_8 : OC3A
+    case 9: TCCR5A &= ~(1<<COM5B1); break; // CH_10 : OC5B
+    case 10: TCCR5A &= ~(1<<COM5C1); break; // CH_11 : OC5C
   }
 }
 
