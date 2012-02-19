@@ -13,7 +13,7 @@ static void default_dead_zones()
 		g.rc_4.set_dead_zone(30);
 	#else
 	    g.rc_3.set_dead_zone(60);
-		g.rc_4.set_dead_zone(200);
+		g.rc_4.set_dead_zone(80);
 	#endif
 }
 
@@ -22,10 +22,7 @@ static void init_rc_in()
 	// set rc channel ranges
 	g.rc_1.set_angle(4500);
 	g.rc_2.set_angle(4500);
-	g.rc_3.set_range(0, MAXIMUM_THROTTLE);
-    #if FRAME_CONFIG !=	HELI_FRAME
-	g.rc_3.scale_output = .9;
-	#endif
+	g.rc_3.set_range(MINIMUM_THROTTLE, MAXIMUM_THROTTLE);
 	g.rc_4.set_angle(4500);
 
 	// reverse: CW = left
@@ -69,7 +66,7 @@ static void init_rc_out()
     }
 
 	// we are full throttle
-	if(g.rc_3.control_in == 800){
+	if(g.rc_3.control_in >= (MAXIMUM_THROTTLE - 50)){
 		if(g.esc_calibrate == 0){
 			// we will enter esc_calibrate mode on next reboot
 			g.esc_calibrate.set_and_save(1);
@@ -138,13 +135,13 @@ static void read_radio()
 
 		#if FRAME_CONFIG != HELI_FRAME
 			// limit our input to 800 so we can still pitch and roll
-			g.rc_3.control_in = min(g.rc_3.control_in, 800);
+			g.rc_3.control_in = min(g.rc_3.control_in, MAXIMUM_THROTTLE);
 		#endif
 
 		throttle_failsafe(g.rc_3.radio_in);
 	}
 }
-
+#define FS_COUNTER 3
 static void throttle_failsafe(uint16_t pwm)
 {
 	// Don't enter Failsafe if not enabled by user
@@ -157,19 +154,19 @@ static void throttle_failsafe(uint16_t pwm)
 		// we detect a failsafe from radio
 		// throttle has dropped below the mark
 		failsafeCounter++;
-		if (failsafeCounter == 9){
+		if (failsafeCounter == FS_COUNTER-1){
 			//
-		}else if(failsafeCounter == 10) {
+		}else if(failsafeCounter == FS_COUNTER) {
 			// Don't enter Failsafe if we are not armed
 			// home distance is in meters
 			// This is to prevent accidental RTL
-			if((motor_armed == true) && (home_distance > 1000) && (current_loc.alt > 400)){
+			if((motor_armed == true) && (home_distance > 1000)){
 				SendDebug("MSG FS ON ");
 				SendDebugln(pwm, DEC);
 				set_failsafe(true);
 			}
-		}else if (failsafeCounter > 10){
-			failsafeCounter = 11;
+		}else if (failsafeCounter > FS_COUNTER){
+			failsafeCounter = FS_COUNTER+1;
 		}
 
 	}else if(failsafeCounter > 0){

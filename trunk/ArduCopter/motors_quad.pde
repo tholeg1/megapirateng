@@ -24,7 +24,7 @@ static void output_motors_armed()
 	int out_max = g.rc_3.radio_max;
 
 	// Throttle is 0 to 1000 only
-	g.rc_3.servo_out 	= constrain(g.rc_3.servo_out, 0, 800);
+	g.rc_3.servo_out 	= constrain(g.rc_3.servo_out, 0, MAXIMUM_THROTTLE);
 
 	if(g.rc_3.servo_out > 0)
 		out_min = g.rc_3.radio_min + MINIMUM_THROTTLE;
@@ -37,8 +37,8 @@ static void output_motors_armed()
 
 
 	if(g.frame_orientation == X_FRAME){
-		roll_out 	 	= g.rc_1.pwm_out * .707;
-		pitch_out 	 	= g.rc_2.pwm_out * .707;
+		roll_out 	 	= (float)g.rc_1.pwm_out * 0.707;
+		pitch_out 	 	= (float)g.rc_2.pwm_out * 0.707;
 
 		// left
 		motor_out[MOT_3]	 	= g.rc_3.radio_out + roll_out + pitch_out;	// FRONT
@@ -177,43 +177,49 @@ static void output_motor_test()
 
 
 	if(g.frame_orientation == X_FRAME){
-//  31
-//	24
-		if(g.rc_1.control_in > 3000){
-			motor_out[MOT_1] += 100;
-			motor_out[MOT_4] += 100;
-		}
 
-		if(g.rc_1.control_in < -3000){
-			motor_out[MOT_2] += 100;
-			motor_out[MOT_3] += 100;
-		}
+		 APM_RC.OutputCh(MOT_3, g.rc_2.radio_min);
+		 delay(4000);
+		 APM_RC.OutputCh(MOT_1, g.rc_3.radio_min + 100);
+		 delay(300);
 
-		if(g.rc_2.control_in > 3000){
-			motor_out[MOT_2] += 100;
-			motor_out[MOT_4] += 100;
-		}
+		 APM_RC.OutputCh(MOT_1, g.rc_3.radio_min);
+		 delay(2000);
+		 APM_RC.OutputCh(MOT_4, g.rc_1.radio_min + 100);
+		 delay(300);
 
-		if(g.rc_2.control_in < -3000){
-			motor_out[MOT_1] += 100;
-			motor_out[MOT_3] += 100;
-		}
+		 APM_RC.OutputCh(MOT_4, g.rc_1.radio_min);
+		 delay(2000);
+		 APM_RC.OutputCh(MOT_2, g.rc_4.radio_min + 100);
+		 delay(300);
+
+		 APM_RC.OutputCh(MOT_2, g.rc_4.radio_min);
+		 delay(2000);
+		 APM_RC.OutputCh(MOT_3, g.rc_2.radio_min + 100);
+		 delay(300);
 
 	}else{
-//  3
-// 2 1
-//	4
-		if(g.rc_1.control_in > 3000)
-			motor_out[MOT_1] += 100;
 
-		if(g.rc_1.control_in < -3000)
-			motor_out[MOT_2] += 100;
+		 APM_RC.OutputCh(MOT_3, g.rc_2.radio_min);
+		 delay(4000);
+		 APM_RC.OutputCh(MOT_1, g.rc_3.radio_min + 100);
+		 delay(300);
 
-		if(g.rc_2.control_in > 3000)
-			motor_out[MOT_4] += 100;
+		 APM_RC.OutputCh(MOT_1, g.rc_3.radio_min);
+		 delay(2000);
+		 APM_RC.OutputCh(MOT_2, g.rc_1.radio_min + 100);
+		 delay(300);
 
-		if(g.rc_2.control_in < -3000)
-			motor_out[MOT_3] += 100;
+		 APM_RC.OutputCh(MOT_2, g.rc_1.radio_min);
+		 delay(2000);
+		 APM_RC.OutputCh(MOT_4, g.rc_4.radio_min + 100);
+		 delay(300);
+
+		 APM_RC.OutputCh(MOT_4, g.rc_4.radio_min);
+		 delay(2000);
+		 APM_RC.OutputCh(MOT_3, g.rc_2.radio_min + 100);
+		 delay(300);
+
 	}
 
 	APM_RC.OutputCh(MOT_1, motor_out[MOT_1]);

@@ -1,4 +1,4 @@
-Release Notes for MegaPirateNG 2.3 rc1
+Release Notes for MegaPirateNG 2.4
 
 === Important info ===
 

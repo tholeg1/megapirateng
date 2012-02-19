@@ -124,12 +124,12 @@ Menu::run(void)
                 return;
             }
         }
-        
+
         if (cmd_found==false)
         {
     		Serial.println("Invalid command, type 'help'");
     	}
-        	
+
     }
 }
 

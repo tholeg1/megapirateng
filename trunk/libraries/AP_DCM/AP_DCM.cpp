@@ -3,7 +3,7 @@
 #define DEGX100 5729.57795
 /*
 	APM_DCM_FW.cpp - DCM AHRS Library, fixed wing version, for Ardupilot Mega
-		Code by Doug Weibel, Jordi Muï¿½oz and Jose Julio. DIYDrones.com
+		Code by Doug Weibel, Jordi Muñoz and Jose Julio. DIYDrones.com
 
 	This library works with the ArduPilot Mega and "Oilpan"
 
@@ -131,8 +131,11 @@ AP_DCM::matrix_update(float _G_Dt)
 	_omega_integ_corr 	= _gyro_vector 		+ _omega_I;		// Used for _centripetal correction (theoretically better than _omega)
 	_omega 				= _omega_integ_corr + _omega_P;		// Equation 16, adding proportional and integral correction terms
 
-	if(_centripetal){
-		accel_adjust();				// Remove _centripetal acceleration.
+	if(_centripetal &&
+	   _gps != NULL &&
+	   _gps->status() == GPS::GPS_OK) {
+		// Remove _centripetal acceleration.
+		accel_adjust();
 	}
 
  #if OUTPUTMODE == 1
@@ -174,9 +177,7 @@ AP_DCM::accel_adjust(void)
 {
 	Vector3f veloc, temp;
 
-	if (_gps) {
-		veloc.x = _gps->ground_speed / 100;		// We are working with acceleration in m/s^2 units
-	}
+	veloc.x = _gps->ground_speed / 100;		// We are working with acceleration in m/s^2 units
 
 	// We are working with a modified version of equation 26 as our IMU object reports acceleration in the positive axis direction as positive
 
@@ -225,7 +226,7 @@ Numerical errors will gradually reduce the orthogonality conditions expressed by
 to approximations rather than identities. In effect, the axes in the two frames of reference no
 longer describe a rigid body. Fortunately, numerical error accumulates very slowly, so it is a
 simple matter to stay ahead of it.
-We call the process of enforcing the orthogonality conditions ï¿½renormalizationï¿½.
+We call the process of enforcing the orthogonality conditions ÒrenormalizationÓ.
 */
 void
 AP_DCM::normalize(void)
@@ -268,6 +269,8 @@ AP_DCM::renorm(Vector3f const &a, int &problem)
 		renorm_sqrt_count++;
 	} else {
 		problem = 1;
+		SITL_debug("ERROR: DCM renormalisation error. renorm_val=%f\n",
+			   renorm_val);
 		renorm_blowup_count++;
 	}
 

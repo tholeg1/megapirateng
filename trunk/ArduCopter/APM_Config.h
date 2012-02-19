@@ -42,12 +42,6 @@
 	OSD_PROTOCOL_REMZIBI  // Read more at: http://www.rcgroups.com/forums/showthread.php?t=921467
 */
 
-// New in 2.0.43, but unused in MegairateNG
-// MPNG: Piezo uses AN5 pin in ArduCopter, we uses AN5 for CLI switch
-#define PIEZO	DISABLED	
-#define PIEZO_LOW_VOLTAGE	DISABLED
-#define PIEZO_ARMING		DISABLED
-
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will select automatically 
 #define GPS_PROTOCOL GPS_PROTOCOL_NONE
 /*
@@ -67,6 +61,12 @@
 #define SERIAL0_BAUD			 115200	// If one want a wireless modem (like APC220) on the console port, lower that to 57600. Default is 115200 
 #define SERIAL2_BAUD			 38400	// GPS port bps
 #define SERIAL3_BAUD			 57600	// default telemetry BPS rate = 57600
+
+// New in 2.0.43, but unused in MegairateNG
+// MPNG: Piezo uses AN5 pin in ArduCopter, we uses AN5 for CLI switch
+#define PIEZO	DISABLED	
+#define PIEZO_LOW_VOLTAGE	DISABLED
+#define PIEZO_ARMING		DISABLED
 
 #define FRAME_CONFIG QUAD_FRAME
 /*
@@ -120,11 +120,29 @@
 // Ensure the defined file exists and is in the arducopter directory
 #define USERHOOK_VARIABLES "UserVariables.h"
 
-
 // to enable, set to 1
 // to disable, set to 0
 #define AUTO_THROTTLE_HOLD 1
 
 
 
-# define LOGGING_ENABLED		DISABLED
+#define LOGGING_ENABLED		DISABLED
+
+// Custom channel config - Expert Use Only.
+// this for defining your own MOT_n to CH_n mapping.
+// Overrides defaults (for APM1 or APM2) found in config_channels.h
+// MOT_n variables are used by the Frame mixing code. You must define
+// MOT_1 through MOT_m where m is the number of motors on your frame.
+// CH_n variables are used for RC output. These can be CH_1 through CH_8,
+// and CH_10 or CH_12. 
+// Sample channel config. Must define all MOT_ chanels used by
+// your FRAME_TYPE.
+// #define CONFIG_CHANNELS CHANNEL_CONFIG_CUSTOM
+// #define MOT_1 CH_6
+// #define MOT_2 CH_3
+// #define MOT_3 CH_2
+// #define MOT_4 CH_5
+// #define MOT_5 CH_1
+// #define MOT_6 CH_4
+// #define MOT_7 CH_7
+// #define MOT_8 CH_8

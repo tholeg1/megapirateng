@@ -14,6 +14,7 @@ static int8_t	setup_batt_monitor		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_sonar				(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_compass			(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_tune				(uint8_t argc, const Menu::arg *argv);
+static int8_t	setup_range				(uint8_t argc, const Menu::arg *argv);
 //static int8_t	setup_mag_offset		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_declination		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_optflow			(uint8_t argc, const Menu::arg *argv);
@@ -40,6 +41,7 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
 	{"sonar",			setup_sonar},
 	{"compass",			setup_compass},
 	{"tune",			setup_tune},
+	{"range",			setup_range},
 //	{"offsets",			setup_mag_offset},
 	{"declination",		setup_declination},
 	{"optflow",			setup_optflow},
@@ -47,8 +49,8 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
 	{"heli",			setup_heli},
 	{"gyro",			setup_gyro},
 #endif
-	{"show",			setup_show},
-	{"set",			    setup_set}
+	{"show",			setup_show}//,
+//	{"set",			    setup_set}
 };
 
 // Create the setup menu object.
@@ -104,19 +106,21 @@ setup_show(uint8_t argc, const Menu::arg *argv)
 	report_gyro();
 #endif
 
-	AP_Var_menu_show(argc, argv);
+    AP_Param::show_all();
+
 	return(0);
 }
-// Set AP variables
+
+/*// Set AP variables
 // add by sovgvd@gmail.com 
 static int8_t
 setup_set(uint8_t argc, const Menu::arg *argv)
 {
     AP_Var_menu_set(argc, argv);
-    AP_Var::save_all();
+    AP_Param::save_all();
     return(0);
 }
-
+*/
 
 // Initialise the EEPROM to 'factory' settings (mostly defined in APM_Config.h or via defaults).
 // Called by the setup menu 'factoryreset' command.
@@ -134,7 +138,7 @@ setup_factory(uint8_t argc, const Menu::arg *argv)
 	if (('y' != c) && ('Y' != c))
 		return(-1);
 
-	AP_Var::erase_all();
+	AP_Param::erase_all();
 	Serial.printf_P(PSTR("\nReboot APM"));
 
 	delay(1000);
@@ -251,6 +255,10 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_motors(uint8_t argc, const Menu::arg *argv)
 {
+  Serial.printf_P(PSTR(
+        "Now connect the main lipo and follow the instruction on the wiki for your frame setup.\n"
+        "For security remember to disconnect the main lipo after the test, then hit any key to exit.\n"
+        "Any key to exit.\n"));
 	while(1){
 		delay(20);
 		read_radio();
@@ -377,6 +385,19 @@ static int8_t
 setup_tune(uint8_t argc, const Menu::arg *argv)
 {
 	g.radio_tuning.set_and_save(argv[1].i);
+	//g.radio_tuning_high.set_and_save(1000);
+	//g.radio_tuning_low.set_and_save(0);
+	report_tuning();
+	return 0;
+}
+
+static int8_t
+setup_range(uint8_t argc, const Menu::arg *argv)
+{
+	Serial.printf_P(PSTR("\nCH 6 Ranges are divided by 1000: [low, high]\n"));
+
+	g.radio_tuning_low.set_and_save(argv[1].i);
+	g.radio_tuning_high.set_and_save(argv[2].i);
 	report_tuning();
 	return 0;
 }
@@ -464,7 +485,7 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 	int value = 0;
 	int temp;
 	int state = 0;   // 0 = set rev+pos, 1 = capture min/max
-	int max_roll, max_pitch, min_coll, max_coll, min_tail, max_tail;
+	int max_roll=0, max_pitch=0, min_collective=0, max_collective=0, min_tail=0, max_tail=0;
 
 	// initialise swash plate
 	heli_init_swash();
@@ -504,10 +525,10 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 			    max_roll = abs(g.rc_1.control_in);
 			if( abs(g.rc_2.control_in) > max_pitch )
 			    max_pitch = abs(g.rc_2.control_in);
-			if( g.rc_3.radio_out < min_coll )
-			    min_coll = g.rc_3.radio_out;
-			if( g.rc_3.radio_out > max_coll )
-			    max_coll = g.rc_3.radio_out;
+			if( g.rc_3.radio_out < min_collective )
+			    min_collective = g.rc_3.radio_out;
+			if( g.rc_3.radio_out > max_collective )
+			    max_collective = g.rc_3.radio_out;
 			min_tail = min(g.rc_4.radio_out, min_tail);
 			max_tail = max(g.rc_4.radio_out, max_tail);
 		}
@@ -536,8 +557,8 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 				case 'c':
 				case 'C':
 				    if( g.rc_3.radio_out >= 900 && g.rc_3.radio_out <= 2100 ) {
-						g.heli_coll_mid = g.rc_3.radio_out;
-						Serial.printf_P(PSTR("Collective when blade pitch at zero: %d\n"),(int)g.heli_coll_mid);
+						g.heli_collective_mid = g.rc_3.radio_out;
+						Serial.printf_P(PSTR("Collective when blade pitch at zero: %d\n"),(int)g.heli_collective_mid);
 					}
 					break;
 				case 'd':
@@ -553,27 +574,27 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 
 						// reset servo ranges
 						g.heli_roll_max = g.heli_pitch_max = 4500;
-						g.heli_coll_min = 1000;
-						g.heli_coll_max = 2000;
+						g.heli_collective_min = 1000;
+						g.heli_collective_max = 2000;
 						g.heli_servo_4.radio_min = 1000;
 						g.heli_servo_4.radio_max = 2000;
 
 						// set sensible values in temp variables
 						max_roll = abs(g.rc_1.control_in);
 						max_pitch = abs(g.rc_2.control_in);
-						min_coll = 2000;
-						max_coll = 1000;
+						min_collective = 2000;
+						max_collective = 1000;
 						min_tail = max_tail = abs(g.rc_4.radio_out);
 					}else{
 					    state = 0;  // switch back to normal mode
 						// double check values aren't totally terrible
-						if( max_roll <= 1000 || max_pitch <= 1000 || (max_coll - min_coll < 200) || (max_tail - min_tail < 200) || min_tail < 1000 || max_tail > 2000 )
-						    Serial.printf_P(PSTR("Invalid min/max captured roll:%d,  pitch:%d,  collective min: %d max: %d,  tail min:%d max:%d\n"),max_roll,max_pitch,min_coll,max_coll,min_tail,max_tail);
+						if( max_roll <= 1000 || max_pitch <= 1000 || (max_collective - min_collective < 200) || (max_tail - min_tail < 200) || min_tail < 1000 || max_tail > 2000 )
+						    Serial.printf_P(PSTR("Invalid min/max captured roll:%d,  pitch:%d,  collective min: %d max: %d,  tail min:%d max:%d\n"),max_roll,max_pitch,min_collective,max_collective,min_tail,max_tail);
 						else{
 						    g.heli_roll_max = max_roll;
 							g.heli_pitch_max = max_pitch;
-							g.heli_coll_min = min_coll;
-							g.heli_coll_max = max_coll;
+							g.heli_collective_min = min_collective;
+							g.heli_collective_max = max_collective;
 							g.heli_servo_4.radio_min = min_tail;
 							g.heli_servo_4.radio_max = max_tail;
 
@@ -657,9 +678,9 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 	g.heli_servo3_pos.save();
 	g.heli_roll_max.save();
 	g.heli_pitch_max.save();
-	g.heli_coll_min.save();
-	g.heli_coll_max.save();
-	g.heli_coll_mid.save();
+	g.heli_collective_min.save();
+	g.heli_collective_max.save();
+	g.heli_collective_mid.save();
 	g.heli_servo_averaging.save();
 
 	// return swash plate movements to attitude controller
@@ -949,7 +970,7 @@ static void report_heli()
 
 	Serial.printf_P(PSTR("roll max: \t%d\n"), (int)g.heli_roll_max);
 	Serial.printf_P(PSTR("pitch max: \t%d\n"), (int)g.heli_pitch_max);
-	Serial.printf_P(PSTR("coll min:\t%d\t mid:%d\t max:%d\n"),(int)g.heli_coll_min, (int)g.heli_coll_mid, (int)g.heli_coll_max);
+	Serial.printf_P(PSTR("coll min:\t%d\t mid:%d\t max:%d\n"),(int)g.heli_collective_min, (int)g.heli_collective_mid, (int)g.heli_collective_max);
 
 	// calculate and print servo rate
 	if( g.heli_servo_averaging <= 1 ) {
@@ -1182,7 +1203,9 @@ static void report_tuning()
 	if (g.radio_tuning == 0){
 		print_enabled(g.radio_tuning.get());
 	}else{
-		Serial.printf_P(PSTR(" %d\n"),(int)g.radio_tuning.get());
+		float low  = (float)g.radio_tuning_low.get() / 1000;
+		float high = (float)g.radio_tuning_high.get() / 1000;
+		Serial.printf_P(PSTR(" %d, Low:%1.4f, High:%1.4f\n"),(int)g.radio_tuning.get(), low, high);
 	}
 	print_blanks(2);
 }

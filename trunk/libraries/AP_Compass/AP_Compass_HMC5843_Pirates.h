@@ -61,7 +61,7 @@ class AP_Compass_HMC5843_Pirates : public Compass
 	float calibration[3];
 
   public:
-	AP_Compass_HMC5843_Pirates(AP_Var::Key key = AP_Var::k_key_none) : Compass(key) {}
+	AP_Compass_HMC5843_Pirates() : Compass() {}
   bool init(AP_PeriodicProcess *scheduler);
 	virtual bool init(void) {};
 	virtual bool read(void);

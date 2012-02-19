@@ -34,10 +34,15 @@ AP_GPS_MTK16::init(void)
     // XXX should assume binary, let GPS_AUTO handle dynamic config?
     _port->print(MTK_SET_BINARY);
 
-    // set 10Hz update rate
-    _port->print(MTK_OUTPUT_10HZ);
+    // set 4Hz update rate
+    _port->print(MTK_OUTPUT_4HZ);
     
-    delay(250);
+    if (WaitForPreamble(500)) // wait 500 ms for preamble
+    	{ 
+    			Serial.println("Got preamble");
+    	} else {
+    			Serial.println("Preamble Not Found!!!!");
+    	}
     
     // set initial epoch code
     _epoch = TIME_OF_DAY;
@@ -45,6 +50,52 @@ AP_GPS_MTK16::init(void)
     _offset_calculated = false;
     idleTimeout = 1200;
 }
+
+bool
+AP_GPS_MTK16::WaitForPreamble(uint16_t timeout_ms)
+{
+    uint8_t 	data;
+    int 		numc;
+    uint32_t start_ms = millis();
+    
+		while ((micros() - start_ms) < timeout_ms)
+		{
+	    numc = _port->available();
+	    for (int i = 0; i < numc; i++) {	// Process bytes received
+	
+	        // read the next byte
+	        data = _port->read();
+	        Serial.print(data);
+	
+			restart:
+	        switch(_step) {
+	
+	            // Message preamble, class, ID detection
+	            //
+	            // If we fail to match any of the expected bytes, we
+	            // reset the state machine and re-consider the failed
+	            // byte as the first byte of the preamble.  This
+	            // improves our chances of recovering from a mismatch
+	            // and makes it less likely that we will be fooled by
+	            // the preamble appearing as data in some other message.
+	            //
+	        case 0:
+	            if(PREAMBLE1 == data)
+	                _step++;
+	            break;
+	        case 1:
+	            if (PREAMBLE2 == data) {
+	                _step++;
+	                return true;
+	            }
+	            _step = 0;
+	            goto restart;
+	        }
+	    }
+	  }
+    return false;
+}
+
 
 // Process bytes available from the stream
 //
@@ -69,6 +120,7 @@ AP_GPS_MTK16::read(void)
 
         // read the next byte
         data = _port->read();
+	        Serial.print(data);
 
 restart:
         switch(_step) {

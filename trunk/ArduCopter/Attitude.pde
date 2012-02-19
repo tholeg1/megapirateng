@@ -21,7 +21,7 @@ get_stabilize_roll(int32_t target_angle)
 	// limit the error we're feeding to the PID
 	target_angle 		= constrain(target_angle, -2500, 2500);
 
-	// conver to desired Rate:
+	// convert to desired Rate:
 	int32_t target_rate = g.pi_stabilize_roll.get_p(target_angle);
 	int16_t iterm 		= g.pi_stabilize_roll.get_i(target_angle, G_Dt);
 
@@ -81,18 +81,60 @@ get_stabilize_yaw(int32_t target_angle)
 }
 
 static int
+get_acro_roll(int32_t target_rate)
+{
+	target_rate = target_rate * g.acro_p;
+	target_rate = constrain(target_rate, -10000, 10000);
+	return get_rate_roll(target_rate);
+}
+
+static int
+get_acro_pitch(int32_t target_rate)
+{
+	target_rate = target_rate * g.acro_p;
+	target_rate = constrain(target_rate, -10000, 10000);
+	return get_rate_pitch(target_rate);
+}
+
+static int
+get_acro_yaw(int32_t target_rate)
+{
+	target_rate = g.pi_stabilize_yaw.get_p(target_rate);
+	target_rate = constrain(target_rate, -15000, 15000);
+	return get_rate_yaw(target_rate);
+}
+
+static int
 get_rate_roll(int32_t target_rate)
 {
+		   int16_t rate_d1 		= 0;
+	static int16_t rate_d2 		= 0;
+	static int16_t rate_d3 		= 0;
 	static int32_t last_rate 	= 0;
+
 	int32_t current_rate 	= (omega.x * DEGX100);
 
+	// History of last 3 dir
+	rate_d3			= rate_d2;
+	rate_d2			= rate_d1;
+	rate_d1 		= current_rate - last_rate;
+	last_rate 		= current_rate;
+
 	// rate control
-	target_rate		 		= target_rate - current_rate;
-	target_rate 			= g.pid_rate_roll.get_pid(target_rate, G_Dt);
+	target_rate		= target_rate - current_rate;
+	target_rate 	= g.pid_rate_roll.get_pid(target_rate, G_Dt);
 
 	// Dampening
-	target_rate 			-= constrain((current_rate - last_rate) * g.stablize_d, -500, 500);
-	last_rate 				= current_rate;
+	//int16_t d_temp	= (float)(current_rate - last_rate) * g.stabilize_d;
+	//target_rate 		-= constrain(d_temp, -500, 500);
+	//last_rate 		= current_rate;
+
+	// D term
+	// I had tried this before with little result. Recently, someone mentioned to me that
+	// MultiWii uses a filter of the last three to get around noise and get a stronger signal.
+	// Works well! Thanks!
+	int16_t d_temp =  (rate_d1 + rate_d2 + rate_d3) * g.stabilize_d;
+	target_rate -= d_temp;
 
 	// output control:
 	return constrain(target_rate, -2500, 2500);
@@ -101,16 +143,31 @@ get_rate_roll(int32_t target_rate)
 static int
 get_rate_pitch(int32_t target_rate)
 {
+		   int16_t rate_d1 		= 0;
+	static int16_t rate_d2 		= 0;
+	static int16_t rate_d3 		= 0;
 	static int32_t last_rate 	= 0;
+
 	int32_t current_rate 	= (omega.y * DEGX100);
 
+	// History of last 3 dir
+	rate_d3			= rate_d2;
+	rate_d2			= rate_d1;
+	rate_d1 		= current_rate - last_rate;
+	last_rate 		= current_rate;
+
 	// rate control
-	target_rate	 			= target_rate - current_rate;
-	target_rate 			= g.pid_rate_pitch.get_pid(target_rate, G_Dt);
+	target_rate	 	= target_rate - current_rate;
+	target_rate 	= g.pid_rate_pitch.get_pid(target_rate, G_Dt);
 
 	// Dampening
-	target_rate 			-= constrain((current_rate - last_rate) * g.stablize_d, -500, 500);
-	last_rate 				= current_rate;
+	//int16_t d_temp	= (float)(current_rate - last_rate) * g.stabilize_d;
+	//target_rate 		-= constrain(d_temp, -500, 500);
+	//last_rate 		= current_rate;
+
+	// D term
+	int16_t d_temp =  (rate_d1 + rate_d2 + rate_d3) * g.stabilize_d;
+	target_rate -= d_temp;
 
 	// output control:
 	return constrain(target_rate, -2500, 2500);

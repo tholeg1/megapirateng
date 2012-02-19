@@ -11,18 +11,20 @@
 //  APM_Config.h and use APM_Config.h.example as a reference.
 //
 // WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
-//
+///
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 //
 
-#include "config.h"
+#include "config.h"     // Parent Config File
+#include "APM_Config.h" // User Overrides
 
 //
 //
 // Output CH mapping for ArduCopter motor channels
 //
 //
+#if CONFIG_CHANNELS == CHANNEL_CONFIG_DEFAULT
 #if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
 # define MOT_1 CH_1
 # define MOT_2 CH_2
@@ -42,6 +44,7 @@
 # define MOT_7 CH_10
 # define MOT_8 CH_11
 #endif
+#endif
 
 //
 //
@@ -49,7 +52,6 @@
 //
 //
 #if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
-/* TODO find out correct channel for APM2 TRI_YAW */
 # define CH_TRI_YAW   CH_7
 #elif CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
 # define CH_TRI_YAW   CH_7
