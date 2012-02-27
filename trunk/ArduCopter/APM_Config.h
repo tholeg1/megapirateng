@@ -3,7 +3,7 @@
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_FREEIMU_4
+#define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -16,7 +16,7 @@
 // Uncomment if you uses PPM Sum signal from receiver
 //#define SERIAL_PPM ENABLED
 
-#define TX_CHANNEL_SET	TX_standard_mode6
+#define TX_CHANNEL_SET	TX_mwi
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
@@ -43,7 +43,7 @@
 */
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will select automatically 
-#define GPS_PROTOCOL GPS_PROTOCOL_NMEA
+#define GPS_PROTOCOL GPS_PROTOCOL_NONE
 /*
 	GPS_PROTOCOL_NONE 	without GPS
 	GPS_PROTOCOL_NMEA
@@ -124,9 +124,8 @@
 // to disable, set to 0
 #define AUTO_THROTTLE_HOLD 1
 
+# define LOGGING_ENABLED		DISABLED
 
-
-#define LOGGING_ENABLED		DISABLED
 
 // Custom channel config - Expert Use Only.
 // this for defining your own MOT_n to CH_n mapping.
@@ -146,3 +145,4 @@
 // #define MOT_6 CH_4
 // #define MOT_7 CH_7
 // #define MOT_8 CH_8
+

@@ -62,8 +62,13 @@ get_stabilize_yaw(int32_t target_angle)
 	// angle error
 	target_angle 		= wrap_180(target_angle - dcm.yaw_sensor);
 
+#if FRAME_CONFIG == HELI_FRAME  // cannot use rate control for helicopters
+	// limit the error we're feeding to the PID
+	target_angle 		= constrain(target_angle, -4500, 4500);
+#else
 	// limit the error we're feeding to the PID
 	target_angle 		= constrain(target_angle, -2000, 2000);
+#endif
 
 	// conver to desired Rate:
 	int32_t target_rate = g.pi_stabilize_yaw.get_p(target_angle);
@@ -134,6 +139,7 @@ get_rate_roll(int32_t target_rate)
 	// MultiWii uses a filter of the last three to get around noise and get a stronger signal.
 	// Works well! Thanks!
 	int16_t d_temp =  (rate_d1 + rate_d2 + rate_d3) * g.stabilize_d;
+	d_temp = constrain(d_temp, -400, 400);
 	target_rate -= d_temp;
 
 	// output control:
@@ -167,6 +173,7 @@ get_rate_pitch(int32_t target_rate)
 
 	// D term
 	int16_t d_temp =  (rate_d1 + rate_d2 + rate_d3) * g.stabilize_d;
+	d_temp = constrain(d_temp, -400, 400);
 	target_rate -= d_temp;
 
 	// output control:
@@ -196,7 +203,7 @@ get_nav_throttle(int32_t z_error)
 
 	// convert to desired Rate:
 	rate_error 		= g.pi_alt_hold.get_p(z_error);
-	rate_error 		= constrain(rate_error, -100, 100);
+	rate_error 		= constrain(rate_error, -150, 150);
 
 	// limit error to prevent I term wind up
 	z_error 		= constrain(z_error, -400, 400);
@@ -245,6 +252,9 @@ static void reset_nav_params(void)
 
 	// Will be set by new command, used by loiter
 	next_WP.alt				= 0;
+
+	// We want to by default pass WPs
+	slow_wp = false;
 }
 
 /*

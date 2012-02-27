@@ -11,7 +11,7 @@ class AP_RangeFinder_ME007 : public RangeFinder
 {
  // public:
   public:
-	AP_RangeFinder_ME007(AP_AnalogSource *source, ModeFilter *filter);
+	AP_RangeFinder_ME007(AP_AnalogSource *source, FilterInt16 *filter);
 	void init();
 
 	int read();

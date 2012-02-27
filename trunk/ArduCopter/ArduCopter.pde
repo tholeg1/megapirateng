@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.4"
+#define THISFIRMWARE "MegaPirateNG V2.4.2"
 /*
 Please, read release_notes.txt before you go!
 
@@ -10,7 +10,7 @@ Porting to MegaPirate Next Generation by
   Romb89 (UBLOX GPS i2c library)
   Syberian (libraries from MegaPirate r741)
 
-Original firmware is ArduCopter Version 2.4
+Original firmware is ArduCopter Version 2.4.2
 Authors:	Jason Short
 Based on code and ideas from the Arducopter team: Randy Mackay, Pat Hickey, Jose Julio, Jani Hirvinen
 Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier
@@ -80,6 +80,7 @@ John Arne Birkeland: PPM Encoder
 #include <RC_Channel.h>     // RC Channel Library
 #include <AP_RangeFinder.h>	// Range finder library
 //#include <AP_OpticalFlow.h> // Optical Flow library
+#include <Filter.h>			// Filter library
 #include <ModeFilter.h>
 #include <AP_Relay.h>		// APM relay
 #include <GCS_MAVLink.h>    // MAVLink GCS definitions
@@ -255,7 +256,10 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 		AP_InertialSensor_Oilpan ins(&adc);
 	#endif
 	AP_IMU_INS  imu(&ins);
-	AP_DCM  dcm(&imu, g_gps);
+// we don't want to use gps for yaw correction on ArduCopter, so pass
+// a NULL GPS object pointer
+static GPS         *g_gps_null;
+AP_DCM  dcm(&imu, g_gps_null);
 	AP_TimerProcess timer_scheduler;
 
 	// Compass must be initialized after INS, because in case of using MPU6050 it must be switched into bypass mode
@@ -309,7 +313,7 @@ GCS_MAVLINK	gcs3;
 // SONAR selection
 ////////////////////////////////////////////////////////////////////////////////
 //
-ModeFilter sonar_mode_filter;
+ModeFilterInt16 sonar_mode_filter(5,2);
 #if CONFIG_SONAR == ENABLED
 	#if CONFIG_SONAR_SOURCE == SONAR_SOURCE_ADC
 		AP_AnalogSource_ADC sonar_analog_source( &adc, CONFIG_SONAR_SOURCE_ADC_CHANNEL, 0.25);
@@ -533,7 +537,7 @@ static boolean 	loiter_override;
 static float cos_roll_x 	= 1;
 static float cos_pitch_x 	= 1;
 static float cos_yaw_x 		= 1;
-static float sin_pitch_y, sin_yaw_y, sin_roll_y;
+static float sin_yaw_y;
 
 ////////////////////////////////////////////////////////////////////////////////
 // SIMPLE Mode
@@ -647,7 +651,7 @@ static byte		throttle_mode;
 // This flag is reset when we are in a manual throttle mode with 0 throttle or disarmed
 static boolean	takeoff_complete;
 // Used to record the most recent time since we enaged the throttle to take off
-static int32_t	takeoff_timer;
+static uint32_t	takeoff_timer;
 // Used to see if we have landed and if we should shut our engines - not fully implemented
 static boolean	land_complete = true;
 // used to manually override throttle in interactive Alt hold modes
@@ -719,9 +723,10 @@ static int16_t	nav_lat;
 // The desired bank towards East (Positive) or West (Negative)
 static int16_t	nav_lon;
 // The Commanded ROll from the autopilot based on optical flow sensor.
-static int32_t	of_roll = 0;
+static int32_t	of_roll;
 // The Commanded pitch from the autopilot based on optical flow sensor. negative Pitch means go forward.
-static int32_t	of_pitch = 0;
+static int32_t	of_pitch;
+static bool	slow_wp = false;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1407,14 +1412,7 @@ static void update_GPS(void)
 				ground_start_count = 5;
 
 			}else{
-				// block until we get a good fix
-				// -----------------------------
-				while (!g_gps->new_data || !g_gps->fix) {
-					g_gps->update();
-					// we need GCS update while waiting for GPS, to ensure
-					// we react to HIL mavlink
-					gcs_update();
-				}
+				// save home to eeprom (we must have a good fix to have reached this point)
 				init_home();
 				ground_start_count = 0;
 			}
@@ -1457,6 +1455,7 @@ void update_yaw_mode(void)
 
 		case YAW_AUTO:
 			nav_yaw += constrain(wrap_180(auto_yaw - nav_yaw), -20, 20); // 40 deg a second
+			//Serial.printf("nav_yaw %d ", nav_yaw);
 			nav_yaw  = wrap_360(nav_yaw);
 			break;
 	}
@@ -1585,7 +1584,7 @@ void update_simple_mode(void)
 	g.rc_2.control_in = control_pitch;
 }
 
-#define THROTTLE_FILTER_SIZE 4
+#define THROTTLE_FILTER_SIZE 2
 
 // 50 hz update rate, not 250
 // controls all throttle behavior
@@ -1677,9 +1676,12 @@ void update_throttle_mode(void)
 									manual_boost,
 									iterm);
 				//*/
+				// this lets us know we need to update the altitude after manual throttle control
 				reset_throttle_flag = true;
 
 				}else{
+				// we are under automatic throttle control
+				// ---------------------------------------
 				if(reset_throttle_flag)	{
 					set_new_altitude(max(current_loc.alt, 100));
 					reset_throttle_flag = false;
@@ -1719,7 +1721,10 @@ void update_throttle_mode(void)
 			}
 
 			// light filter of output
-			g.rc_3.servo_out = (g.rc_3.servo_out * (THROTTLE_FILTER_SIZE - 1) + throttle_out) / THROTTLE_FILTER_SIZE;
+			//g.rc_3.servo_out = (g.rc_3.servo_out * (THROTTLE_FILTER_SIZE - 1) + throttle_out) / THROTTLE_FILTER_SIZE;
+
+			// no filter
+			g.rc_3.servo_out = throttle_out;
 			break;
 	}
 }
@@ -1727,8 +1732,8 @@ void update_throttle_mode(void)
 // called after a GPS read
 static void update_navigation()
 {
-	// wp_distance is in ACTUAL meters, not the *100 meters we get from the GPS
-	// ------------------------------------------------------------------------
+	// wp_distance is in CM
+	// --------------------
 	switch(control_mode){
 		case AUTO:
 			// note: wp_control is handled by commands_logic
@@ -1768,6 +1773,7 @@ static void update_navigation()
 			}
 
 				wp_control = WP_MODE;
+			slow_wp = true;
 
 				// calculates desired Yaw
 				#if FRAME_CONFIG ==	HELI_FRAME
@@ -1885,12 +1891,13 @@ static void update_trig(void){
 	yawvector.y 	= temp.b.x;	// cos
 	yawvector.normalize();
 
-
-	sin_pitch_y 	= -temp.c.x;						// level = 0
-	cos_pitch_x 	= sqrt(1 - (temp.c.x * temp.c.x));	// level = 1
-
-	sin_roll_y 		= temp.c.y / cos_pitch_x;			// level = 0
+	cos_pitch_x 	= safe_sqrt(1 - (temp.c.x * temp.c.x));	// level = 1
 	cos_roll_x 		= temp.c.z / cos_pitch_x;			// level = 1
+
+    cos_pitch_x = constrain(cos_pitch_x, 0, 1.0);
+    // this relies on constrain() of infinity doing the right thing,
+    // which it does do in avr-libc
+    cos_roll_x  = constrain(cos_roll_x, -1.0, 1.0);
 
 	sin_yaw_y 		= yawvector.x;						// 1y = north
 	cos_yaw_x 		= yawvector.y;	// 0 x = north
@@ -1983,7 +1990,7 @@ static void update_altitude()
 	climb_rate = (climb_rate + old_climb_rate)>>1;
 
 	// manage bad data
-	climb_rate = constrain(climb_rate, -300, 300);
+	climb_rate = constrain(climb_rate, -800, 800);
 
 	// save for filtering
 	old_climb_rate = climb_rate;
@@ -1995,15 +2002,16 @@ static void update_altitude()
 static void
 adjust_altitude()
 {
-	if(g.rc_3.control_in <= 180){
+	if(g.rc_3.control_in <= (MINIMUM_THROTTLE + 100)){
 		// we remove 0 to 100 PWM from hover
-		manual_boost = g.rc_3.control_in - 180;
-		manual_boost = max(-120, manual_boost);
+		manual_boost = (g.rc_3.control_in - MINIMUM_THROTTLE) -100;
+		manual_boost = max(-100, manual_boost);
 		update_throttle_cruise();
 
-	}else if  (g.rc_3.control_in >= 650){
+	}else if  (g.rc_3.control_in >= (MAXIMUM_THROTTLE - 100)){
 		// we add 0 to 100 PWM to hover
-		manual_boost = g.rc_3.control_in - 650;
+		manual_boost = g.rc_3.control_in - (MAXIMUM_THROTTLE - 100);
+		manual_boost = min(100, manual_boost);
 		update_throttle_cruise();
 	}else {
 		manual_boost = 0;
@@ -2027,7 +2035,6 @@ static void tuning(){
 			break;
 
 		case CH6_STABILIZE_KP:
-			//g.rc_6.set_range(0,8000); 		// 0 to 8
 			g.pi_stabilize_roll.kP(tuning_value);
 			g.pi_stabilize_pitch.kP(tuning_value);
 			break;
@@ -2052,7 +2059,6 @@ static void tuning(){
 			break;
 
 		case CH6_YAW_RATE_KP:
-			//g.rc_6.set_range(0,1000);
 			g.pid_rate_yaw.kP(tuning_value);
 			break;
 
@@ -2081,6 +2087,11 @@ static void tuning(){
 		case CH6_NAV_P:
 			g.pid_nav_lat.kP(tuning_value);
 			g.pid_nav_lon.kP(tuning_value);
+			break;
+
+		case CH6_LOITER_RATE_P:
+			g.pid_loiter_rate_lon.kP(tuning_value);
+			g.pid_loiter_rate_lat.kP(tuning_value);
 			break;
 
 		case CH6_NAV_I:
@@ -2180,7 +2191,7 @@ static void update_nav_wp()
 		// calc error to target
 		calc_location_error(&next_WP);
 
-		int16_t speed = calc_desired_speed(g.waypoint_speed_max);
+		int16_t speed = calc_desired_speed(g.waypoint_speed_max, slow_wp);
 		// use error as the desired rate towards the target
 		calc_nav_rate(speed);
 		// rotate pitch and roll to the copter frame of reference
@@ -2213,5 +2224,6 @@ static void update_auto_yaw()
 		// Point towards next WP
 		auto_yaw = target_bearing;
 	}
+	//Serial.printf("auto_yaw %d ", auto_yaw);
 	// MAV_ROI_NONE = basic Yaw hold
 }
