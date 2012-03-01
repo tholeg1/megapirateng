@@ -29,7 +29,6 @@ static void usage(void)
 	printf("\t-w          wipe eeprom and dataflash\n");
 	printf("\t-r RATE     set SITL framerate\n");
 	printf("\t-H HEIGHT   initial barometric height\n");
-	printf("\t-C          use console instead of TCP ports\n");
 }
 
 int main(int argc, char * const argv[])
@@ -41,7 +40,7 @@ int main(int argc, char * const argv[])
 
 	signal(SIGFPE, sig_fpe);
 
-	while ((opt = getopt(argc, argv, "swhr:H:C")) != -1) {
+	while ((opt = getopt(argc, argv, "swhr:H:")) != -1) {
 		switch (opt) {
 		case 's':
 			desktop_state.slider = true;
@@ -55,9 +54,6 @@ int main(int argc, char * const argv[])
 			break;
 		case 'H':
 			desktop_state.initial_height = atof(optarg);
-			break;
-		case 'C':
-			desktop_state.console_mode = true;
 			break;
 		default:
 			usage();

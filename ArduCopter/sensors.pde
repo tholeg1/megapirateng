@@ -80,12 +80,12 @@ static int32_t read_barometer(void)
 static void init_compass()
 {
 	compass.set_orientation(MAG_ORIENTATION);						// set compass's orientation on aircraft
+	dcm.set_compass(&compass);
 	#if CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
 		((AP_Compass_HMC5843_Pirates*) &compass)->init(&timer_scheduler);
 	#else
 		compass.init();
 	#endif
-	dcm.set_compass(&compass);
 	compass.get_offsets();					// load offsets to account for airframe magnetic interference 
 	compass.null_offsets_enable();
 }

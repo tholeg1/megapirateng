@@ -353,10 +353,6 @@ static void init_ardupilot()
 	Log_Write_Data(20, (float)g.pid_nav_lon.kD());
 
 	Log_Write_Data(21, (int32_t)g.auto_slew_rate.get());
-
-	Log_Write_Data(22, (float)g.pid_loiter_rate_lon.kP());
-	Log_Write_Data(23, (float)g.pid_loiter_rate_lon.kI());
-	Log_Write_Data(24, (float)g.pid_loiter_rate_lon.kD());
 #endif
 
 	SendDebug("\nReady to FLY ");
@@ -420,6 +416,7 @@ static void set_mode(byte mode)
 	}
 
 	old_control_mode = control_mode;
+
 	control_mode = mode;
 	control_mode = constrain(control_mode, 0, NUM_MODES - 1);
 
@@ -432,9 +429,6 @@ static void set_mode(byte mode)
 	// clearing value used to force the copter down in landing mode
 	landing_boost = 0;
 
-	// do we want to come to a stop or pass a WP?
-	slow_wp = false;
-
 	// do not auto_land if we are leaving RTL
 	auto_land_timer = 0;
 
@@ -442,7 +436,7 @@ static void set_mode(byte mode)
 	land_complete 	= false;
 
 	// debug to Serial terminal
-	//Serial.println(flight_mode_strings[control_mode]);
+	Serial.println(flight_mode_strings[control_mode]);
 
 	// report the GPS and Motor arming status
 	led_mode = NORMAL_LEDS;
@@ -545,9 +539,6 @@ static void set_mode(byte mode)
 	if(throttle_mode == THROTTLE_MANUAL){
 		// reset all of the throttle iterms
 		update_throttle_cruise();
-
-		// reset auto_throttle
-		nav_throttle 			= 0;
 	}else {
 		// an automatic throttle
 		init_throttle_cruise();

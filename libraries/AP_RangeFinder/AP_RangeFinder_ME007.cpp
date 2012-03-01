@@ -13,7 +13,7 @@
 // Constructor //////////////////////////////////////////////////////////////
 
 AP_RangeFinder_ME007::AP_RangeFinder_ME007(AP_AnalogSource *source,
-                                                     FilterInt16 *filter) :
+                                                     ModeFilter *filter) :
 	RangeFinder(source, filter)
 {
 	max_distance = AP_RANGEFINDER_ME007_MAX_DISTANCE;

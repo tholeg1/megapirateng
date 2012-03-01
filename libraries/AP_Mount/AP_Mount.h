@@ -20,9 +20,8 @@
 #ifndef AP_Mount_H
 #define AP_Mount_H
 
-#include <FastSerial.h>
+//#include <AP_Common.h>
 #include <AP_Math.h>
-#include <AP_Common.h>
 #include <AP_GPS.h>
 #include <AP_DCM.h>
 #include <GCS_MAVLink.h>

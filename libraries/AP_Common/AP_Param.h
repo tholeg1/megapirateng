@@ -78,7 +78,6 @@ public:
     typedef struct {
         uint8_t key;
         uint8_t group_element;
-        uint8_t idx; // offset into array types
     } ParamToken;
 
     // called once at startup to setup the _var_info[] table. This
@@ -99,7 +98,7 @@ public:
     /// @param	buffer			The destination buffer
     /// @param	bufferSize		Total size of the destination buffer.
     ///
-    void copy_name(char *buffer, size_t bufferSize, bool force_scalar=false);
+    void copy_name(char *buffer, size_t bufferSize);
 
     /// Find a variable by name.
     ///
@@ -192,18 +191,15 @@ private:
                                            uint8_t group_base,
                                            uint8_t group_shift,
                                            uint8_t *group_element,
-                                           const struct GroupInfo **group_ret,
-                                           uint8_t *idx);
+                                           const struct GroupInfo **group_ret);
     const struct Info *find_var_info(uint8_t *group_element,
-                                     const struct GroupInfo **group_ret,
-                                     uint8_t *idx);
+                                     const struct GroupInfo **group_ret);
     static const struct Info *find_by_header_group(struct Param_header phdr, void **ptr,
                                                    uint8_t vindex,
                                                    const struct GroupInfo *group_info,
                                                    uint8_t group_base,
                                                    uint8_t group_shift);
     static const struct Info *find_by_header(struct Param_header phdr, void **ptr);
-    void add_vector3f_suffix(char *buffer, size_t buffer_size, uint8_t idx);
     static AP_Param *find_group(const char *name, uint8_t vindex, const struct GroupInfo *group_info, enum ap_var_type *ptype);
     static void write_sentinal(uint16_t ofs);
     bool scan(const struct Param_header *phdr, uint16_t *pofs);
@@ -434,30 +430,17 @@ protected:
 
 /// Convenience macro for defining instances of the AP_ParamT template.
 ///
-// declare a scalar type
-// _t is the base type
-// _suffix is the suffix on the AP_* type name
-// _pt is the enum ap_var_type type
-#define AP_PARAMDEF(_t, _suffix, _pt)   typedef AP_ParamT<_t, _pt> AP_##_suffix;
+#define AP_PARAMDEF(_t, _n, _pt)   typedef AP_ParamT<_t, _pt> AP_##_n;
 AP_PARAMDEF(float, Float, AP_PARAM_FLOAT);    // defines AP_Float
 AP_PARAMDEF(int8_t, Int8, AP_PARAM_INT8);     // defines AP_Int8
 AP_PARAMDEF(int16_t, Int16, AP_PARAM_INT16);  // defines AP_Int16
 AP_PARAMDEF(int32_t, Int32, AP_PARAM_INT32);  // defines AP_Int32
 
-// declare an array type
-// _t is the base type
-// _suffix is the suffix on the AP_* type name
-// _size is the size of the array
-// _pt is the enum ap_var_type type
-#define AP_PARAMDEFA(_t, _suffix, _size, _pt)   typedef AP_ParamA<_t, _size, _pt> AP_##_suffix;
+#define AP_PARAMDEFA(_t, _n, _size, _pt)   typedef AP_ParamA<_t, _size, _pt> AP_##_n;
 AP_PARAMDEFA(float, Vector6f, 6, AP_PARAM_VECTOR6F);
 
-// declare a non-scalar type
 // this is used in AP_Math.h
-// _t is the base type
-// _suffix is the suffix on the AP_* type name
-// _pt is the enum ap_var_type type
-#define AP_PARAMDEFV(_t, _suffix, _pt)   typedef AP_ParamV<_t, _pt> AP_##_suffix;
+#define AP_PARAMDEFV(_t, _n, _pt)   typedef AP_ParamV<_t, _pt> AP_##_n;
 
 /// Rely on built in casting for other variable types
 /// to minimize template creation and save memory

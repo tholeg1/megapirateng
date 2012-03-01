@@ -43,15 +43,15 @@ AP_IMU_INS::init( Start_style style,
 }
 
 /**************************************************/
-#define FLASH_LEDS(on) do { if (flash_leds_cb != NULL) flash_leds_cb(on); } while (0)
 
 void
 AP_IMU_INS::init_gyro(void (*delay_cb)(unsigned long t), void (*flash_leds_cb)(bool on))
 {
-	_init_gyro(delay_cb, flash_leds_cb);
-	_sensor_cal.save();
-	FLASH_LEDS(false);
+    _init_gyro(delay_cb, flash_leds_cb);
+    _sensor_cal.save();
 }
+
+#define FLASH_LEDS(on) do { if (flash_leds_cb != NULL) flash_leds_cb(on); } while (0)
 
 void
 AP_IMU_INS::_init_gyro(void (*delay_cb)(unsigned long t), void (*flash_leds_cb)(bool on))
@@ -136,7 +136,6 @@ AP_IMU_INS::init_accel(void (*delay_cb)(unsigned long t), void (*flash_leds_cb)(
 {
     _init_accel(delay_cb, flash_leds_cb);
     _sensor_cal.save();
-		FLASH_LEDS(false);
 }
 
 void

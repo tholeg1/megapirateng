@@ -10,7 +10,6 @@ struct desktop_info {
 	bool quadcopter; // use quadcopter outputs
 	unsigned framerate;
 	float initial_height;
-	bool console_mode;
 };
 
 extern struct desktop_info desktop_state;

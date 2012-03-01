@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include "../AP_AnalogSource/AP_AnalogSource.h"
-#include "../Filter/Filter.h" // Filter library
+#include "../ModeFilter/ModeFilter.h" // ArduPilot Mega RC Library
 
 /*
 #define AP_RANGEFINDER_ORIENTATION_FRONT		  0, 10,  0
@@ -22,7 +22,7 @@
 class RangeFinder
 {
   protected:
-	RangeFinder(AP_AnalogSource * source, FilterInt16 *filter) :
+	RangeFinder(AP_AnalogSource * source, ModeFilter *filter) :
 		_analog_source(source),
 		_mode_filter(filter) {}
   public:
@@ -38,6 +38,6 @@ class RangeFinder
 	virtual int read();   // read value from sensor and return distance in cm
 
 	AP_AnalogSource *_analog_source;
-	FilterInt16 *_mode_filter;
+  	ModeFilter  *_mode_filter;
 };
 #endif

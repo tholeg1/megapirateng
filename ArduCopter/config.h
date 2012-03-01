@@ -723,7 +723,7 @@
 // Loiter control gains
 //
 #ifndef LOITER_P
-# define LOITER_P			.8
+# define LOITER_P			.2		// was .25 in previous
 #endif
 #ifndef LOITER_I
 # define LOITER_I			0.0
@@ -735,18 +735,14 @@
 //////////////////////////////////////////////////////////////////////////////
 // Loiter Navigation control gains
 //
-#ifndef LOITER_RATE
-# define LOITER_RATE		1
-#endif
-
 #ifndef LOITER_RATE_P
-# define LOITER_RATE_P		3.5			//
+# define LOITER_RATE_P				3.0			//
 #endif
 #ifndef LOITER_RATE_I
-# define LOITER_RATE_I		0.2			// Wind control
+# define LOITER_RATE_I				0.1			// Wind control
 #endif
 #ifndef LOITER_RATE_D
-# define LOITER_RATE_D		0.0			// try 2 or 3 for LOITER_RATE 1
+# define LOITER_RATE_D				0.00		//
 #endif
 #ifndef LOITER_RATE_IMAX
 # define LOITER_RATE_IMAX			30			// degrees
@@ -756,10 +752,10 @@
 // WP Navigation control gains
 //
 #ifndef NAV_P
-# define NAV_P				3.5			//
+# define NAV_P				3.0			//
 #endif
 #ifndef NAV_I
-# define NAV_I				0.2			// Wind control
+# define NAV_I				0.1			// Wind control
 #endif
 #ifndef NAV_D
 # define NAV_D				0.00		//
@@ -793,7 +789,7 @@
 # define ALT_HOLD_P			0.4		//
 #endif
 #ifndef ALT_HOLD_I
-# define ALT_HOLD_I			0.04
+# define ALT_HOLD_I			0.02
 #endif
 #ifndef ALT_HOLD_IMAX
 # define ALT_HOLD_IMAX		300
