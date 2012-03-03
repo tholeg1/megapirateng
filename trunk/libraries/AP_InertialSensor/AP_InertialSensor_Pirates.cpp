@@ -67,15 +67,15 @@ void AP_InertialSensor_Pirates::init( AP_PeriodicProcess * scheduler )
 		_gyro_data_index[0]  =  2;
 		_gyro_data_index[1]  =  1;
 		_gyro_data_index[2]  =  0;
-		_gyro_data_sign[0]   = -1;
-		_gyro_data_sign[1]   = 1;
+		_gyro_data_sign[0]   = 1;
+		_gyro_data_sign[1]   = -1;
 		_gyro_data_sign[2]   = -1;
 	
 		_accel_data_index[0] = 5;
 		_accel_data_index[1] = 4;
 		_accel_data_index[2] = 6;
-		_accel_data_sign[0]  = -1;
-		_accel_data_sign[1]  = 1;
+		_accel_data_sign[0]  = 1;
+		_accel_data_sign[1]  = -1;
 		_accel_data_sign[2]  = -1;
 	}
 

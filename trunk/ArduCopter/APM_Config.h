@@ -3,7 +3,7 @@
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
+#define PIRATES_SENSOR_BOARD PIRATES_FREEIMU_4
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -16,7 +16,7 @@
 // Uncomment if you uses PPM Sum signal from receiver
 //#define SERIAL_PPM ENABLED
 
-#define TX_CHANNEL_SET	TX_mwi
+#define TX_CHANNEL_SET	TX_standard_mode6
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
@@ -43,7 +43,7 @@
 */
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will select automatically 
-#define GPS_PROTOCOL GPS_PROTOCOL_NONE
+#define GPS_PROTOCOL GPS_PROTOCOL_MTK16
 /*
 	GPS_PROTOCOL_NONE 	without GPS
 	GPS_PROTOCOL_NMEA

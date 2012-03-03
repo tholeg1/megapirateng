@@ -19,7 +19,6 @@ static int8_t	setup_range				(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_declination		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_optflow			(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_show				(uint8_t argc, const Menu::arg *argv);
-static int8_t	setup_set				(uint8_t argc, const Menu::arg *argv);
 
 #if FRAME_CONFIG == HELI_FRAME
 	static int8_t	setup_heli				(uint8_t argc, const Menu::arg *argv);
@@ -49,8 +48,7 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
 	{"heli",			setup_heli},
 	{"gyro",			setup_gyro},
 #endif
-	{"show",			setup_show}//,
-//	{"set",			    setup_set}
+	{"show",			setup_show}
 };
 
 // Create the setup menu object.
@@ -110,17 +108,6 @@ setup_show(uint8_t argc, const Menu::arg *argv)
 
 	return(0);
 }
-
-/*// Set AP variables
-// add by sovgvd@gmail.com 
-static int8_t
-setup_set(uint8_t argc, const Menu::arg *argv)
-{
-    AP_Var_menu_set(argc, argv);
-    AP_Param::save_all();
-    return(0);
-}
-*/
 
 // Initialise the EEPROM to 'factory' settings (mostly defined in APM_Config.h or via defaults).
 // Called by the setup menu 'factoryreset' command.

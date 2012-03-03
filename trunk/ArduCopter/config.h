@@ -145,6 +145,11 @@
 # define INSTANT_PWM	ENABLED
 #endif
 
+// default RC speed in Hz if INSTANT_PWM is not used
+#ifndef RC_FAST_SPEED
+# define RC_FAST_SPEED 400
+#endif
+
 // LED and IO Pins
 //
 #if CONFIG_APM_HARDWARE == APM_HARDWARE_APM1
@@ -716,7 +721,11 @@
 
 
 #ifndef STABILIZE_D
-# define STABILIZE_D 		0.05
+# define STABILIZE_D 		0.1
+#endif
+
+#ifndef STABILIZE_D_SCHEDULE
+# define STABILIZE_D_SCHEDULE 		0.0
 #endif
 
 //////////////////////////////////////////////////////////////////////////////

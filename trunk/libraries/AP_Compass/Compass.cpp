@@ -20,10 +20,10 @@ int Compass::product_id = AP_COMPASS_TYPE_UNKNOWN;
 	
 Compass::Compass(void) :
     _declination		(0.0),
-    _null_init_done(false),
-    _null_enable(false),
     _learn(1),
-    _use_for_yaw(1)
+    _use_for_yaw(1),
+    _null_enable(false),
+    _null_init_done(false)
 {
     // Default the orientation matrix to none - will be overridden at group load time
     // if an orientation has previously been saved.

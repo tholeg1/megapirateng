@@ -83,7 +83,11 @@ static void init_compass()
 	#if CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
 		((AP_Compass_HMC5843_Pirates*) &compass)->init(&timer_scheduler);
 	#else
-		compass.init();
+	if (!compass.init() || !compass.read()) {
+        // make sure we don't pass a broken compass to DCM
+        Serial.println_P(PSTR("COMPASS INIT ERROR"));
+        return;
+	    }
 	#endif
 	dcm.set_compass(&compass);
 	compass.get_offsets();					// load offsets to account for airframe magnetic interference 
