@@ -2,6 +2,10 @@ Release Notes for MegaPirateNG 2.4
 
 === Important info ===
 
+--- 2.4.1
+Fixed bug in FFIMU sensor board, thanks to Thomas(thnilsen)
+Fixed LED Sequencer initialization code, thanks to Thomas(thnilsen)
+
 --- 2.3 rc1
 TX configuration moved from APM_RC_PIRATES.cpp to common configuration file APM_config.h
 

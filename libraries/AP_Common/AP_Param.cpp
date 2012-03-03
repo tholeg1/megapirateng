@@ -118,6 +118,7 @@ bool AP_Param::check_group_info(const struct AP_Param::GroupInfo *group_info,
     for (uint8_t i=0;
          (type=PGM_UINT8(&group_info[i].type)) != AP_PARAM_NONE;
          i++) {
+#ifdef AP_NESTED_GROUPS_ENABLED
         if (type == AP_PARAM_GROUP) {
             // a nested group
             const struct GroupInfo *ginfo = (const struct GroupInfo *)PGM_POINTER(&group_info[i].group_info);
@@ -131,6 +132,7 @@ bool AP_Param::check_group_info(const struct AP_Param::GroupInfo *group_info,
             }
             continue;
         }
+#endif // AP_NESTED_GROUPS_ENABLED
         uint8_t idx = PGM_UINT8(&group_info[i].idx);
         if (idx >= (1<<_group_level_shift)) {
             // passed limit on table size
@@ -151,6 +153,19 @@ bool AP_Param::check_group_info(const struct AP_Param::GroupInfo *group_info,
     return true;
 }
 
+// check for duplicate key values
+bool AP_Param::duplicate_key(uint8_t vindex, uint8_t key)
+{
+    for (uint8_t i=vindex+1; i<_num_vars; i++) {
+        uint8_t key2 = PGM_UINT8(&_var_info[i].key);
+        if (key2 == key) {
+            // no duplicate keys allowed
+            return true;
+        }
+    }
+    return false;
+}
+
 // validate the _var_info[] table
 bool AP_Param::check_var_info(void)
 {
@@ -158,6 +173,7 @@ bool AP_Param::check_var_info(void)
 
     for (uint8_t i=0; i<_num_vars; i++) {
         uint8_t type = PGM_UINT8(&_var_info[i].type);
+        uint8_t key = PGM_UINT8(&_var_info[i].key);
         if (type == AP_PARAM_GROUP) {
             if (i == 0) {
                 // first element can't be a group, for first() call
@@ -176,6 +192,9 @@ bool AP_Param::check_var_info(void)
                 return false;
             }
             total_size += size + sizeof(struct Param_header);
+        }
+        if (duplicate_key(i, key)) {
+            return false;
         }
     }
     if (total_size > _eeprom_size) {
@@ -234,6 +253,7 @@ const struct AP_Param::Info *AP_Param::find_by_header_group(struct Param_header 
     for (uint8_t i=0;
          (type=PGM_UINT8(&group_info[i].type)) != AP_PARAM_NONE;
          i++) {
+#ifdef AP_NESTED_GROUPS_ENABLED
         if (type == AP_PARAM_GROUP) {
             // a nested group
             if (group_shift + _group_level_shift >= _group_bits) {
@@ -250,6 +270,7 @@ const struct AP_Param::Info *AP_Param::find_by_header_group(struct Param_header 
             }
             continue;
         }
+#endif // AP_NESTED_GROUPS_ENABLED
         if (GROUP_ID(group_info, group_base, i, group_shift) == phdr.group_element) {
             // found a group element
             *ptr = (void*)(PGM_POINTER(&_var_info[vindex].ptr) + PGM_UINT16(&group_info[i].offset));
@@ -298,6 +319,7 @@ const struct AP_Param::Info *AP_Param::find_var_info_group(const struct GroupInf
          (type=PGM_UINT8(&group_info[i].type)) != AP_PARAM_NONE;
          i++) {
         uintptr_t ofs = PGM_POINTER(&group_info[i].offset);
+#ifdef AP_NESTED_GROUPS_ENABLED
         if (type == AP_PARAM_GROUP) {
             const struct GroupInfo *ginfo = (const struct GroupInfo *)PGM_POINTER(&group_info[i].group_info);
             // a nested group
@@ -316,7 +338,9 @@ const struct AP_Param::Info *AP_Param::find_var_info_group(const struct GroupInf
             if (info != NULL) {
                 return info;
             }
-        } else if ((uintptr_t)this == base + ofs) {
+        } else // Forgive the poor formatting - if continues below.
+#endif // AP_NESTED_GROUPS_ENABLED
+        if ((uintptr_t)this == base + ofs) {
             *group_element = GROUP_ID(group_info, group_base, i, group_shift);
             *group_ret = &group_info[i];
             *idx = 0;
@@ -485,13 +509,16 @@ AP_Param::find_group(const char *name, uint8_t vindex, const struct GroupInfo *g
     for (uint8_t i=0;
          (type=PGM_UINT8(&group_info[i].type)) != AP_PARAM_NONE;
          i++) {
+#ifdef AP_NESTED_GROUPS_ENABLED
         if (type == AP_PARAM_GROUP) {
             const struct GroupInfo *ginfo = (const struct GroupInfo *)PGM_POINTER(&group_info[i].group_info);
             AP_Param *ap = find_group(name, vindex, ginfo, ptype);
             if (ap != NULL) {
                 return ap;
             }
-        } else if (strcasecmp_P(name, group_info[i].name) == 0) {
+        } else
+#endif // AP_NESTED_GROUPS_ENABLED
+        if (strcasecmp_P(name, group_info[i].name) == 0) {
             uintptr_t p = PGM_POINTER(&_var_info[vindex].ptr);
             *ptype = (enum ap_var_type)type;
             return (AP_Param *)(p + PGM_POINTER(&group_info[i].offset));
@@ -631,8 +658,19 @@ bool AP_Param::load(void)
         return false;
     }
 
+    if (phdr.type != AP_PARAM_VECTOR3F && idx != 0) {
+        // only vector3f can have non-zero idx for now
+        return false;
+    }
+
+    AP_Param *ap;
+    ap = this;
+    if (idx != 0) {
+        ap = (AP_Param *)((uintptr_t)ap) - (idx*sizeof(float));
+    }
+
     // found it
-    eeprom_read_block(this, (void*)(ofs+sizeof(phdr)), type_size((enum ap_var_type)phdr.type));
+    eeprom_read_block(ap, (void*)(ofs+sizeof(phdr)), type_size((enum ap_var_type)phdr.type));
     return true;
 }
 
@@ -698,6 +736,7 @@ AP_Param *AP_Param::next_group(uint8_t vindex, const struct GroupInfo *group_inf
     for (uint8_t i=0;
          (type=(enum ap_var_type)PGM_UINT8(&group_info[i].type)) != AP_PARAM_NONE;
          i++) {
+#ifdef AP_NESTED_GROUPS_ENABLED
         if (type == AP_PARAM_GROUP) {
             // a nested group
             const struct GroupInfo *ginfo = (const struct GroupInfo *)PGM_POINTER(&group_info[i].group_info);
@@ -707,7 +746,9 @@ AP_Param *AP_Param::next_group(uint8_t vindex, const struct GroupInfo *group_inf
             if (ap != NULL) {
                 return ap;
             }
-        } else {
+        } else
+#endif // AP_NESTED_GROUPS_ENABLED
+        {
             if (*found_current) {
                 // got a new one
                 token->key = vindex;

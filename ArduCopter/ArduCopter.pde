@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.4.2"
+#define THISFIRMWARE "MegaPirateNG V2.4.1"
 /*
 Please, read release_notes.txt before you go!
 
@@ -10,7 +10,7 @@ Porting to MegaPirate Next Generation by
   Romb89 (UBLOX GPS i2c library)
   Syberian (libraries from MegaPirate r741)
 
-Original firmware is ArduCopter Version 2.4.2
+Original firmware is ArduCopter Version 2.4.1
 Authors:	Jason Short
 Based on code and ideas from the Arducopter team: Randy Mackay, Pat Hickey, Jose Julio, Jani Hirvinen
 Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier
@@ -81,7 +81,8 @@ John Arne Birkeland: PPM Encoder
 #include <AP_RangeFinder.h>	// Range finder library
 //#include <AP_OpticalFlow.h> // Optical Flow library
 #include <Filter.h>			// Filter library
-#include <ModeFilter.h>
+#include <ModeFilter.h>		// Mode Filter from Filter library
+#include <AverageFilter.h>	// Mode Filter from Filter library
 #include <AP_Relay.h>		// APM relay
 #include <GCS_MAVLink.h>    // MAVLink GCS definitions
 #include <memcheck.h>
@@ -313,7 +314,7 @@ GCS_MAVLINK	gcs3;
 // SONAR selection
 ////////////////////////////////////////////////////////////////////////////////
 //
-ModeFilterInt16 sonar_mode_filter(5,2);
+ModeFilterInt16_Size5 sonar_mode_filter(2);
 #if CONFIG_SONAR == ENABLED
 	#if CONFIG_SONAR_SOURCE == SONAR_SOURCE_ADC
 		AP_AnalogSource_ADC sonar_analog_source( &adc, CONFIG_SONAR_SOURCE_ADC_CHANNEL, 0.25);
@@ -423,7 +424,7 @@ static uint32_t rc_override_fs_timer = 0;
 // Heli
 ////////////////////////////////////////////////////////////////////////////////
 #if FRAME_CONFIG ==	HELI_FRAME
-static float heli_rollFactor[3], heli_pitchFactor[3];  // only required for 3 swashplate servos
+static float heli_rollFactor[3], heli_pitchFactor[3], heli_collectiveFactor[3];	// only required for 3 swashplate servos
 static int16_t heli_servo_min[3], heli_servo_max[3];       // same here.  for yaw servo we use heli_servo4_min/max parameter directly
 static int32_t heli_servo_out[4];                         // used for servo averaging for analog servos
 static int16_t heli_servo_out_count;					// use for servo averaging
@@ -452,6 +453,8 @@ static boolean	motor_auto_armed;
 static Vector3f omega;
 // This is used to hold radio tuning values for in-flight CH6 tuning
 float tuning_value;
+// This will keep track of the percent of roll or pitch the user is applying
+float roll_scale_d, pitch_scale_d;
 
 ////////////////////////////////////////////////////////////////////////////////
 // LED output
@@ -552,6 +555,9 @@ static int32_t initial_simple_bearing;
 // Used to control Axis lock
 int32_t roll_axis;
 int32_t pitch_axis;
+// Filters
+AverageFilterInt32_Size3 roll_rate_d_filter;	// filtered acceleration
+AverageFilterInt32_Size3 pitch_rate_d_filter;	// filtered pitch acceleration
 
 ////////////////////////////////////////////////////////////////////////////////
 // Circle Mode / Loiter control
@@ -1551,8 +1557,20 @@ void update_roll_pitch_mode(void)
 		//reset_stability_I();
 	}
 
+	if(new_radio_frame){
 	// clear new radio frame info
 	new_radio_frame = false;
+
+		// These values can be used to scale the PID gains
+		// This allows for a simple gain scheduling implementation
+		roll_scale_d	= g.stabilize_d_schedule * (float)abs(g.rc_1.control_in);
+		roll_scale_d 	= (1 - (roll_scale_d / 4500.0));
+		roll_scale_d	= constrain(roll_scale_d, 0, 1) * g.stabilize_d;
+
+		pitch_scale_d	= g.stabilize_d_schedule * (float)abs(g.rc_2.control_in);
+		pitch_scale_d 	= (1 - (pitch_scale_d / 4500.0));
+		pitch_scale_d 	= constrain(pitch_scale_d, 0, 1) * g.stabilize_d;
+	}
 }
 
 // new radio frame is used to make sure we only call this at 50hz
