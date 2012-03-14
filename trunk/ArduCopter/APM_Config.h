@@ -6,7 +6,7 @@
 //#define INSTANT_PWM	DISABLED
 
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_FREEIMU_4
+#define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -19,7 +19,7 @@
 // Uncomment if you uses PPM Sum signal from receiver
 //#define SERIAL_PPM ENABLED
 
-#define TX_CHANNEL_SET	TX_standard
+#define TX_CHANNEL_SET	TX_mwi
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
@@ -45,7 +45,7 @@
 */
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will select automatically 
-#define GPS_PROTOCOL GPS_PROTOCOL_MTK16
+#define GPS_PROTOCOL GPS_PROTOCOL_NONE
 /*
 	GPS_PROTOCOL_NONE 	without GPS
 	GPS_PROTOCOL_NMEA
@@ -60,9 +60,9 @@
 	GPS_PROTOCOL_BLACKVORTEX
 */
 	
-#define SERIAL0_BAUD			 115200	// If one want a wireless modem (like APC220) on the console port, lower that to 57600. Default is 115200 
-#define SERIAL2_BAUD			 38400	// GPS port bps
-#define SERIAL3_BAUD			 57600	// default telemetry BPS rate = 57600
+#define SERIAL0_BAUD			 115200	// Console port 
+#define SERIAL2_BAUD			 38400	// GPS port
+#define SERIAL3_BAUD			 57600	// Telemetry (MAVLINK) port
 
 // New in 2.0.43, but unused in MegairateNG
 // MPNG: Piezo uses AN5 pin in ArduCopter, we uses AN5 for CLI switch
