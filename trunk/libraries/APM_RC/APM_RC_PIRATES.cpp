@@ -36,7 +36,7 @@ uint8_t *pinRcChannel;
 // ******************
 // rc functions split channels
 // ******************
-volatile uint16_t rcPinValue[8] = {900,1500,1500,1500,1500,1500,1500,1500}; // interval [1000;2000]
+volatile uint16_t rcPinValue[NUM_CHANNELS]; // Default RC values
 
 // Configure each rc pin for PCINT
 void configureReceiver() {
@@ -141,6 +141,14 @@ APM_RC_PIRATES::APM_RC_PIRATES(int _use_ppm, int _bv_mode, uint8_t *_pin_map)
 	use_ppm = _use_ppm; // Use serial sum (PPM)
 	bv_mode = _bv_mode; // BlackVortex mode
 	pinRcChannel = _pin_map; // Channel mapping
+	// Fill default RC values array, set 900 for Throttle channel and 1500 for others
+	for (uint8_t i=0; i<NUM_CHANNELS; i++) {
+		if (_pin_map[i] == 2) {
+			rcPinValue[i] = 900;
+		} else {
+			rcPinValue[i] = 1500;
+		}
+	}
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
@@ -170,7 +178,7 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
   TCCR5A =0; //standard mode with overflow at A and OC B and C interrupts
   TCCR5B = (1<<CS11); //Prescaler set to 8, resolution of 0.5us
   TIMSK5=B00000111; // ints: overflow, capture, compareA
-  OCR5A=65510; // approx 10m limit, 33ms period
+  OCR5A=65510; 
   OCR5B=3000;
   
 	//motors
@@ -179,28 +187,31 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
   ICR1 = 40000; //50hz freq...Datasheet says  (system_freq/prescaler)/target frequency. So (16000000hz/8)/50hz=40000,
   TCCR1A = (1<<WGM31); 
   TCCR1B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
-
+  TIMSK1 = 1;
+  
   OCR3A = 1800; 
   OCR3B = 1800; 
   OCR3C = 1800; 
   ICR3 = 40000; //50hz freq
   TCCR3A = (1<<WGM31);
   TCCR3B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
-
+  TIMSK3 = 1;
+  
   OCR4A = 1800; 
   OCR4B = 1800; 
   OCR4C = 1800; 
   ICR4 = 40000; //50hz freq
   TCCR4A = (1<<WGM31);
   TCCR4B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
-
+  TIMSK4 = 1;
+  
   configureReceiver();
 }
 
 
 
 uint16_t OCRxx1[8]={1800,1800,1800,1800,1800,1800,1800,1800,};
-char OCRstate=7;
+char OCRstate = 7;
 /*
 D	Port PWM
 2	e4	0 3B
@@ -249,6 +260,26 @@ Pin			D2	D3	D5	D6	D7	D8	D11		D12
 
 For motor mapping, see release_notes.txt
 */
+int ocr_tbl[8];
+ISR(TIMER4_OVF_vect)
+{
+	OCR4A = ocr_tbl[1];
+	OCR4B = ocr_tbl[4];
+	OCR4C = ocr_tbl[5];
+}
+
+ISR(TIMER3_OVF_vect)
+{
+	OCR3A = ocr_tbl[0];
+	OCR3B = ocr_tbl[2];
+	OCR3C = ocr_tbl[3];
+}
+
+ISR(TIMER1_OVF_vect)
+{
+	OCR1A = ocr_tbl[6];
+	OCR1B = ocr_tbl[7];
+}
 
 void APM_RC_PIRATES::OutputCh(uint8_t ch, uint16_t pwm)
 {
@@ -257,17 +288,17 @@ void APM_RC_PIRATES::OutputCh(uint8_t ch, uint16_t pwm)
  
 	switch(ch)
   {
-    case 0:  OCR3A=pwm; break; //5
-    case 1:  OCR4A=pwm; break; //6
-    case 2:  OCR3B=pwm; break; //2
-    case 3:  OCR3C=pwm; break; //3
-    case 4:  OCRxx1[1]=pwm;break;//OCRxx1[ch]=pwm;CAM PITCH
-    case 5:  OCRxx1[0]=pwm;break;//OCRxx1[ch]=pwm;CAM ROLL
-    case 6:  OCR4B=pwm; break; //7
-    case 7:  OCR4C=pwm; break; //8
+    case 0:  ocr_tbl[0] = pwm; break; //5
+    case 1:  ocr_tbl[1] = pwm; break; //6
+    case 2:  ocr_tbl[2] = pwm; break; //2
+    case 3:  ocr_tbl[3] = pwm; break; //3
+    case 4:  OCRxx1[1]  = pwm; break; //CAM PITCH
+    case 5:  OCRxx1[0]  = pwm; break; //CAM ROLL
+    case 6:  ocr_tbl[4] = pwm; break; //7
+    case 7:  ocr_tbl[5] = pwm; break; //8
 
-    case 9:  OCR1A=pwm;break;// d11
-    case 10: OCR1B=pwm;break;// d12
+    case 9:  ocr_tbl[6] = pwm; break;// d11
+    case 10: ocr_tbl[7] = pwm; break;// d12
   } 
 }
 
@@ -327,7 +358,9 @@ void APM_RC_PIRATES::Force_Out(void)
 	Force_Out0_Out1();
 }
 
-// This function forces the PWM output (reset PWM) on Out0 and Out1 (Timer5). For quadcopters use
+// MPNG: Pirates has another channel map than AC, so we reset counters for all motors in single function
+
+// This function forces the PWM output (reset PWM) on Out0 and Out1 (Timer3). For quadcopters use
 void APM_RC_PIRATES::Force_Out0_Out1(void)
 {
   if (TCNT3>5000)  // We take care that there are not a pulse in the output
@@ -337,17 +370,13 @@ void APM_RC_PIRATES::Force_Out0_Out1(void)
   if (TCNT1>5000)
     TCNT1=39990; 
 }
-// This function forces the PWM output (reset PWM) on Out2 and Out3 (Timer1). For quadcopters use
+// This function forces the PWM output (reset PWM) on Out2 and Out3 (Timer4). For quadcopters use
 void APM_RC_PIRATES::Force_Out2_Out3(void)
 {
- // if (TCNT1>5000)
- //   TCNT1=39990;
 }
-// This function forces the PWM output (reset PWM) on Out6 and Out7 (Timer3). For quadcopters use
+// This function forces the PWM output (reset PWM) on Out6 and Out7 (Timer1). For quadcopters use
 void APM_RC_PIRATES::Force_Out6_Out7(void)
 {
-//  if (TCNT3>5000)
-//    TCNT3=39990;
 }
 
 /* --------------------- OUTPUT SPEED CONTROL --------------------- */
@@ -356,24 +385,17 @@ void APM_RC_PIRATES::SetFastOutputChannels(uint32_t chmask, uint16_t speed_hz)
 {
 	uint16_t icr = _map_speed(speed_hz);
 
-// Speed modification currently not supported by MPNG, alway using INSTANT_PWM
-/*	if ((chmask & ( _BV(CH_1) | _BV(CH_2) | _BV(CH_9))) != 0) {
+	if ((chmask & ( _BV(CH_9) | _BV(CH_10))) != 0) {
 		ICR1 = icr;
-}
+	}
 
-	if ((chmask & ( _BV(CH_3) | _BV(CH_4) | _BV(CH_10))) != 0) {
-		ICR5 = icr;
-}
-
-#if 0
-	if ((chmask & ( _BV(CH_5) | _BV(CH_6))) != 0) {
-}
-#endif
-
-	if ((chmask & ( _BV(CH_7) | _BV(CH_8) | _BV(CH_11))) != 0) {
+	if ((chmask & ( _BV(CH_1) | _BV(CH_3) | _BV(CH_4))) != 0) {
 		ICR3 = icr;
 	}
-*/
+
+	if ((chmask & ( _BV(CH_2) | _BV(CH_7) | _BV(CH_8))) != 0) {
+		ICR4 = icr;
+	}
 } 
 
 // allow HIL override of RC values

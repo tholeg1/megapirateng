@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.4.1"
+#define THISFIRMWARE "MegaPirateNG V2.4.1 r2"
 /*
 Please, read release_notes.txt before you go!
 
@@ -135,8 +135,6 @@ static void update_events(void);
 		static uint8_t pinRcChannel[8] = {1, 3, 2, 0, 4,5,6,7}; //Graupner/Spektrum
 	#elif TX_CHANNEL_SET == TX_standard
 		static uint8_t pinRcChannel[8] = {0, 1, 2, 3, 4,5,6,7}; //standard  PPM layout Robbe/Hitec/Sanwa
-	#elif TX_CHANNEL_SET == TX_standard_mode6
-		static uint8_t pinRcChannel[8] = {0, 1, 2, 3, 5,4,6,7}; //standard layout with swapped 5,6 channels (Mode switch on 6 channel)
 	#elif TX_CHANNEL_SET == TX_set2
 		static uint8_t pinRcChannel[8] = {1, 0, 2, 3, 4,5,6,7}; // some Hitec/Sanwa/others
 	#elif TX_CHANNEL_SET == TX_mwi

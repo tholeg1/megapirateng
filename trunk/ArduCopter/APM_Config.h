@@ -2,8 +2,11 @@
 
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
+// Uncomment this line to enable Fast PWM 400Hz (400 Hz can be changed in the APM Planner, change RC_SPEED param value)
+//#define INSTANT_PWM	DISABLED
+
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_FREEIMU_4
+#define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -16,11 +19,10 @@
 // Uncomment if you uses PPM Sum signal from receiver
 //#define SERIAL_PPM ENABLED
 
-#define TX_CHANNEL_SET	TX_standard_mode6
+#define TX_CHANNEL_SET	TX_mwi
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
-	TX_standard_mode6		//standard, Mode channel is 6  						ROLL,PITCH,THROTTLE,YAW,AUX1,MODE,CAMPITCH,CAMROLL
 	TX_set2							//some Hitec/Sanwa/others									PITCH,ROLL,THROTTLE,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_mwi							//MultiWii layout													ROLL,THROTTLE,PITCH,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
 */
@@ -43,7 +45,7 @@
 */
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will select automatically 
-#define GPS_PROTOCOL GPS_PROTOCOL_MTK16
+#define GPS_PROTOCOL GPS_PROTOCOL_NONE
 /*
 	GPS_PROTOCOL_NONE 	without GPS
 	GPS_PROTOCOL_NMEA
