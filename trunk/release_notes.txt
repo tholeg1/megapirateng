@@ -1,6 +1,11 @@
-Release Notes for MegaPirateNG 2.4
+Release Notes for MegaPirateNG 2.4.2 R1
 
 === Important info ===
+
+--- 2.4.1 R2
+Restored FastPWM, 400Hz by default, can be changed in APM Planner, RC_SPEED value
+GPS Initialization fixed, at least my MTK16 protocol now work fine
+Stability fix for InstantPWM
 
 --- 2.4.1
 Fixed bug in FFIMU sensor board, thanks to Thomas(thnilsen)

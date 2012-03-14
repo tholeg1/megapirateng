@@ -1,7 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 #ifndef AP_Compass_HMC5843_Pirates_H
 #define AP_Compass_HMC5843_Pirates_H
-
+ 
 #include "../AP_Common/AP_Common.h"
 #include "../AP_Math/AP_Math.h"
 #include "../AP_PeriodicProcess/AP_PeriodicProcess.h" 
@@ -65,7 +65,7 @@ class AP_Compass_HMC5843_Pirates : public Compass
   bool init(AP_PeriodicProcess *scheduler);
 	virtual bool init(void) {};
 	virtual bool read(void);
-	virtual void set_orientation(const Matrix3f &rotation_matrix);
+	virtual void set_orientation(enum Rotation rotation);
 	static bool _updated;
 	static void _update(uint32_t tnow);
 };
