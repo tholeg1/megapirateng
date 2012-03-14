@@ -283,6 +283,7 @@ static void init_ardupilot()
 			GPS_enabled = false;
 			break;
 	  }
+	  mavlink_delay(250);
 	}
 	#else
 		GPS_enabled = true;
