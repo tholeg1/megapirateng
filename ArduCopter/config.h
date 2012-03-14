@@ -497,6 +497,10 @@
 # define GROUND_START_DELAY		3
 #endif
 
+#ifndef AUTOMATIC_DECLINATION
+	#define AUTOMATIC_DECLINATION DISABLED
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -650,7 +654,7 @@
 # define STABILIZE_ROLL_P 		4.5
 #endif
 #ifndef STABILIZE_ROLL_I
-# define STABILIZE_ROLL_I 		0.0
+# define STABILIZE_ROLL_I 		0.1
 #endif
 #ifndef STABILIZE_ROLL_IMAX
 # define STABILIZE_ROLL_IMAX 	40		// degrees
@@ -660,7 +664,7 @@
 # define STABILIZE_PITCH_P		4.5
 #endif
 #ifndef STABILIZE_PITCH_I
-# define STABILIZE_PITCH_I		0.0
+# define STABILIZE_PITCH_I		0.1
 #endif
 #ifndef STABILIZE_PITCH_IMAX
 # define STABILIZE_PITCH_IMAX	40		// degrees
@@ -687,7 +691,7 @@
 # define RATE_ROLL_I         0.0
 #endif
 #ifndef RATE_ROLL_D
-# define RATE_ROLL_D        0.002
+# define RATE_ROLL_D        0.000 //.002
 #endif
 #ifndef RATE_ROLL_IMAX
 # define RATE_ROLL_IMAX	 	5			// degrees
@@ -700,7 +704,7 @@
 # define RATE_PITCH_I		0.0
 #endif
 #ifndef RATE_PITCH_D
-# define RATE_PITCH_D       0.002
+# define RATE_PITCH_D       0.00
 #endif
 #ifndef RATE_PITCH_IMAX
 # define RATE_PITCH_IMAX   	5			// degrees
@@ -713,7 +717,7 @@
 # define RATE_YAW_I     0.0
 #endif
 #ifndef RATE_YAW_D
-# define RATE_YAW_D    		 .000
+# define RATE_YAW_D    		 0.000
 #endif
 #ifndef RATE_YAW_IMAX
 # define RATE_YAW_IMAX 		  50		// degrees
@@ -721,18 +725,18 @@
 
 
 #ifndef STABILIZE_D
-# define STABILIZE_D 		0.1
+# define STABILIZE_D 		0.15
 #endif
 
 #ifndef STABILIZE_D_SCHEDULE
-# define STABILIZE_D_SCHEDULE 		0.0
+# define STABILIZE_D_SCHEDULE 		0.5
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Loiter control gains
 //
 #ifndef LOITER_P
-# define LOITER_P			.8
+# define LOITER_P			.4
 #endif
 #ifndef LOITER_I
 # define LOITER_I			0.0
@@ -744,18 +748,14 @@
 //////////////////////////////////////////////////////////////////////////////
 // Loiter Navigation control gains
 //
-#ifndef LOITER_RATE
-# define LOITER_RATE		1
-#endif
-
 #ifndef LOITER_RATE_P
-# define LOITER_RATE_P		3.5			//
+# define LOITER_RATE_P		3.0			//
 #endif
 #ifndef LOITER_RATE_I
-# define LOITER_RATE_I		0.2			// Wind control
+# define LOITER_RATE_I		0.20		// Wind control
 #endif
 #ifndef LOITER_RATE_D
-# define LOITER_RATE_D		0.0			// try 2 or 3 for LOITER_RATE 1
+# define LOITER_RATE_D		0			// try 2 or 3 for LOITER_RATE 1
 #endif
 #ifndef LOITER_RATE_IMAX
 # define LOITER_RATE_IMAX			30			// degrees
@@ -765,10 +765,10 @@
 // WP Navigation control gains
 //
 #ifndef NAV_P
-# define NAV_P				3.5			//
+# define NAV_P				3.0			//
 #endif
 #ifndef NAV_I
-# define NAV_I				0.2			// Wind control
+# define NAV_I				0.20		// Wind control
 #endif
 #ifndef NAV_D
 # define NAV_D				0.00		//
@@ -799,10 +799,10 @@
 #endif
 
 #ifndef ALT_HOLD_P
-# define ALT_HOLD_P			0.4		//
+# define ALT_HOLD_P			0.5		//
 #endif
 #ifndef ALT_HOLD_I
-# define ALT_HOLD_I			0.04
+# define ALT_HOLD_I			0.015
 #endif
 #ifndef ALT_HOLD_IMAX
 # define ALT_HOLD_IMAX		300
@@ -810,10 +810,10 @@
 
 // RATE control
 #ifndef THROTTLE_P
-# define THROTTLE_P			0.35	//
+# define THROTTLE_P			0.25	//
 #endif
 #ifndef THROTTLE_I
-# define THROTTLE_I		0.0			//
+# define THROTTLE_I			0.0		// Don't edit
 #endif
 #ifndef THROTTLE_D
 # define THROTTLE_D			0.02	//
@@ -1011,5 +1011,9 @@
 #endif
 
 
+// experimental quaternion code
+#ifndef QUATERNION_ENABLE
+# define QUATERNION_ENABLE DISABLED
+#endif
 
 #endif // __ARDUCOPTER_CONFIG_H__

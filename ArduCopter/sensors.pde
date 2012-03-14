@@ -10,7 +10,7 @@ static void init_sonar(void)
 {
 	#if CONFIG_SONAR_SOURCE == SONAR_SOURCE_ADC
 		sonar.calculate_scaler(g.sonar_type, 3.3);
-	#elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ADC
+	#elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_PIRATES
 		sonar.init();
 	#elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ANALOG_PIN
 		sonar.calculate_scaler(g.sonar_type, 5.0);
@@ -37,7 +37,7 @@ static void init_barometer(void)
 		//Serial.printf("init %ld, %d, -, %ld, %ld\n", barometer.RawTemp, barometer.Temp, barometer.RawPress,  barometer.Press);
 	}
 
-	for(i = 0; i < 20; i++){
+	for(i = 0; i < 40; i++){
 		delay(20);
 
 		#if HIL_MODE == HIL_MODE_SENSORS
@@ -46,15 +46,25 @@ static void init_barometer(void)
 
 		// Get initial data from absolute pressure sensor
 		barometer.read();
-		ground_pressure = barometer.get_pressure();
-		ground_temperature	= (ground_temperature * 7 + barometer.get_temperature()) / 8;
-		//Serial.printf("init %ld, %d, -, %ld, %ld, -, %d, %ld\n", barometer.RawTemp, barometer.Temp, barometer.RawPress,  barometer.Press, ground_temperature, ground_pressure);
+		ground_pressure 	= baro_filter.apply(barometer.get_pressure());
+
+		//Serial.printf("t: %ld, p: %d\n", ground_pressure, ground_temperature);
+
+		/*Serial.printf("init %d, %d, -, %d, %d, -, %d, %d\n",
+				barometer.RawTemp,
+				barometer.Temp,
+				barometer.RawPress,
+				barometer.Press,
+				ground_temperature,
+				ground_pressure);*/
 	}
+	// save our ground temp
+	ground_temperature	= barometer.get_temperature();
 }
 
 static void reset_baro(void)
 {
-		ground_pressure 	= barometer.get_pressure();
+	ground_pressure 	= baro_filter.apply(barometer.get_pressure());
 		ground_temperature	= barometer.get_temperature();
 	}
 
@@ -63,7 +73,7 @@ static int32_t read_barometer(void)
  	float x, scaling, temp;
 
 	barometer.read();
-	float abs_pressure = barometer.get_pressure();
+	float abs_pressure = baro_filter.apply(barometer.get_pressure());
 
 
 	//Serial.printf("%ld, %ld, %ld, %ld\n", barometer.RawTemp, barometer.RawPress, barometer.Press, abs_pressure);
@@ -90,7 +100,6 @@ static void init_compass()
 	    }
 	#endif
 	dcm.set_compass(&compass);
-	compass.get_offsets();					// load offsets to account for airframe magnetic interference 
 	compass.null_offsets_enable();
 }
 

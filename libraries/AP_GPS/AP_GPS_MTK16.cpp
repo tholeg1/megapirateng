@@ -30,21 +30,12 @@ AP_GPS_MTK16::init(void)
 {
     _port->flush();
     
-    // wait for any signal from GPS
-    uint32_t start = millis();
-    while ( (_port->available() == 0) && ((millis()-start) < 2000))  // Wait max 2s for signal from GPS
-    {
-    		// Do nothing
-    }
-    _port->flush();
     // initialize serial port for binary protocol use
     // XXX should assume binary, let GPS_AUTO handle dynamic config?
     _port->print(MTK_SET_BINARY);
 
     // set 4Hz update rate
     _port->print(MTK_OUTPUT_4HZ);
-    
-    delay(100);
     
     // set initial epoch code
     _epoch = TIME_OF_DAY;

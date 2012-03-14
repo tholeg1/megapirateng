@@ -199,18 +199,18 @@ uint16_t APM_RC_APM1::InputCh(uint8_t ch)
     return _HIL_override[ch];
   }
 
-  // Because servo pulse variables are 16 bits and the interrupts are running values could be corrupted.
-  // We dont want to stop interrupts to read radio channels so we have to do two readings to be sure that the value is correct...
+	// we need to stop interrupts to be sure we get a correct 16 bit value
+	cli();
   result =  _PWM_RAW[ch];
-  if (result != _PWM_RAW[ch]) {
-    result = _PWM_RAW[ch];   // if the results are different we make a third reading (this should be fine)
-  }
-  result >>= 1;  // Because timer runs at 0.5us we need to do value/2
+	sei();
+
+	// Because timer runs at 0.5us we need to do value/2
+	result >>= 1;
 
   // Limit values to a valid range
   result = constrain(result,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
   _radio_status=0; // Radio channel read
-  return(result);
+	return result;
 }
 
 uint8_t APM_RC_APM1::GetState(void)

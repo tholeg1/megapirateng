@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.4.1 r2"
+#define THISFIRMWARE "MegaPirateNG V2.4.2 r1"
 /*
 Please, read release_notes.txt before you go!
 
@@ -10,7 +10,7 @@ Porting to MegaPirate Next Generation by
   Romb89 (UBLOX GPS i2c library)
   Syberian (libraries from MegaPirate r741)
 
-Original firmware is ArduCopter Version 2.4.1
+Original firmware is ArduCopter Version 2.4.2
 Authors:	Jason Short
 Based on code and ideas from the Arducopter team: Randy Mackay, Pat Hickey, Jose Julio, Jani Hirvinen
 Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier
@@ -43,6 +43,13 @@ Jean-Louis Naudin 	:Auto Landing
 Sandro Benigno  : Camera support
 Olivier Adler : PPM Encoder
 John Arne Birkeland: PPM Encoder
+Adam M Rivera		:Auto Compass Declination
+
+And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
+
+Requires modified "mrelax" version of Arduino, which can be found here:
+http://code.google.com/p/ardupilot-mega/downloads/list
+
 */
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -74,6 +81,7 @@ John Arne Birkeland: PPM Encoder
 #include <AP_PeriodicProcess.h>         // Parent header of Timer
                                         // (only included for makefile libpath to work)
 #include <AP_TimerProcess.h>            // TimerProcess is the scheduler for MPU6000 reads.
+#include <AP_Quaternion.h>  // Madgwick quaternion system
 #include <AP_DCM.h>         // ArduPilot Mega DCM Library
 #include <APM_PI.h>            	// PI library
 #include <AC_PID.h>            // PID library
@@ -95,6 +103,11 @@ John Arne Birkeland: PPM Encoder
 // Local modules
 #include "Parameters.h"
 #include "GCS.h"
+
+#if AUTOMATIC_DECLINATION == ENABLED
+// this is in an #if to avoid the static data
+#include <AP_Declination.h> // ArduPilot Mega Declination Helper Library
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Serial ports
@@ -255,10 +268,19 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 		AP_InertialSensor_Oilpan ins(&adc);
 	#endif
 	AP_IMU_INS  imu(&ins);
+
 // we don't want to use gps for yaw correction on ArduCopter, so pass
 // a NULL GPS object pointer
 static GPS         *g_gps_null;
-AP_DCM  dcm(&imu, g_gps_null);
+#if QUATERNION_ENABLE == ENABLED
+  // this shouldn't be called dcm of course, but until we
+  // decide to actually use something else, I don't want the patch
+  // size to be huge
+ AP_Quaternion dcm(&imu, g_gps_null);
+#else
+ AP_DCM  dcm(&imu, g_gps_null);
+#endif
+
 	AP_TimerProcess timer_scheduler;
 
 	// Compass must be initialized after INS, because in case of using MPU6050 it must be switched into bypass mode
@@ -375,6 +397,9 @@ static const char* flight_mode_strings[] = {
 // updated after GPS read - 5-10hz
 static int16_t x_actual_speed;
 static int16_t y_actual_speed;
+
+static int16_t x_rate_d;
+static int16_t y_rate_d;
 
 // The difference between the desired rate of travel and the actual rate of travel
 // updated after GPS read - 5-10hz
@@ -553,9 +578,16 @@ static int32_t initial_simple_bearing;
 // Used to control Axis lock
 int32_t roll_axis;
 int32_t pitch_axis;
+
 // Filters
 AverageFilterInt32_Size3 roll_rate_d_filter;	// filtered acceleration
 AverageFilterInt32_Size3 pitch_rate_d_filter;	// filtered pitch acceleration
+
+AverageFilterInt16_Size2 lat_rate_d_filter;		// for filtering D term
+AverageFilterInt16_Size2 lon_rate_d_filter;		// for filtering D term
+
+// Barometer filter
+AverageFilterInt32_Size5 baro_filter;	// filtered pitch acceleration
 
 ////////////////////////////////////////////////////////////////////////////////
 // Circle Mode / Loiter control
@@ -619,7 +651,11 @@ static int32_t 	ground_pressure;
 static int16_t 		ground_temperature;
 // The cm we are off in altitude from next_WP.alt – Positive value means we are below the WP
 static int32_t		altitude_error;
-// The cm/s we are moving up or down - Positive = UP
+// The cm/s we are moving up or down based on sensor data - Positive = UP
+static int16_t		climb_rate_actual;
+// Used to dither our climb_rate over 50hz
+static int16_t		climb_rate_error;
+// The cm/s we are moving up or down based on filtered data - Positive = UP
 static int16_t		climb_rate;
 // The altitude as reported by Sonar in cm – Values are 20 to 700 generally.
 static int16_t		sonar_alt;
@@ -629,8 +665,10 @@ static int16_t		sonar_rate;
 static int32_t		baro_alt;
 // The climb_rate as reported by Baro in cm/s
 static int16_t		baro_rate;
-//
+// used to switch out of Manual Boost
 static boolean 		reset_throttle_flag;
+// used to track when to read sensors vs estimate alt
+static boolean 		alt_sensor_flag;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -741,13 +779,6 @@ static int16_t	nav_throttle;						// 0-1000 for throttle control
 // This is a simple counter to track the amount of throttle used during flight
 // This could be useful later in determining and debuging current usage and predicting battery life
 static uint32_t throttle_integrator;
-// This is a future value for replacing the throttle_cruise setup procedure. It's an average of throttle control
-// that is generated when the climb rate is within a certain threshold
-//static float	throttle_avg = THROTTLE_CRUISE;
-// This is a flag used to trigger the updating of nav_throttle at 10hz
-static bool 	invalid_throttle;
-// Used to track the altitude offset for climbrate control
-//static int32_t 	target_altitude;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Climb rate control
@@ -890,9 +921,10 @@ void setup() {
 void loop()
 {
 	uint32_t timer 			= micros();
+
 	// We want this to execute fast
 	// ----------------------------
-	if ((timer - fast_loopTimer) >= 4000) {
+	if ((timer - fast_loopTimer) >= 10000 && imu.new_data_available()) {
 		//Log_Write_Data(13, (int32_t)(timer - fast_loopTimer));
 
 		//PORTK |= B00010000;
@@ -1018,8 +1050,10 @@ static void medium_loop()
 			#if HIL_MODE != HIL_MODE_ATTITUDE					// don't execute in HIL mode
 				if(g.compass_enabled){
 					if (compass.read()) {
-					compass.calculate(dcm.get_dcm_matrix());  	// Calculate heading
-					compass.null_offsets(dcm.get_dcm_matrix());
+                        // Calculate heading
+                        Matrix3f m = dcm.get_dcm_matrix();
+                        compass.calculate(m);
+                        compass.null_offsets(m);
 				}
 				}
 			#endif
@@ -1066,8 +1100,9 @@ static void medium_loop()
 					// -----------------------------
 				update_navigation();
 
-				if (g.log_bitmask & MASK_LOG_NTUN)
+					if (g.log_bitmask & MASK_LOG_NTUN && motor_armed){
 					Log_Write_Nav_Tuning();
+			}
 			}
 			}
 			break;
@@ -1079,13 +1114,10 @@ static void medium_loop()
 
 			// Read altitude from sensors
 			// --------------------------
-			#if HIL_MODE != HIL_MODE_ATTITUDE					// don't execute in HIL mode
-			update_altitude();
-			#endif
-
-			// invalidate the throttle hold value
-			// ----------------------------------
-			invalid_throttle = true;
+			//#if HIL_MODE != HIL_MODE_ATTITUDE					// don't execute in HIL mode
+			//update_altitude();
+			//#endif
+			alt_sensor_flag = true;
 
 			break;
 
@@ -1106,16 +1138,13 @@ static void medium_loop()
 				if (g.log_bitmask & MASK_LOG_ATTITUDE_MED)
 					Log_Write_Attitude();
 
-					if (g.log_bitmask & MASK_LOG_CTUN)
-					Log_Write_Control_Tuning();
+				if (g.log_bitmask & MASK_LOG_MOTORS)
+					Log_Write_Motors();
 				}
 
 				// send all requested output streams with rates requested
 				// between 5 and 45 Hz
 				gcs_data_stream_send(5,45);
-
-			if (g.log_bitmask & MASK_LOG_MOTORS)
-				Log_Write_Motors();
 
 			break;
 
@@ -1137,8 +1166,8 @@ static void medium_loop()
 			// -----------------------
 			arm_motors();
 
-			// Do an extra baro read
-			// ---------------------
+			// Do an extra baro read for Temp sensing
+			// ---------------------------------------
 #if HIL_MODE != HIL_MODE_ATTITUDE
 			barometer.read();
 #endif
@@ -1163,6 +1192,10 @@ static void medium_loop()
 // ---------------------------
 static void fifty_hz_loop()
 {
+	// read altitude sensors or estimate altitude
+	// ------------------------------------------
+	update_altitude_est();
+
 	// moved to slower loop
 	// --------------------
 	update_throttle_mode();
@@ -1228,6 +1261,11 @@ static void slow_loop()
 			slow_loopCounter++;
 			superslow_loopCounter++;
 
+			// update throttle hold every 20 seconds
+			if(superslow_loopCounter > 60){
+				update_throttle_cruise();
+			}
+
 			if(superslow_loopCounter > 1200){
 				#if HIL_MODE != HIL_MODE_ATTITUDE
 					if(g.rc_3.control_in == 0 && control_mode == STABILIZE && g.compass_enabled){
@@ -1285,13 +1323,14 @@ static void slow_loop()
 // 1Hz loop
 static void super_slow_loop()
 {
-	if (g.log_bitmask & MASK_LOG_CUR)
+	if (g.log_bitmask & MASK_LOG_CUR && motor_armed)
 		Log_Write_Current();
 
 	// this function disarms the copter if it has been sitting on the ground for any moment of time greater than 30s
 	// but only of the control mode is manual
 	if((control_mode <= ACRO) && (g.rc_3.control_in == 0)){
 		auto_disarming_counter++;
+
 		if(auto_disarming_counter == AUTO_ARMING_DELAY){
 			init_disarm_motors();
 		}else if (auto_disarming_counter > AUTO_ARMING_DELAY){
@@ -1300,8 +1339,10 @@ static void super_slow_loop()
 	}else{
 		auto_disarming_counter = 0;
 	}
+
     gcs_send_message(MSG_HEARTBEAT);
     gcs_data_stream_send(1,3);
+
 	// agmatthews - USERHOOKS
 	#ifdef USERHOOK_SUPERSLOWLOOP
 	   USERHOOK_SUPERSLOWLOOP
@@ -1416,6 +1457,12 @@ static void update_GPS(void)
 				ground_start_count = 5;
 
 			}else{
+#if AUTOMATIC_DECLINATION == ENABLED
+				if(g.compass_enabled) {
+					// Set compass declination automatically
+					compass.set_initial_location(g_gps->latitude, g_gps->longitude, false);
+				}
+#endif
 				// save home to eeprom (we must have a good fix to have reached this point)
 				init_home();
 				ground_start_count = 0;
@@ -1425,14 +1472,14 @@ static void update_GPS(void)
 		current_loc.lng = g_gps->longitude;	// Lon * 10 * *7
 		current_loc.lat = g_gps->latitude;	// Lat * 10 * *7
 
-		if (g.log_bitmask & MASK_LOG_GPS){
+		if (g.log_bitmask & MASK_LOG_GPS && motor_armed){
 			Log_Write_GPS();
 		}
 
 		#if HIL_MODE == HIL_MODE_ATTITUDE					// only execute in HIL mode
-		update_altitude();
+			//update_altitude();
+			alt_sensor_flag = true;
 	#endif
-
 	}
 }
 
@@ -1699,12 +1746,12 @@ void update_throttle_mode(void)
 				// we are under automatic throttle control
 				// ---------------------------------------
 				if(reset_throttle_flag)	{
-					set_new_altitude(max(current_loc.alt, 100));
+					force_new_altitude(max(current_loc.alt, 100));
 					reset_throttle_flag = false;
+					update_throttle_cruise();
 				}
 
-				// 10hz, 			don't run up i term
-				if(invalid_throttle && motor_auto_armed == true){
+				if(motor_auto_armed == true){
 
 					// how far off are we
 					altitude_error = get_altitude_error();
@@ -1712,8 +1759,6 @@ void update_throttle_mode(void)
 					// get the AP throttle
 					nav_throttle = get_nav_throttle(altitude_error);
 
-					// clear the new data flag
-					invalid_throttle = false;
 					/*
 					Serial.printf("tar_alt: %d, actual_alt: %d \talt_err: %d, \tnav_thr: %d, \talt Int: %d\n",
 										next_WP.alt,
@@ -1722,6 +1767,7 @@ void update_throttle_mode(void)
 										nav_throttle,
 										(int16_t)g.pi_alt_hold.get_integrator());
 					//*/
+
 				}
 
 				// hack to remove the influence of the ground effect
@@ -1895,7 +1941,7 @@ static void read_AHRS(void)
 		gcs_update();
 	#endif
 
-	dcm.update_DCM_fast();
+	dcm.update_DCM();
 	omega = imu.get_gyro();
 }
 
@@ -1930,7 +1976,6 @@ static void update_altitude()
 {
 	static int16_t 	old_sonar_alt 	= 0;
 	static int32_t 	old_baro_alt 	= 0;
-	static int16_t 	old_climb_rate 	= 0;
 
 	#if HIL_MODE == HIL_MODE_ATTITUDE
 		// we are in the SIM, fake out the baro and Sonar
@@ -1945,16 +1990,17 @@ static void update_altitude()
 		// This is real life
 
 		// read in Actual Baro Altitude
-		baro_alt 			= (baro_alt + read_barometer()) >> 1;
+		baro_alt 			= read_barometer();
+		//Serial.printf("baro_alt: %d \n", baro_alt);
 
 		// calc the vertical accel rate
 		int temp			= (baro_alt - old_baro_alt) * 10;
 		baro_rate 			= (temp + baro_rate) >> 1;
+		baro_rate			= constrain(baro_rate, -300, 300);
 		old_baro_alt		= baro_alt;
 
 		// Note: sonar_alt is calculated in a faster loop and filtered with a mode filter
 	#endif
-
 
 	if(g.sonar_enabled){
 		// filter out offset
@@ -1969,6 +2015,7 @@ static void update_altitude()
 			// calc the vertical accel rate
 			// positive = going up.
 			sonar_rate 		= (sonar_alt - old_sonar_alt) * 10;
+			sonar_rate		= constrain(sonar_rate, -150, 150);
 			old_sonar_alt 	= sonar_alt;
 		#endif
 
@@ -1987,48 +2034,60 @@ static void update_altitude()
 			current_loc.alt = ((float)sonar_alt * (1.0 - scale)) + ((float)baro_alt * scale) + home.alt;
 
 			// solve for a blended climb_rate
-			climb_rate 		= ((float)sonar_rate * (1.0 - scale)) + (float)baro_rate * scale;
+			climb_rate_actual = ((float)sonar_rate * (1.0 - scale)) + (float)baro_rate * scale;
 
 		}else{
 			// we must be higher than sonar (>800), don't get tricked by bad sonar reads
 			current_loc.alt = baro_alt + home.alt; // home alt = 0
 			// dont blend, go straight baro
-			climb_rate 		= baro_rate;
+			climb_rate_actual 	= baro_rate;
 		}
 
 	}else{
 		// NO Sonar case
 		current_loc.alt = baro_alt + home.alt;
-		climb_rate 		= baro_rate;
+		climb_rate_actual = baro_rate;
 	}
-
-	// simple smoothing
-	climb_rate = (climb_rate + old_climb_rate)>>1;
-
-	// manage bad data
-	climb_rate = constrain(climb_rate, -800, 800);
-
-	// save for filtering
-	old_climb_rate = climb_rate;
 
 	// update the target altitude
 	next_WP.alt = get_new_altitude();
+
+	// calc error
+	climb_rate_error = (climb_rate_actual - climb_rate) / 5;
 }
 
+static void update_altitude_est()
+{
+	if(alt_sensor_flag){
+		update_altitude();
+		alt_sensor_flag = false;
+
+		if(g.log_bitmask & MASK_LOG_CTUN && motor_armed){
+			Log_Write_Control_Tuning();
+		}
+
+	}else{
+		// simple dithering of climb rate
+		climb_rate += climb_rate_error;
+		current_loc.alt += (climb_rate / 50);
+	}
+	//Serial.printf(" %d, %d, %d, %d\n", climb_rate_actual, climb_rate_error, climb_rate, current_loc.alt);
+}
+
+#define THROTTLE_ADJUST 225
 static void
 adjust_altitude()
 {
-	if(g.rc_3.control_in <= (MINIMUM_THROTTLE + 100)){
+	if(g.rc_3.control_in <= (MINIMUM_THROTTLE + THROTTLE_ADJUST)){
 		// we remove 0 to 100 PWM from hover
-		manual_boost = (g.rc_3.control_in - MINIMUM_THROTTLE) -100;
-		manual_boost = max(-100, manual_boost);
-		update_throttle_cruise();
+		manual_boost = (g.rc_3.control_in - MINIMUM_THROTTLE) - THROTTLE_ADJUST;
+		manual_boost = max(-THROTTLE_ADJUST, manual_boost);
 
-	}else if  (g.rc_3.control_in >= (MAXIMUM_THROTTLE - 100)){
+	}else if  (g.rc_3.control_in >= (MAXIMUM_THROTTLE - THROTTLE_ADJUST)){
 		// we add 0 to 100 PWM to hover
-		manual_boost = g.rc_3.control_in - (MAXIMUM_THROTTLE - 100);
-		manual_boost = min(100, manual_boost);
-		update_throttle_cruise();
+		manual_boost = g.rc_3.control_in - (MAXIMUM_THROTTLE - THROTTLE_ADJUST);
+		manual_boost = min(THROTTLE_ADJUST, manual_boost);
+
 	}else {
 		manual_boost = 0;
 		}
@@ -2108,6 +2167,11 @@ static void tuning(){
 		case CH6_LOITER_RATE_P:
 			g.pid_loiter_rate_lon.kP(tuning_value);
 			g.pid_loiter_rate_lat.kP(tuning_value);
+			break;
+
+		case CH6_LOITER_RATE_D:
+			g.pid_loiter_rate_lon.kD(tuning_value);
+			g.pid_loiter_rate_lat.kD(tuning_value);
 			break;
 
 		case CH6_NAV_I:
@@ -2218,8 +2282,8 @@ static void update_nav_wp()
 		// or change Loiter position
 
 		// We bring copy over our Iterms for wind control, but we don't navigate
-		nav_lon	= g.pi_loiter_lon.get_integrator();
-		nav_lat = g.pi_loiter_lat.get_integrator();
+		nav_lon	= g.pid_loiter_rate_lon.get_integrator();
+		nav_lat = g.pid_loiter_rate_lon.get_integrator();
 
 		// rotate pitch and roll to the copter frame of reference
 			calc_loiter_pitch_roll();
