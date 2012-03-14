@@ -6,7 +6,7 @@
 //#define INSTANT_PWM	DISABLED
 
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
+#define PIRATES_SENSOR_BOARD PIRATES_FREEIMU_4
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -19,7 +19,7 @@
 // Uncomment if you uses PPM Sum signal from receiver
 //#define SERIAL_PPM ENABLED
 
-#define TX_CHANNEL_SET	TX_mwi
+#define TX_CHANNEL_SET	TX_standard
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
@@ -45,7 +45,7 @@
 */
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will select automatically 
-#define GPS_PROTOCOL GPS_PROTOCOL_NONE
+#define GPS_PROTOCOL GPS_PROTOCOL_MTK16
 /*
 	GPS_PROTOCOL_NONE 	without GPS
 	GPS_PROTOCOL_NMEA
@@ -77,6 +77,7 @@
 	HEXA_FRAME
 	Y6_FRAME
 	OCTA_FRAME
+	OCTA_QUAD_FRAME
 	HELI_FRAME
 */
 
@@ -148,3 +149,5 @@
 // #define MOT_7 CH_7
 // #define MOT_8 CH_8
 
+// Enabling this will use the GPS lat/long coordinate to get the compass declination
+//#define AUTOMATIC_DECLINATION ENABLED

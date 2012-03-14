@@ -155,6 +155,11 @@ bool AP_InertialSensor_MPU6000_I2C::update( void )
 	return true;
 }
 
+bool AP_InertialSensor_MPU6000_I2C::new_data_available( void )
+{
+    return _count != 0;
+}
+
 float AP_InertialSensor_MPU6000_I2C::gx() { return _gyro.x; }
 float AP_InertialSensor_MPU6000_I2C::gy() { return _gyro.y; }
 float AP_InertialSensor_MPU6000_I2C::gz() { return _gyro.z; }
@@ -300,4 +305,12 @@ float AP_InertialSensor_MPU6000_I2C::_temp_to_celsius ( uint16_t regval )
 {
     /* TODO */
     return 20.0;
+}
+
+// return the MPU6k gyro drift rate in radian/s/s
+// note that this is much better than the oilpan gyros
+float AP_InertialSensor_MPU6000_I2C::get_gyro_drift_rate(void)
+{
+    // 0.5 degrees/second/minute
+    return ToRad(0.5/60);
 }

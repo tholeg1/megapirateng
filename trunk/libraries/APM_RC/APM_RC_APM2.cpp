@@ -1,6 +1,6 @@
 /*
 	APM_RC_APM2.cpp - Radio Control Library for Ardupilot Mega 2.0. Arduino
-	Code by Jordi Muñoz and Jose Julio. DIYDrones.com
+	Code by Jordi Muï¿½oz and Jose Julio. DIYDrones.com
 
 	This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,7 @@
 */
 #include "APM_RC_APM2.h"
 
+#include <avr/interrupt.h>
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
 #else
@@ -195,23 +196,23 @@ void APM_RC_APM2::disable_out(uint8_t ch)
 uint16_t APM_RC_APM2::InputCh(unsigned char ch)
 {
   uint16_t result;
-  uint16_t result2;
 
 	if (_HIL_override[ch] != 0) {
 		return _HIL_override[ch];
 	}
 
-  // Because servo pulse variables are 16 bits and the interrupts are running values could be corrupted.
-  // We dont want to stop interrupts to read radio channels so we have to do two readings to be sure that the value is correct...
-  result =  _PWM_RAW[ch]>>1;  // Because timer runs at 0.5us we need to do value/2
-  result2 = _PWM_RAW[ch]>>1;
-  if (result != result2)
-    result =  _PWM_RAW[ch]>>1;   // if the results are different we make a third reading (this should be fine)
+	// we need to block interrupts during the read of a 16 bit
+	// value
+	cli();
+	result = _PWM_RAW[ch];
+	sei();
+	// Because timer runs at 0.5us we need to do value/2
+	result >>= 1;
 
   // Limit values to a valid range
   result = constrain(result,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
   _radio_status=0; // Radio channel read
-  return(result);
+	return result;
 }
 
 unsigned char APM_RC_APM2::GetState(void)

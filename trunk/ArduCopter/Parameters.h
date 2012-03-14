@@ -78,7 +78,8 @@ public:
 	k_param_heli_servo_averaging,
 	k_param_heli_servo_manual,
 	k_param_heli_phase_angle,
-	k_param_heli_collective_yaw_effect, // 97
+	k_param_heli_collective_yaw_effect,
+	k_param_heli_h1_swash_enabled, //98
 	#endif
 
 	// 110: Telemetry control
@@ -281,6 +282,7 @@ public:
 	AP_Int8		heli_servo_manual;	    // 0 = normal mode, 1 = radio inputs directly control swash.  required for swash set-up
 	AP_Int16	heli_phase_angle;		// 0 to 360 degrees.  specifies mixing between roll and pitch for helis
 	AP_Float	heli_collective_yaw_effect;	// -5.0 ~ 5.0.  Feed forward control from collective to yaw.  1.0 = move rudder right 1% for every 1% of collective above the mid point
+	AP_Int8		heli_h1_swash_enabled; 	// 0 = CCPM swashplate, 1 = H1 swashplate (no servo mixing)
 	#endif
 
 	// RC channels
@@ -401,6 +403,7 @@ public:
 	heli_servo_manual		(0),
 	heli_phase_angle		(0),
 	heli_collective_yaw_effect	(0),
+	heli_h1_swash_enabled		(0),
 	#endif
 
     rc_speed(RC_FAST_SPEED),

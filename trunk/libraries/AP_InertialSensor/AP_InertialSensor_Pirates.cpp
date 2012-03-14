@@ -135,6 +135,11 @@ bool AP_InertialSensor_Pirates::update( void )
 	return true;
 }
 
+bool AP_InertialSensor_Pirates::new_data_available( void )
+{
+    return _count != 0;
+}
+
 float AP_InertialSensor_Pirates::gx() { return _gyro.x; }
 float AP_InertialSensor_Pirates::gy() { return _gyro.y; }
 float AP_InertialSensor_Pirates::gz() { return _gyro.z; }
@@ -278,4 +283,12 @@ void AP_InertialSensor_Pirates::hardware_init()
 float AP_InertialSensor_Pirates::_temp_to_celsius ( uint16_t regval )
 {
 	return (35.0 + ((float) (regval + 13200)) / 280);
+}
+
+// return the MPU6k gyro drift rate in radian/s/s
+// note that this is much better than the oilpan gyros
+float AP_InertialSensor_Pirates::get_gyro_drift_rate(void)
+{
+    // 0.5 degrees/second/minute
+    return ToRad(0.5/60);
 }
