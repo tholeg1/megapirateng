@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.4.2 r1"
+#define THISFIRMWARE "MegaPirateNG V2.5 r1"
 /*
 Please, read release_notes.txt before you go!
 
@@ -10,10 +10,10 @@ Porting to MegaPirate Next Generation by
   Romb89 (UBLOX GPS i2c library)
   Syberian (libraries from MegaPirate r741)
 
-Original firmware is ArduCopter Version 2.4.2
-Authors:	Jason Short
-Based on code and ideas from the Arducopter team: Randy Mackay, Pat Hickey, Jose Julio, Jani Hirvinen
-Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier
+ArduCopter Version 2.5
+Lead author:	Jason Short
+Based on code and ideas from the Arducopter team: Randy Mackay, Pat Hickey, Jose Julio, Jani Hirvinen, Andrew Tridgell, Justin Beech, Adam Rivera, Jean-Louis Naudin, Roberto Navoni
+Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier, Robert Lefebvre, Marco Robustini
 
 This firmware is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
