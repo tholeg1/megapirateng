@@ -250,8 +250,8 @@ static void Log_Read_GPS()
 	int8_t temp2 	= DataFlash.ReadByte();			// 2 sats
 	int32_t temp3 	= DataFlash.ReadLong();			// 3 lat
 	int32_t temp4 	= DataFlash.ReadLong();			// 4 lon
-	float temp5 	= DataFlash.ReadLong() / 100.0;	// 5 gps alt
-	float temp6 	= DataFlash.ReadLong() / 100.0;	// 6 sensor alt
+	float temp5 	= DataFlash.ReadLong() / 100.0;	// 5 sensor alt
+	float temp6 	= DataFlash.ReadLong() / 100.0;	// 6 gps alt
 	int16_t temp7 	= DataFlash.ReadInt();			// 7 ground speed
 	int32_t temp8 	= DataFlash.ReadLong();// 8 ground course
 
@@ -617,11 +617,10 @@ static void Log_Write_Performance()
 	DataFlash.WriteByte(HEAD_BYTE1);
 	DataFlash.WriteByte(HEAD_BYTE2);
 	DataFlash.WriteByte(LOG_PERFORMANCE_MSG);
-	DataFlash.WriteByte(	dcm.gyro_sat_count);				//1
-	DataFlash.WriteByte(	imu.adc_constraints);				//2
-	DataFlash.WriteByte(	dcm.renorm_range_count);			//3
-	DataFlash.WriteByte(	dcm.renorm_blowup_count);			//4
-	DataFlash.WriteByte(	gps_fix_count);						//5
+	DataFlash.WriteByte(	imu.adc_constraints);				//1
+	DataFlash.WriteByte(	ahrs.renorm_range_count);			//2
+	DataFlash.WriteByte(	ahrs.renorm_blowup_count);			//3
+	DataFlash.WriteByte(	gps_fix_count);						//4
 	DataFlash.WriteByte(END_BYTE);
 }
 
@@ -632,15 +631,13 @@ static void Log_Read_Performance()
 	int8_t temp2 	= DataFlash.ReadByte();
 	int8_t temp3 	= DataFlash.ReadByte();
 	int8_t temp4 	= DataFlash.ReadByte();
-	int8_t temp5 	= DataFlash.ReadByte();
 
-							 //1   2   3   4   5
-	Serial.printf_P(PSTR("PM, %d, %d, %d, %d, %d\n"),
+							 //1   2   3   4
+	Serial.printf_P(PSTR("PM, %d, %d, %d, %d\n"),
                     (int)temp1,
                     (int)temp2,
                     (int)temp3,
-                    (int)temp4,
-                    (int)temp5);
+                    (int)temp4);
 }
 
 // Write a command processing packet.  Total length : 21 bytes
@@ -696,11 +693,11 @@ static void Log_Write_Attitude()
 	DataFlash.WriteByte(LOG_ATTITUDE_MSG);
 
 	DataFlash.WriteInt(g.rc_1.control_in);			// 1
-	DataFlash.WriteInt((int)dcm.roll_sensor);		// 2
+	DataFlash.WriteInt((int)ahrs.roll_sensor);		// 2
 	DataFlash.WriteInt(g.rc_2.control_in);			// 3
-	DataFlash.WriteInt((int)dcm.pitch_sensor);		// 4
+	DataFlash.WriteInt((int)ahrs.pitch_sensor);		// 4
 	DataFlash.WriteInt(g.rc_4.control_in);			// 5
-	DataFlash.WriteInt((uint16_t)dcm.yaw_sensor);	// 6
+	DataFlash.WriteInt((uint16_t)ahrs.yaw_sensor);	// 6
 	DataFlash.WriteInt((uint16_t)(wrap_360(ToDeg(compass.heading)*100)));	// 7
 
 	DataFlash.WriteByte(END_BYTE);

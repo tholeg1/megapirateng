@@ -887,6 +887,7 @@ test_baro(uint8_t argc, const Menu::arg *argv)
 {
 	print_hit_enter();
 	init_barometer();
+	Serial.printf_P(PSTR("Alt\tPress\tTemp\tRawPress\tRawTemp\tRawAlt\n"));
 
 	while(1){
 		delay(100);
@@ -931,7 +932,7 @@ test_mag(uint8_t argc, const Menu::arg *argv)
 		while(1){
 			delay(100);
 			if (compass.read()) {
-			compass.calculate(dcm.get_dcm_matrix());
+			compass.calculate(ahrs.get_dcm_matrix());
 			Vector3f maggy = compass.get_offsets();
 			Serial.printf_P(PSTR("Heading: %ld, XYZ: %d, %d, %d\n"),
 						(wrap_360(ToDeg(compass.heading) * 100)) /100,

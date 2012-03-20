@@ -143,9 +143,6 @@ void AP_Baro_BMP085_Pirates::Command_ReadPress()
 }
 
 int32_t	AP_Baro_BMP085_Pirates::RawPress = 0;
-int32_t	AP_Baro_BMP085_Pirates::_offset_press = 0;
-int	AP_Baro_BMP085_Pirates::_press_filter[PRESS_FILTER_SIZE];
-uint8_t	AP_Baro_BMP085_Pirates::_press_index = 0;
 
 // Read Raw Pressure values
 void AP_Baro_BMP085_Pirates::ReadPress()
@@ -160,30 +157,6 @@ void AP_Baro_BMP085_Pirates::ReadPress()
 	healthy = true;
 	
 	RawPress = (((long)buf[0] << 16) | ((long)buf[1] << 8) | ((long)buf[2])) >> (8 - oss);
-
-	if(_offset_press == 0){
-		_offset_press = RawPress;
-		RawPress = 0;
-	} else{
-		RawPress -= _offset_press;
-	}
-	// filter
-	_press_filter[_press_index++] = RawPress;
-
-	if(_press_index >= PRESS_FILTER_SIZE)
-		_press_index = 0;
-
-	RawPress = 0;
-
-	// sum our filter
-	for (uint8_t i = 0; i < PRESS_FILTER_SIZE; i++){
-		RawPress += _press_filter[i];
-	}
-
-	// grab result
-	RawPress /= PRESS_FILTER_SIZE;
-	//RawPress >>= 3;
-	RawPress += _offset_press;
 }
 
 // Send Command to Read Temperature
@@ -196,61 +169,37 @@ void AP_Baro_BMP085_Pirates::Command_ReadTemp()
 }
 
 int32_t AP_Baro_BMP085_Pirates::RawTemp = 0;
-int	AP_Baro_BMP085_Pirates::_temp_filter[TEMP_FILTER_SIZE];
-long	AP_Baro_BMP085_Pirates::_offset_temp = 0;
-uint8_t	AP_Baro_BMP085_Pirates::_temp_index = 0;
 
 // Read Raw Temperature values
 void AP_Baro_BMP085_Pirates::ReadTemp()
 {
 	uint8_t buf[2];
+	int32_t _temp_sensor;
 
 	if (I2c.read(BMP085_ADDRESS, 0xF6, 2, buf) != 0) {
 		healthy = false;
 		return;
 	}
-	RawTemp = buf[0];
-	RawTemp = (RawTemp << 8) | buf[1];
+	_temp_sensor = buf[0];
+	_temp_sensor = (_temp_sensor << 8) | buf[1];
 
 	healthy = true;
 
-	if (_offset_temp == 0){
-		_offset_temp = RawTemp;
-		RawTemp = 0;
-	} else {
-		RawTemp -= _offset_temp;
-	}
-
-	// filter
-	_temp_filter[_temp_index++] = RawTemp;
-
-	if(_temp_index >= TEMP_FILTER_SIZE)
-		_temp_index = 0;
-
-	RawTemp = 0;
-	// sum our filter
-	for(uint8_t i = 0; i < TEMP_FILTER_SIZE; i++){
-		RawTemp += _temp_filter[i];
-	}
-
-	// grab result
-	RawTemp /= TEMP_FILTER_SIZE;
-	//RawTemp >>= 4;
-	RawTemp += _offset_temp;	
+	RawTemp = _temp_filter.apply(_temp_sensor);
 }
 
 // Calculate Temperature and Pressure in real units.
 void AP_Baro_BMP085_Pirates::Calculate()
 {
-	long x1, x2, x3, b3, b5, b6, p;
-	unsigned long b4, b7;
+	int32_t x1, x2, x3, b3, b5, b6, p;
+	uint32_t b4, b7;
 	int32_t tmp;
 
 	// See Datasheet page 13 for this formulas
 	// Based also on Jee Labs BMP085 example code. Thanks for share.
 	// Temperature calculations
-	x1 = ((long)RawTemp - ac6) * ac5 >> 15;
-	x2 = ((long) mc << 11) / (x1 + md);
+	x1 = ((int32_t)RawTemp - ac6) * ac5 >> 15;
+	x2 = ((int32_t) mc << 11) / (x1 + md);
 	b5 = x1 + x2;
 	Temp = (b5 + 8) >> 4;
 

@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.5 R2"
+#define THISFIRMWARE "MegaPirateNG V2.5.1 R1"
 /*
 Please, read release_notes.txt before you go!
 
@@ -81,8 +81,7 @@ http://code.google.com/p/ardupilot-mega/downloads/list
 #include <AP_PeriodicProcess.h>         // Parent header of Timer
                                         // (only included for makefile libpath to work)
 #include <AP_TimerProcess.h>            // TimerProcess is the scheduler for MPU6000 reads.
-#include <AP_Quaternion.h>  // Madgwick quaternion system
-#include <AP_DCM.h>         // ArduPilot Mega DCM Library
+#include <AP_AHRS.h>
 #include <APM_PI.h>            	// PI library
 #include <AC_PID.h>            // PID library
 #include <RC_Channel.h>     // RC Channel Library
@@ -271,13 +270,11 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 // we don't want to use gps for yaw correction on ArduCopter, so pass
 // a NULL GPS object pointer
 static GPS         *g_gps_null;
+
 #if QUATERNION_ENABLE == ENABLED
-  // this shouldn't be called dcm of course, but until we
-  // decide to actually use something else, I don't want the patch
-  // size to be huge
- AP_Quaternion dcm(&imu, g_gps_null);
+ AP_AHRS_Quaternion ahrs(&imu, g_gps_null);
 #else
- AP_DCM  dcm(&imu, g_gps_null);
+ AP_AHRS_DCM ahrs(&imu, g_gps_null);
 #endif
 
 	AP_TimerProcess timer_scheduler;
@@ -298,7 +295,7 @@ static GPS         *g_gps_null;
 	AP_Compass_HIL          compass;
 	AP_GPS_HIL              g_gps_driver(NULL);
     AP_IMU_Shim imu;
-    AP_DCM  dcm(&imu, g_gps);
+    AP_AHRS_DCM  ahrs(&imu, g_gps);
     AP_PeriodicProcessStub timer_scheduler;
     AP_InertialSensor_Stub ins;
 
@@ -306,11 +303,11 @@ static GPS         *g_gps_null;
 
 #elif HIL_MODE == HIL_MODE_ATTITUDE
 	AP_ADC_HIL              adc;
-	AP_DCM_HIL              dcm;
+	AP_IMU_Shim             imu; // never used
+    AP_AHRS_HIL             ahrs(&imu, g_gps);
 	AP_GPS_HIL              g_gps_driver(NULL);
 	AP_Compass_HIL          compass; // never used
     AP_Baro_BMP085_HIL      barometer;
-	AP_IMU_Shim             imu; // never used
     AP_InertialSensor_Stub ins;
     AP_PeriodicProcessStub timer_scheduler;
 	#ifdef OPTFLOW_ENABLED
@@ -1050,7 +1047,7 @@ static void medium_loop()
 				if(g.compass_enabled){
 					if (compass.read()) {
                         // Calculate heading
-                        Matrix3f m = dcm.get_dcm_matrix();
+                        Matrix3f m = ahrs.get_dcm_matrix();
                         compass.calculate(m);
                         compass.null_offsets(m);
 				}
@@ -1227,10 +1224,10 @@ static void fifty_hz_loop()
 	camera_stabilization();
 
 	# if HIL_MODE == HIL_MODE_DISABLED
-		if (g.log_bitmask & MASK_LOG_ATTITUDE_FAST)
+		if (g.log_bitmask & MASK_LOG_ATTITUDE_FAST && motor_armed)
 			Log_Write_Attitude();
 
-		if (g.log_bitmask & MASK_LOG_RAW)
+		if (g.log_bitmask & MASK_LOG_RAW && motor_armed)
 			Log_Write_Raw();
 	#endif
 
@@ -1368,7 +1365,7 @@ static void update_optical_flow(void)
     static int log_counter = 0;
 
 	optflow.update();
-	optflow.update_position(dcm.roll, dcm.pitch, cos_yaw_x, sin_yaw_y, current_loc.alt);  // updates internal lon and lat with estimation based on optical flow
+	optflow.update_position(ahrs.roll, ahrs.pitch, cos_yaw_x, sin_yaw_y, current_loc.alt);  // updates internal lon and lat with estimation based on optical flow
 
 	// write to log
 	log_counter++;
@@ -1626,7 +1623,7 @@ void update_simple_mode(void)
 	// which improves speed of function
 	simple_counter++;
 
-	int delta = wrap_360(dcm.yaw_sensor - initial_simple_bearing)/100;
+	int delta = wrap_360(ahrs.yaw_sensor - initial_simple_bearing)/100;
 
 	if (simple_counter == 1){
 		// roll
@@ -1770,7 +1767,7 @@ void update_throttle_mode(void)
 				}
 
 				// hack to remove the influence of the ground effect
-				if(current_loc.alt < 200 && landing_boost != 0) {
+				if(g.sonar_enabled && current_loc.alt < 100 && landing_boost != 0) {
 				  nav_throttle = min(nav_throttle, 0);
 				}
 
@@ -1852,12 +1849,10 @@ static void update_navigation()
 			// go of the sticks
 
 			if((abs(g.rc_2.control_in) + abs(g.rc_1.control_in)) > 500){
-				// flag will reset when speed drops below .5 m/s
 				loiter_override 	= true;
 			}
 
 			// Allow the user to take control temporarily,
-			// regain hold when the speed goes down to .5m/s
 			if(loiter_override){
 				// this sets the copter to not try and nav while we control it
 				wp_control = NO_NAV_MODE;
@@ -1866,7 +1861,7 @@ static void update_navigation()
 				next_WP.lat 	= current_loc.lat;
 				next_WP.lng 	= current_loc.lng;
 
-				if((g.rc_2.control_in + g.rc_1.control_in) == 0){
+				if( g.rc_2.control_in == 0 && g.rc_1.control_in == 0 ){
 					loiter_override 		= false;
 					wp_control = LOITER_MODE;
 				}
@@ -1936,17 +1931,17 @@ static void read_AHRS(void)
 	// Perform IMU calculations and get attitude info
 	//-----------------------------------------------
 	#if HIL_MODE != HIL_MODE_DISABLED
-		// update hil before dcm update
+		// update hil before ahrs update
 		gcs_update();
 	#endif
 
-	dcm.update_DCM();
+	ahrs.update();
 	omega = imu.get_gyro();
 }
 
 static void update_trig(void){
 	Vector2f yawvector;
-	Matrix3f temp 	= dcm.get_dcm_matrix();
+	Matrix3f temp 	= ahrs.get_dcm_matrix();
 
 	yawvector.x 	= temp.a.x; // sin
 	yawvector.y 	= temp.b.x;	// cos
@@ -2028,7 +2023,6 @@ static void update_altitude()
 
 			scale = (float)(sonar_alt - SONAR_TO_BARO_FADE_FROM) / SONAR_TO_BARO_FADE;
 			scale = constrain(scale, 0.0, 1.0);
-
 			// solve for a blended altitude
 			current_loc.alt = ((float)sonar_alt * (1.0 - scale)) + ((float)baro_alt * scale) + home.alt;
 
@@ -2283,6 +2277,9 @@ static void update_nav_wp()
 		// We bring copy over our Iterms for wind control, but we don't navigate
 		nav_lon	= g.pid_loiter_rate_lon.get_integrator();
 		nav_lat = g.pid_loiter_rate_lon.get_integrator();
+
+		nav_lon			= constrain(nav_lon, -2000, 2000); 			// 20°
+		nav_lat			= constrain(nav_lat, -2000, 2000); 			// 20°
 
 		// rotate pitch and roll to the copter frame of reference
 			calc_loiter_pitch_roll();

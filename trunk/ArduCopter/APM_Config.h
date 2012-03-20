@@ -3,11 +3,11 @@
 #define __ARDUCOPTER_APMCONFIG_H__ 
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
-// Uncomment this line to enable Fast PWM 400Hz (400 Hz can be changed in the APM Planner, change RC_SPEED param value)
-//#define INSTANT_PWM	DISABLED
+// Fast PWM 400Hz enabled by default (400 Hz can be changed in the APM Planner, change RC_SPEED param value)
+#define INSTANT_PWM	DISABLED
 
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
+#define PIRATES_SENSOR_BOARD PIRATES_FREEIMU_4
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -101,9 +101,6 @@
 	CH7_SAVE_WP
 */
 
-#define ACCEL_ALT_HOLD 0		// disabled by default, work in progress
-
-
 //#define RATE_ROLL_I 	0.18
 //#define RATE_PITCH_I	0.18
 //#define MOTORS_JD880
@@ -128,7 +125,7 @@
 // to disable, set to 0
 #define AUTO_THROTTLE_HOLD 1
 
-# define LOGGING_ENABLED		DISABLED
+#define LOGGING_ENABLED		DISABLED
 
 
 // Custom channel config - Expert Use Only.
@@ -150,13 +147,17 @@
 // #define MOT_7 CH_7
 // #define MOT_8 CH_8
 
-// EXPERIMENTAL FEATURES !!!
+
+// ************** EXPERIMENTAL FEATURES *****************
 
 // Enabling this will use the GPS lat/long coordinate to get the compass declination
 //#define AUTOMATIC_DECLINATION ENABLED
 
 // Enable Jeb Madgwick sensor fusion algo
 //#define QUATERNION_ENABLE ENABLED
+
+// Alt hold with accelerometer
+#define ACCEL_ALT_HOLD 0		// disabled by default, work in progress
 
 
 #endif //__ARDUCOPTER_APMCONFIG_H__
