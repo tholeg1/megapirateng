@@ -99,7 +99,7 @@ static void init_compass()
         return;
 	    }
 	#endif
-	dcm.set_compass(&compass);
+	ahrs.set_compass(&compass);
 	compass.null_offsets_enable();
 }
 

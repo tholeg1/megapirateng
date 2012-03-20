@@ -1,10 +1,8 @@
 #ifndef AP_Baro_BMP085_Pirates_h
 #define AP_Baro_BMP085_Pirates_h
 
-#define TEMP_FILTER_SIZE 4
-#define PRESS_FILTER_SIZE 8
-
 #include "AP_Baro.h" 
+#include <AverageFilter.h> 
 
 class AP_Baro_BMP085_Pirates: public AP_Baro
 {
@@ -21,7 +19,6 @@ class AP_Baro_BMP085_Pirates: public AP_Baro
   int32_t get_raw_temp(); 
   
 	static int32_t RawPress;
-	static int32_t	_offset_press;
 	static int32_t RawTemp;
 	int16_t Temp;
 	int32_t Press;
@@ -37,12 +34,7 @@ class AP_Baro_BMP085_Pirates: public AP_Baro
 	int16_t ac1, ac2, ac3, b1, b2, mb, mc, md;
 	uint16_t ac4, ac5, ac6;
 
-	static int	_temp_filter[TEMP_FILTER_SIZE];
-	static int	_press_filter[PRESS_FILTER_SIZE];
-	static long	_offset_temp;
-
-	static uint8_t	_temp_index;
-	static uint8_t	_press_index;
+	static AverageFilterInt16_Size4 _temp_filter; 
 
 	static void Command_ReadPress();
 	static void Command_ReadTemp();

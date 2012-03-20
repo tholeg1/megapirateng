@@ -223,11 +223,6 @@
 #define SONAR_TO_BARO_FADE (MAX_SONAR_RANGE/3) // 33% of Max sonar range
 #define SONAR_TO_BARO_FADE_FROM (MAX_SONAR_RANGE - SONAR_TO_BARO_FADE) //4m-33% = 2.67m start value to fading from sonar to baro
 
-
-#ifndef SONAR_PORT
-# define SONAR_PORT		AP_RANGEFINDER_PITOT_TUBE
-#endif
-
 #ifndef CONFIG_SONAR_SOURCE
 # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ADC
 #endif
@@ -736,7 +731,7 @@
 // Loiter control gains
 //
 #ifndef LOITER_P
-# define LOITER_P			.4
+# define LOITER_P			.35
 #endif
 #ifndef LOITER_I
 # define LOITER_I			0.0
@@ -749,10 +744,10 @@
 // Loiter Navigation control gains
 //
 #ifndef LOITER_RATE_P
-# define LOITER_RATE_P		3.0			//
+# define LOITER_RATE_P		2.0			//
 #endif
 #ifndef LOITER_RATE_I
-# define LOITER_RATE_I		0.20		// Wind control
+# define LOITER_RATE_I		0.2		// Wind control
 #endif
 #ifndef LOITER_RATE_D
 # define LOITER_RATE_D		0			// try 2 or 3 for LOITER_RATE 1
@@ -971,10 +966,6 @@
 # define USE_CURRENT_ALT FALSE
 #endif
 
-
-#ifndef AUTO_RESET_LOITER
-# define AUTO_RESET_LOITER	1	// enables Loiter to reset it's current location based on stick input.
-#endif
 #ifndef CUT_MOTORS
 # define CUT_MOTORS		1		// do we cut the motors with no throttle?
 #endif
