@@ -310,7 +310,8 @@ bool AP_Compass_HMC5843_Pirates::read()
 		mag_y = _raw_mag_y * calibration[1];
 		mag_z = _raw_mag_z * calibration[2];
 		
-
+   last_update = micros();  // record time of update 
+   
    // rotate to the desired orientation
    Vector3f rot_mag = Vector3f(mag_x,mag_y,mag_z);
    if (product_id == AP_COMPASS_TYPE_HMC5883L) {

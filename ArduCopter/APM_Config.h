@@ -1,5 +1,6 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-
+#ifndef __ARDUCOPTER_APMCONFIG_H__
+#define __ARDUCOPTER_APMCONFIG_H__ 
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
 // Uncomment this line to enable Fast PWM 400Hz (400 Hz can be changed in the APM Planner, change RC_SPEED param value)
@@ -149,5 +150,13 @@
 // #define MOT_7 CH_7
 // #define MOT_8 CH_8
 
+// EXPERIMENTAL FEATURES !!!
+
 // Enabling this will use the GPS lat/long coordinate to get the compass declination
 //#define AUTOMATIC_DECLINATION ENABLED
+
+// Enable Jeb Madgwick sensor fusion algo
+//#define QUATERNION_ENABLE ENABLED
+
+
+#endif //__ARDUCOPTER_APMCONFIG_H__

@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.5 r1"
+#define THISFIRMWARE "MegaPirateNG V2.5 R2"
 /*
 Please, read release_notes.txt before you go!
 
@@ -205,7 +205,6 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 	    AP_Baro_BMP085_HIL barometer;
 	    AP_Compass_HIL          compass;
 	#else
-
 		#if CONFIG_BARO == AP_BARO_BMP085
 			#if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
 				AP_Baro_BMP085 barometer(true);
@@ -2027,8 +2026,8 @@ static void update_altitude()
 				sonar_alt = (float)sonar_alt * temp;
 			#endif
 
-			scale = (sonar_alt - SONAR_TO_BARO_FADE_FROM) / SONAR_TO_BARO_FADE;
-			scale = constrain(scale, 0, 1);
+			scale = (float)(sonar_alt - SONAR_TO_BARO_FADE_FROM) / SONAR_TO_BARO_FADE;
+			scale = constrain(scale, 0.0, 1.0);
 
 			// solve for a blended altitude
 			current_loc.alt = ((float)sonar_alt * (1.0 - scale)) + ((float)baro_alt * scale) + home.alt;
