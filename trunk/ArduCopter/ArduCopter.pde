@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.5.1 R1"
+#define THISFIRMWARE "MegaPirateNG V2.5.1 R2"
 /*
 Please, read release_notes.txt before you go!
 

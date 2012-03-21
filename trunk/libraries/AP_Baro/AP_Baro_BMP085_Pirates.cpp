@@ -14,6 +14,7 @@ extern "C" {
 #include <AP_Math.h>		// ArduPilot Mega Vector/Matrix math Library
 #include <I2C.h>
 #include "AP_Baro_BMP085_Pirates.h"
+#include <AverageFilter.h> 
 
 #define BMP085_ADDRESS 0x77  //(0xEE >> 1)
 #define READ_PRESS_TIMEOUT 25000 // reading press timeout, if oss=3, timout = 25ms
@@ -169,7 +170,7 @@ void AP_Baro_BMP085_Pirates::Command_ReadTemp()
 }
 
 int32_t AP_Baro_BMP085_Pirates::RawTemp = 0;
-
+AverageFilterInt32_Size4 AP_Baro_BMP085_Pirates::_temp_filter; 
 // Read Raw Temperature values
 void AP_Baro_BMP085_Pirates::ReadTemp()
 {
