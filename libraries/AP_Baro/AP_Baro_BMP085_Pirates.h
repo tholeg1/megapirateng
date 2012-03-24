@@ -34,7 +34,7 @@ class AP_Baro_BMP085_Pirates: public AP_Baro
 	int16_t ac1, ac2, ac3, b1, b2, mb, mc, md;
 	uint16_t ac4, ac5, ac6;
 
-	static AverageFilterInt16_Size4 _temp_filter; 
+	static AverageFilterInt32_Size4 _temp_filter; 
 
 	static void Command_ReadPress();
 	static void Command_ReadTemp();

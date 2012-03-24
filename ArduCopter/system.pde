@@ -217,29 +217,22 @@ static void init_ardupilot()
 	init_camera();
 
 	timer_scheduler.init( &isr_registry );
-    
+	
+
 	#if HIL_MODE != HIL_MODE_ATTITUDE
-#if CONFIG_ADC == ENABLED
-	        // begin filtering the ADC Gyros
-        adc.Init(&timer_scheduler);       // APM ADC library initialization
-#endif // CONFIG_ADC
+		#if CONFIG_ADC == ENABLED
+			// begin filtering the ADC Gyros
+			adc.Init(&timer_scheduler);       // APM ADC library initialization
+		#endif // CONFIG_ADC
 
-        barometer.init(&timer_scheduler); 
+		barometer.init(&timer_scheduler); 
 
-#endif // HIL_MODE
+	#endif // HIL_MODE
 
 	#if OSD_PROTOCOL != OSD_PROTOCOL_NONE
 		osd_init();
 	#endif 
 	
-	// Do GPS init
-	g_gps = &g_gps_driver;
-	g_gps->init();			// GPS Initialization
-    g_gps->callback = mavlink_delay;
-
-	if(g.compass_enabled)
-		init_compass();
-
 	// init the optical flow sensor
 	if(g.optflow_enabled) {
 		init_optflow();
@@ -266,35 +259,6 @@ static void init_ardupilot()
 #else
     Serial.printf_P(PSTR("\nPress ENTER 3 times for CLI\n\n"));
 #endif // CLI_ENABLED
-
-    GPS_enabled = false;
-
-	#if HIL_MODE == HIL_MODE_DISABLED
-    // Read in the GPS
-	for (byte counter = 0; ; counter++) {
-		g_gps->update();
-		if (g_gps->status() != 0){
-			GPS_enabled = true;
-			break;
-		}
-		
-		if (counter >= 2) {
-			GPS_enabled = false;
-			break;
-	  }
-	  mavlink_delay(250);
-	}
-	#else
-		GPS_enabled = true;
-	#endif
-
-	// lengthen the idle timeout for gps Auto_detect
-	// ---------------------------------------------
-	g_gps->idleTimeout = 20000;
-
-	// print the GPS status
-	// --------------------
-	report_gps();
 
 	#if HIL_MODE != HIL_MODE_ATTITUDE
 	// read Baro pressure at ground
@@ -327,10 +291,47 @@ static void init_ardupilot()
 
 	startup_ground();
 
+	if(g.compass_enabled)
+		init_compass();
+
 	// Init LED sequencer
 	#if LED_SEQUENCER == ENABLED
 		sq_led_init();
 	#endif
+
+	GPS_enabled = false;
+
+#if HIL_MODE == HIL_MODE_DISABLED
+	// Do GPS init
+	g_gps = &g_gps_driver;
+	g_gps->init();			// GPS Initialization
+	g_gps->callback = mavlink_delay;
+
+	// Read in the GPS
+	for (byte counter = 0; ; counter++) {
+		g_gps->update();
+		if (g_gps->status() != 0){
+			GPS_enabled = true;
+			break;
+		}
+		
+		if (counter >= 2) {
+			GPS_enabled = false;
+			break;
+	  }
+	  mavlink_delay(500);
+	}
+#else
+		GPS_enabled = true;
+#endif
+
+	// lengthen the idle timeout for gps Auto_detect
+	// ---------------------------------------------
+	g_gps->idleTimeout = 20000;
+
+	// print the GPS status
+	// --------------------
+	report_gps();
 
 #if LOGGING_ENABLED == ENABLED
 	Log_Write_Startup();
