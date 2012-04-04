@@ -1,6 +1,9 @@
-Release Notes for MegaPirateNG 2.5.1 R2
+Release Notes for MegaPirateNG 2.5.1 R3
 
 === MPNG History ===
+--- 2.5.1 R3
+Fixed compass initialization for MPU6050+HMC5883L
+MT3329 initialization fixed in case of Cold start
 
 --- 2.5.1 R2
 Fixed compilation bug in BMP085 library
