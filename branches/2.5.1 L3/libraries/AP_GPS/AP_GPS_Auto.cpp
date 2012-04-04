@@ -152,13 +152,6 @@ AP_GPS_Auto::_detect(void)
 			(0x62 == fingerprint[1]) &&
 			(0x01 == fingerprint[2])) {
 
-			// message 5 is MTK pretending to talk UBX
-			if (0x05 == fingerprint[3]) {
-				gps = new AP_GPS_MTK(_port);
-				Serial.print_P(PSTR(" MTK1.4 "));
-				break;
-			}
-
 			// any other message is ublox
 			gps = new AP_GPS_UBLOX(_port);
 			Serial.print_P(PSTR(" ublox "));

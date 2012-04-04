@@ -18,9 +18,9 @@
 
 // RC configuration
 // Uncomment if you uses PPM Sum signal from receiver
-//#define SERIAL_PPM ENABLED
+#define SERIAL_PPM ENABLED
 
-#define TX_CHANNEL_SET	TX_mwi
+#define TX_CHANNEL_SET	TX_standard
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
@@ -46,7 +46,7 @@
 */
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will select automatically 
-#define GPS_PROTOCOL GPS_PROTOCOL_NONE
+#define GPS_PROTOCOL GPS_PROTOCOL_MTK16
 /*
 	GPS_PROTOCOL_NONE 	without GPS
 	GPS_PROTOCOL_NMEA
@@ -63,7 +63,7 @@
 	
 #define SERIAL0_BAUD			 115200	// Console port 
 #define SERIAL2_BAUD			 38400	// GPS port
-#define SERIAL3_BAUD			 57600	// Telemetry (MAVLINK) port
+#define SERIAL3_BAUD			 115200	// Telemetry (MAVLINK) port
 
 // New in 2.0.43, but unused in MegairateNG
 // MPNG: Piezo uses AN5 pin in ArduCopter, we uses AN5 for CLI switch
