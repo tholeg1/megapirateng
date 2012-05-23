@@ -339,7 +339,7 @@ public:
 
 	RTL_altitude			(ALT_HOLD_HOME * 100),
 	sonar_enabled			(DISABLED),
-	sonar_type				(AP_RANGEFINDER_MAXSONARXL),
+	sonar_type				(0),
     battery_monitoring 		(DISABLED),
     volt_div_ratio			(VOLT_DIV_RATIO),
     curr_amp_per_volt		(CURR_AMP_PER_VOLT),

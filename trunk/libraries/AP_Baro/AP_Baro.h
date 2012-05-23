@@ -20,10 +20,7 @@ class AP_Baro
 	virtual int32_t get_raw_temp() = 0;
 };
 
-#include "AP_Baro_MS5611.h"
 #include "AP_Baro_MS5611_I2C.h"
-#include "AP_Baro_BMP085.h"
 #include "AP_Baro_BMP085_Pirates.h"
-#include "AP_Baro_BMP085_hil.h"
 
 #endif // __AP_BARO_H__

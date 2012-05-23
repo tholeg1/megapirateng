@@ -69,8 +69,6 @@ http://code.google.com/p/ardupilot-mega/downloads/list
 #include <APM_RC.h>         // ArduPilot Mega RC Library
 #include <AP_GPS.h>         // ArduPilot GPS library
 #include <I2C.h>			// Arduino I2C lib
-#include <SPI.h>			// Arduino SPI lib
-//#include <DataFlash.h>      // ArduPilot Mega Flash Memory Library
 #include <AP_ADC.h>         // ArduPilot Mega Analog to Digital Converter Library
 #include <AP_AnalogSource.h>
 #include <AP_Baro.h>
@@ -86,7 +84,6 @@ http://code.google.com/p/ardupilot-mega/downloads/list
 #include <AC_PID.h>            // PID library
 #include <RC_Channel.h>     // RC Channel Library
 #include <AP_RangeFinder.h>	// Range finder library
-//#include <AP_OpticalFlow.h> // Optical Flow library
 #include <Filter.h>			// Filter library
 #include <ModeFilter.h>		// Mode Filter from Filter library
 #include <AverageFilter.h>	// Mode Filter from Filter library
