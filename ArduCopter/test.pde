@@ -566,6 +566,10 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_gps(uint8_t argc, const Menu::arg *argv)
 {
+	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+		print_test_disabled();
+		return (0);
+	#else
 	print_hit_enter();
 	delay(1000);
 
@@ -593,6 +597,7 @@ test_gps(uint8_t argc, const Menu::arg *argv)
 		}
 	}
 	return 0;
+	#endif
 }
 
 // used to test the gain scheduler for Stab_D
@@ -849,6 +854,10 @@ test_wp(uint8_t argc, const Menu::arg *argv)
 }
 
 static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
+	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+		print_test_disabled();
+		return (0);
+	#else
    print_hit_enter();
    delay(1000);
     while(1){
@@ -861,6 +870,7 @@ static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
 			return (0);
 		}
    }
+	#endif
 }
 
 /*static int8_t
@@ -885,6 +895,10 @@ static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
 static int8_t
 test_baro(uint8_t argc, const Menu::arg *argv)
 {
+	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+		print_test_disabled();
+		return (0);
+	#else
 	print_hit_enter();
 	init_barometer();
 	Serial.printf_P(PSTR("Alt\tPress\tTemp\tRawPress\tRawTemp\tRawAlt\n"));
@@ -915,6 +929,7 @@ test_baro(uint8_t argc, const Menu::arg *argv)
 		}
 	}
 	return 0;
+	#endif
 }
 #endif
 
