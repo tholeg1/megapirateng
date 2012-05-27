@@ -134,11 +134,9 @@ bool AP_Compass_HMC5843_Pirates::re_initialise()
 
 bool AP_Compass_HMC5843_Pirates::init(AP_PeriodicProcess *scheduler)
 {
-	scheduler->stop();
 	delay(10);
 	init_hardware();
 	scheduler->register_process( &AP_Compass_HMC5843_Pirates::_update ); 
-	scheduler->start();
 	return healthy;
 }
 

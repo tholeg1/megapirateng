@@ -45,9 +45,9 @@ AP_InertialSensor_Pirates::AP_InertialSensor_Pirates(uint8_t brd)
   _board_Type = brd;
 }
 
-void AP_InertialSensor_Pirates::init( AP_PeriodicProcess * scheduler )
+uint16_t AP_InertialSensor_Pirates::init( AP_PeriodicProcess * scheduler )
 {
-	if (_initialised) return;
+	if (_initialised) return _board_Type;
 		
 	if (_board_Type == PIRATES_ALLINONE || _board_Type == PIRATES_FREEIMU || _board_Type == PIRATES_BLACKVORTEX) {
 		_gyro_data_index[0]  =  1;
@@ -85,12 +85,12 @@ void AP_InertialSensor_Pirates::init( AP_PeriodicProcess * scheduler )
 		accel_addr = 0x40;
 	}
 
-	_initialised = 1;
-	scheduler->stop();
 	delay(50);
 	hardware_init();
 	scheduler->register_process( &AP_InertialSensor_Pirates::read );
-	scheduler->start();
+	_initialised = 1;
+		
+	return _board_Type;
 }
 
 // accumulation in ISR - must be read with interrupts disabled

@@ -17,7 +17,7 @@ public:
 	// The increment will prevent old parameters from being used incorrectly
 	// by newer code.
 	//
-	static const uint16_t k_format_version = 117;
+	static const uint16_t k_format_version = 118;
 
 	// The parameter software_type is set up solely for ground station use
 	// and identifies the software type (eg ArduPilotMega versus ArduCopterMega)
@@ -65,22 +65,12 @@ public:
 	k_param_heli_servo_2,
 	k_param_heli_servo_3,
 	k_param_heli_servo_4,
-	k_param_heli_servo1_pos ,
-	k_param_heli_servo2_pos,
-	k_param_heli_servo3_pos,
-	k_param_heli_roll_max,
-	k_param_heli_pitch_max,
-	k_param_heli_collective_min,
-	k_param_heli_collective_max,
-	k_param_heli_collective_mid,
-	k_param_heli_ext_gyro_enabled,
-	k_param_heli_ext_gyro_gain,
-	k_param_heli_servo_averaging,
-	k_param_heli_servo_manual,
-	k_param_heli_phase_angle,
-	k_param_heli_collective_yaw_effect,
-	k_param_heli_h1_swash_enabled, //98
 	#endif
+
+	//
+	// 90: Motors
+	//
+	k_param_motors = 90,
 
 	// 110: Telemetry control
 	//
@@ -103,15 +93,16 @@ public:
 	k_param_compass,
 	k_param_sonar_enabled,
 	k_param_frame_orientation,
-	k_param_top_bottom_ratio,
 	k_param_optflow_enabled,
 	k_param_low_voltage,
 	k_param_ch7_option,
 	k_param_auto_slew_rate,
 	k_param_sonar_type,
-	k_param_super_simple, //155
+	k_param_super_simple,
 	k_param_rtl_land_enabled,
 	k_param_axis_enabled,
+	k_param_copter_leds_mode, //158
+    k_param_ahrs,  // AHRS group
 
 	//
 	// 160: Navigation parameters
@@ -119,6 +110,8 @@ public:
 	k_param_RTL_altitude = 160,
 	k_param_crosstrack_gain,
 	k_param_auto_land_timeout,
+	k_param_rtl_approach_alt,
+	k_param_retro_loiter,
 
 
 	//
@@ -220,7 +213,10 @@ public:
 	AP_Float	low_voltage;
 	AP_Int8		super_simple;
 	AP_Int8		rtl_land_enabled;
+	AP_Float	rtl_approach_alt;
+	AP_Int8		retro_loiter;
 	AP_Int8		axis_enabled;
+	AP_Int8		copter_leds_mode;	// Operating mode of LED lighting system
 
 
 
@@ -266,23 +262,12 @@ public:
 	AP_Int16	radio_tuning_high;
 	AP_Int16	radio_tuning_low;
 	AP_Int8		frame_orientation;
-	AP_Float	top_bottom_ratio;
 	AP_Int8		ch7_option;
 	AP_Int16	auto_slew_rate;
 
 	#if FRAME_CONFIG ==	HELI_FRAME
 	// Heli
 	RC_Channel	heli_servo_1, heli_servo_2, heli_servo_3, heli_servo_4;	// servos for swash plate and tail
-	AP_Int16	heli_servo1_pos, heli_servo2_pos, heli_servo3_pos;		// servo positions (3 because we don't need pos for tail servo)
-	AP_Int16	heli_roll_max, heli_pitch_max;	// maximum allowed roll and pitch of swashplate
-	AP_Int16	heli_collective_min, heli_collective_max, heli_collective_mid;		// min and max collective.	mid = main blades at zero pitch
-	AP_Int8		heli_ext_gyro_enabled;	// 0 = no external tail gyro, 1 = external tail gyro
-	AP_Int16	heli_ext_gyro_gain;		// radio output 1000~2000 (value output on CH_7)
-	AP_Int8		heli_servo_averaging;	// 0 or 1 = no averaging (250hz) for **digital servos**, 2=average of two samples (125hz), 3=three samples (83.3hz) **analog servos**, 4=four samples (62.5hz), 5=5 samples(50hz)
-	AP_Int8		heli_servo_manual;	    // 0 = normal mode, 1 = radio inputs directly control swash.  required for swash set-up
-	AP_Int16	heli_phase_angle;		// 0 to 360 degrees.  specifies mixing between roll and pitch for helis
-	AP_Float	heli_collective_yaw_effect;	// -5.0 ~ 5.0.  Feed forward control from collective to yaw.  1.0 = move rudder right 1% for every 1% of collective above the mid point
-	AP_Int8		heli_h1_swash_enabled; 	// 0 = CCPM swashplate, 1 = H1 swashplate (no servo mixing)
 	#endif
 
 	// RC channels
@@ -350,7 +335,10 @@ public:
 	low_voltage				(LOW_VOLTAGE),
 	super_simple			(SUPER_SIMPLE),
 	rtl_land_enabled		(RTL_AUTO_LAND),
+	rtl_approach_alt		(0.0),
+	retro_loiter			(RETRO_LOITER_MODE),
 	axis_enabled			(AXIS_LOCK_ENABLED),
+	copter_leds_mode		(9),
 
 	waypoint_mode			(0),
 	command_total			(0),
@@ -384,27 +372,8 @@ public:
 	radio_tuning_high 		(1000),
 	radio_tuning_low 		(0),
 	frame_orientation 		(FRAME_ORIENTATION),
-	top_bottom_ratio 		(TOP_BOTTOM_RATIO),
 	ch7_option 				(CH7_OPTION),
 	auto_slew_rate			(AUTO_SLEW_RATE),
-
-	#if FRAME_CONFIG ==	HELI_FRAME
-	heli_servo1_pos			(-60),
-	heli_servo2_pos			(60),
-	heli_servo3_pos			(180),
-	heli_roll_max			(4500),
-	heli_pitch_max			(4500),
-	heli_collective_min		(1250),
-	heli_collective_max		(1750),
-	heli_collective_mid		(1500),
-	heli_ext_gyro_enabled	(0),
-	heli_ext_gyro_gain		(1350),
-	heli_servo_averaging	(0),
-	heli_servo_manual		(0),
-	heli_phase_angle		(0),
-	heli_collective_yaw_effect	(0),
-	heli_h1_swash_enabled		(0),
-	#endif
 
     rc_speed(RC_FAST_SPEED),
 
@@ -433,13 +402,14 @@ public:
 
 	// PI controller	initial P			initial I			initial imax
 	//----------------------------------------------------------------------
+	pi_loiter_lat		(LOITER_P,			LOITER_I,			LOITER_IMAX * 100),
+	pi_loiter_lon		(LOITER_P,			LOITER_I,			LOITER_IMAX * 100),
+
 	pi_stabilize_roll	(STABILIZE_ROLL_P,	STABILIZE_ROLL_I,	STABILIZE_ROLL_IMAX * 100),
 	pi_stabilize_pitch	(STABILIZE_PITCH_P,	STABILIZE_PITCH_I,	STABILIZE_PITCH_IMAX * 100),
 	pi_stabilize_yaw	(STABILIZE_YAW_P,	STABILIZE_YAW_I,	STABILIZE_YAW_IMAX * 100),
 
-	pi_alt_hold			(ALT_HOLD_P,		ALT_HOLD_I,			ALT_HOLD_IMAX),
-	pi_loiter_lat		(LOITER_P,			LOITER_I,			LOITER_IMAX * 100),
-	pi_loiter_lon		(LOITER_P,			LOITER_I,			LOITER_IMAX * 100)
+	pi_alt_hold			(ALT_HOLD_P,		ALT_HOLD_I,			ALT_HOLD_IMAX)
 	{
 	}
 };

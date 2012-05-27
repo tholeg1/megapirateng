@@ -36,6 +36,9 @@ static int8_t	test_eedump(uint8_t argc, 		const Menu::arg *argv);
 static int8_t	test_rawgps(uint8_t argc, 		const Menu::arg *argv);
 //static int8_t	test_mission(uint8_t argc, 		const Menu::arg *argv);
 
+// this is declared here to remove compiler errors
+extern void		print_latlon(BetterStream *s, int32_t lat_or_lon);	// in Log.pde
+
 // This is the help function
 // PSTR is an AVR macro to read strings from flash memory
 // printf_P is a version of printf that reads from flash memory
@@ -118,7 +121,7 @@ test_eedump(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_radio_pwm(uint8_t argc, const Menu::arg *argv)
 {
-	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+	#if defined( __AVR_ATmega1280__ )  // test disabled to save code size for 1280
 		print_test_disabled();
 		return (0);
 	#else
@@ -316,8 +319,8 @@ test_radio(uint8_t argc, const Menu::arg *argv)
 	Serial.printf_P(PSTR("g.pi_stabilize_roll.kP: %4.4f\n"), g.pi_stabilize_roll.kP());
 	Serial.printf_P(PSTR("max_stabilize_dampener:%d\n\n "), max_stabilize_dampener);
 
-	motor_auto_armed 	= false;
-	motor_armed 		= true;
+	motors.auto_armed(false);
+	motors.armed(true);
 
 	while(1){
 		// 50 hz
@@ -332,7 +335,7 @@ test_radio(uint8_t argc, const Menu::arg *argv)
                     Matrix3f m = dcm.get_dcm_matrix();
 					compass.read();		 				// Read magnetometer
 					compass.calculate(m);
-                    compass.null_offsets(m);
+                    compass.null_offsets();
 					medium_loopCounter = 0;
 				}
 			}
@@ -420,7 +423,7 @@ test_radio(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_ins(uint8_t argc, const Menu::arg *argv)
 			{
-	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+	#if defined( __AVR_ATmega1280__ )  // test disabled to save code size for 1280
 		print_test_disabled();
 		return (0);
 	#else
@@ -466,7 +469,7 @@ test_ins(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_imu(uint8_t argc, const Menu::arg *argv)
 {
- 	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+	#if defined( __AVR_ATmega1280__ )  // test disabled to save code size for 1280
 		print_test_disabled();
 		return (0);
 	#else
@@ -551,7 +554,7 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 					compass.read();		 				// Read magnetometer
                     Matrix3f m = dcm.get_dcm_matrix();
 					compass.calculate(m);
-                    compass.null_offsets(m);
+                    compass.null_offsets();
 				}
 			}
             fast_loopTimer = millis();
@@ -566,7 +569,8 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_gps(uint8_t argc, const Menu::arg *argv)
 {
-	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+    // test disabled to save code size for 1280
+	#if defined( __AVR_ATmega1280__ ) || HIL_MODE != HIL_MODE_DISABLED
 		print_test_disabled();
 		return (0);
 	#else
@@ -583,9 +587,11 @@ test_gps(uint8_t argc, const Menu::arg *argv)
 		g_gps->update();
 
 		if (g_gps->new_data){
-			Serial.printf_P(PSTR("Lat: %ld, Lon %ld, Alt: %ldm, #sats: %d\n"),
-					g_gps->latitude,
-					g_gps->longitude,
+				Serial.printf_P(PSTR("Lat: "));
+				print_latlon(&Serial, g_gps->latitude);
+				Serial.printf_P(PSTR(", Lon "));
+				print_latlon(&Serial, g_gps->longitude);
+				Serial.printf_P(PSTR(", Alt: %ldm, #sats: %d\n"),
 					g_gps->altitude/100,
 					g_gps->num_sats);
 			g_gps->new_data = false;
@@ -769,11 +775,22 @@ test_tuning(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_battery(uint8_t argc, const Menu::arg *argv)
 {
-	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+	#if defined( __AVR_ATmega1280__ )  // disable this test if we are using 1280
 		print_test_disabled();
 		return (0);
 	#else
+		Serial.printf_P(PSTR("\nCareful! Motors will spin! Press Enter to start.\n"));
+		Serial.flush();
+		while(!Serial.available()){
+			delay(100);
+		}
+		Serial.flush();
 	print_hit_enter();
+
+		// allow motors to spin
+		motors.enable();
+		motors.armed(true);
+
 	while(1){
 		delay(100);
 		read_radio();
@@ -789,22 +806,21 @@ test_battery(uint8_t argc, const Menu::arg *argv)
 								current_amps1,
 								current_total1);
 		}
-		APM_RC.OutputCh(MOT_1, g.rc_3.radio_in);
-		APM_RC.OutputCh(MOT_2, g.rc_3.radio_in);
-		APM_RC.OutputCh(MOT_3, g.rc_3.radio_in);
-		APM_RC.OutputCh(MOT_4, g.rc_3.radio_in);
+			motors.throttle_pass_through();
 
 		if(Serial.available() > 0){
+				motors.armed(false);
 			return (0);
 		}
 	}
+		motors.armed(false);
 	return (0);
 	#endif
 }
 
 static int8_t test_relay(uint8_t argc, const Menu::arg *argv)
 {
-	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+	#if defined( __AVR_ATmega1280__ )  // test disabled to save code size for 1280
 		print_test_disabled();
 		return (0);
 	#else
@@ -895,7 +911,7 @@ static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
 static int8_t
 test_baro(uint8_t argc, const Menu::arg *argv)
 {
-	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+	#if defined( __AVR_ATmega1280__ )  // test disabled to save code size for 1280
 		print_test_disabled();
 		return (0);
 	#else
@@ -937,7 +953,7 @@ test_baro(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_mag(uint8_t argc, const Menu::arg *argv)
 {
-	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+	#if defined( __AVR_ATmega1280__ )  // test disabled to save code size for 1280
 		print_test_disabled();
 		return (0);
 	#else
@@ -1082,6 +1098,7 @@ test_optflow(uint8_t argc, const Menu::arg *argv)
 /*
   test the dataflash is working
  */
+
 static int8_t
 test_logging(uint8_t argc, const Menu::arg *argv)
 {

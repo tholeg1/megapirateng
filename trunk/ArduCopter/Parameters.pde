@@ -20,20 +20,86 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	GSCALAR(sysid_this_mav,	"SYSID_THISMAV"),
 	GSCALAR(sysid_my_gcs,	"SYSID_MYGCS"),
 	GSCALAR(serial3_baud,	"SERIAL3_BAUD"),
+	
+	// @Param: ALT_HOLD_RTL
+	// @DisplayName: Alt Hold RTL
+	// @Description: This is the altitude the model will move to before Returning to Launch
+	// @Units: Meters
+	// @Range: 0 400
+	// @Increment: 1
+	// @User: Standard
 	GSCALAR(RTL_altitude,	"ALT_HOLD_RTL"),
+	
+	// @Param: SONAR_ENABLE
+	// @DisplayName: Enable Sonar
+	// @Description: Setting this to Enabled(1) will enable the sonar. Setting this to Disabled(0) will disable the sonar
+	// @Values: 0:Disabled,1:Enabled
+	// @User: Standard
 	GSCALAR(sonar_enabled,	"SONAR_ENABLE"),
+	
 	GSCALAR(sonar_type,	"SONAR_TYPE"),
 	GSCALAR(battery_monitoring, "BATT_MONITOR"),
+
+	// @Param: VOLT_DIVIDER
+	// @DisplayName: Voltage Divider
+	// @Description: TODO
 	GSCALAR(volt_div_ratio,	"VOLT_DIVIDER"),
+
 	GSCALAR(curr_amp_per_volt,	"AMP_PER_VOLT"),
 	GSCALAR(input_voltage,	"INPUT_VOLTS"),
 	GSCALAR(pack_capacity,	"BATT_CAPACITY"),
+
+	// @Param: MAG_ENABLE
+	// @DisplayName: Enable Compass
+	// @Description: Setting this to Enabled(1) will enable the compass. Setting this to Disabled(0) will disable the compass
+	// @Values: 0:Disabled,1:Enabled
+	// @User: Standard
 	GSCALAR(compass_enabled,	"MAG_ENABLE"),
+	
+	// @Param: FLOW_ENABLE
+	// @DisplayName: Enable Optical Flow
+	// @Description: Setting this to Enabled(1) will enable optical flow. Setting this to Disabled(0) will disable optical flow
+	// @Values: 0:Disabled,1:Enabled
+	// @User: Standard
 	GSCALAR(optflow_enabled,	"FLOW_ENABLE"),
+	
+	// @Param: LOW_VOLT
+	// @DisplayName: Low Voltage
+	// @Description: Set this to the voltage you want to represent low voltage
+	// @Range: 0 20
+	// @Increment: .1
+	// @User: Standard
 	GSCALAR(low_voltage,	"LOW_VOLT"),
+	
+	// @Param: SUPER_SIMPLE
+	// @DisplayName: Enable Super Simple Mode
+	// @Description: Setting this to Enabled(1) will enable Super Simple Mode. Setting this to Disabled(0) will disable Super Simple Mode
+	// @Values: 0:Disabled,1:Enabled
+	// @User: Standard
 	GSCALAR(super_simple,	"SUPER_SIMPLE"),
+	
+	// @Param: RTL_LAND
+	// @DisplayName: RTL Land
+	// @Description: Setting this to Enabled(1) will enable landing after RTL. Setting this to Disabled(0) will disable landing after RTL.
+	// @Values: 0:Disabled,1:Enabled
+	// @User: Standard
 	GSCALAR(rtl_land_enabled,	"RTL_LAND"),
 
+	// @Param: APPROACH_ALT
+	// @DisplayName: Alt Hold RTL
+	// @Description: This is the altitude the model will move to before Returning to Launch
+	// @Units: Meters
+	// @Range: 1 10
+	// @Increment: .1
+	// @User: Standard
+	GSCALAR(rtl_approach_alt,	"APPROACH_ALT"),
+
+	// @Param: RETRO_LOITER
+	// @DisplayName: Retro Loiter
+	// @Description: Setting this to Enabled(1) will enable the Loiter from 2.0.49. Setting this to Disabled(0) will use the most recent Loiter routines.
+	// @Values: 0:Disabled,1:Enabled
+	// @User: Standard
+	GSCALAR(retro_loiter,	"RETRO_LOITER"),
 
 	GSCALAR(waypoint_mode,	"WP_MODE"),
 	GSCALAR(command_total,	"WP_TOTAL"),
@@ -67,7 +133,6 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	GSCALAR(radio_tuning_low, "TUNE_LOW"),
 	GSCALAR(radio_tuning_high, "TUNE_HIGH"),
 	GSCALAR(frame_orientation, "FRAME"),
-	GSCALAR(top_bottom_ratio, "TB_RATIO"),
 	GSCALAR(ch7_option, "CH7_OPT"),
 	GSCALAR(auto_slew_rate, "AUTO_SLEW"),
 
@@ -76,21 +141,6 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	GGROUP(heli_servo_2,	"HS2_", RC_Channel),
 	GGROUP(heli_servo_3,	"HS3_", RC_Channel),
 	GGROUP(heli_servo_4,	"HS4_", RC_Channel),
-	GSCALAR(heli_servo1_pos,	"SV1_POS"),
-	GSCALAR(heli_servo2_pos,	"SV2_POS"),
-	GSCALAR(heli_servo3_pos,	"SV3_POS"),
-	GSCALAR(heli_roll_max,	"ROL_MAX"),
-	GSCALAR(heli_pitch_max,	"PIT_MAX"),
-	GSCALAR(heli_collective_min,	"COL_MIN"),
-	GSCALAR(heli_collective_max,	"COL_MAX"),
-	GSCALAR(heli_collective_mid,	"COL_MID"),
-	GSCALAR(heli_ext_gyro_enabled,	"GYR_ENABLE"),
-	GSCALAR(heli_h1_swash_enabled,	"H1_ENABLE"),
-	GSCALAR(heli_ext_gyro_gain,	"GYR_GAIN"),
-	GSCALAR(heli_servo_averaging,	"SV_AVG"),
-	GSCALAR(heli_servo_manual,	"HSV_MAN"),
-	GSCALAR(heli_phase_angle,	"H_PHANG"),
-	GSCALAR(heli_collective_yaw_effect,	"H_COLYAW"),
 	#endif
 
 	// RC channel
@@ -105,8 +155,13 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	GGROUP(rc_8,	"RC8_", RC_Channel),
 	GGROUP(rc_camera_pitch,	"CAM_P_", RC_Channel),
 	GGROUP(rc_camera_roll,	"CAM_R_", RC_Channel),
-
-	// speed of fast RC channels in Hz
+	
+	// @Param: RC_SPEED
+	// @DisplayName: ESC Update Speed
+	// @Description: This is the speed in Hertz that your ESCs will receive updates
+	// @Units: Hertz (Hz)
+	// @Values: 125,400,490
+	// @User: Advanced
 	GSCALAR(rc_speed, "RC_SPEED"),
 
 	// variable
@@ -114,10 +169,19 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	GSCALAR(camera_pitch_gain, 	"CAM_P_G"),
 	GSCALAR(camera_roll_gain, 	"CAM_R_G"),
 	GSCALAR(stabilize_d, 		"STAB_D"),
+	
+	// @Param: STAB_D_S
+	// @DisplayName: Stabilize D Schedule
+	// @Description: This value is a percentage of scheduling applied to the Stabilize D term.
+	// @Range: 0 1
+	// @Increment: .01
+	// @User: Advanced
 	GSCALAR(stabilize_d_schedule, "STAB_D_S"),
+
 	GSCALAR(acro_p, 			"ACRO_P"),
 	GSCALAR(axis_lock_p, 		"AXIS_P"),
 	GSCALAR(axis_enabled, 		"AXIS_ENABLE"),
+	GSCALAR(copter_leds_mode,	"LED_MODE"),
 
 	// PID controller
 	//---------------
@@ -147,10 +211,29 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	GGROUP(pi_loiter_lon,	"HLD_LON_", APM_PI),
 
 	// variables not in the g class which contain EEPROM saved variables
+	
+	// @Group: COMPASS_
+	// @Path: ../libraries/AP_Compass/Compass.cpp
 	GOBJECT(compass,        "COMPASS_", Compass),
+
 	GOBJECT(gcs0,			"SR0_",     GCS_MAVLINK),
 	GOBJECT(gcs3,			"SR3_",     GCS_MAVLINK),
-	GOBJECT(imu,			"IMU_",     IMU)
+
+	// @Group: IMU_
+	// @Path: ../libraries/AP_IMU/IMU.cpp
+	GOBJECT(imu,			"IMU_",     IMU),
+
+	// @Group: AHRS_
+	// @Path: ../libraries/AP_AHRS/AP_AHRS_DCM.cpp, ../libraries/AP_AHRS/AP_AHRS_Quaternion.cpp
+	GOBJECT(ahrs,			"AHRS_",    AP_AHRS),
+
+	#if FRAME_CONFIG ==	HELI_FRAME
+	// @Group: H_
+	// @Path: ../libraries/AP_Motors/AP_MotorsHeli.cpp
+	GOBJECT(motors,	"H_",		AP_MotorsHeli),
+	#else
+	GOBJECT(motors,	"MOT_",		AP_Motors),
+	#endif
 };
 
 

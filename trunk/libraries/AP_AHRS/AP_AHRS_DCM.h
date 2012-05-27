@@ -17,7 +17,7 @@ public:
 	AP_AHRS_DCM(IMU *imu, GPS *&gps) : AP_AHRS(imu, gps)
 	{
 		_kp_roll_pitch = 0.13;
-		_kp_yaw        = 0.4;
+		_kp_yaw.set(0.2);
 		_dcm_matrix(Vector3f(1, 0, 0),
 			    Vector3f(0, 1, 0),
 			    Vector3f(0, 0, 1));
@@ -42,10 +42,12 @@ public:
 	float		get_error_rp(void);
 	float		get_error_yaw(void);
 
+	// settable parameters
+	AP_Float	_kp_yaw;
+
 private:
 	float		_kp_roll_pitch;
 	float		_ki_roll_pitch;
-	float		_kp_yaw;
 	float		_ki_yaw;
 	bool		_have_initial_yaw;
 
@@ -67,6 +69,8 @@ private:
 	Vector3f	_omega_P;		// accel Omega Proportional correction
 	Vector3f	_omega_yaw_P;		// yaw Omega Proportional correction
 	Vector3f 	_omega_I;		// Omega Integrator correction
+	Vector3f 	_omega_I_sum;		// summation vector for omegaI
+	float		_omega_I_sum_time;
 	Vector3f 	_omega_integ_corr;	// Partially corrected Gyro_Vector data - used for centrepetal correction
 	Vector3f 	_omega;			// Corrected Gyro_Vector data
 
@@ -75,8 +79,10 @@ private:
 	uint16_t	_renorm_val_count;
 	float		_error_rp_sum;
 	uint16_t	_error_rp_count;
+	float		_error_rp_last;
 	float		_error_yaw_sum;
 	uint16_t	_error_yaw_count;
+	float		_error_yaw_last;
 
 	// time in millis when we last got a GPS heading
 	uint32_t	_gps_last_update;
