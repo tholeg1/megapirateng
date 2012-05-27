@@ -16,7 +16,7 @@ class AP_InertialSensor_MPU6000_I2C : public AP_InertialSensor
 
   AP_InertialSensor_MPU6000_I2C();
 
-  void init( AP_PeriodicProcess * scheduler );
+  uint16_t init( AP_PeriodicProcess * scheduler );
 
   /* Concrete implementation of AP_InertialSensor functions: */
   bool update();

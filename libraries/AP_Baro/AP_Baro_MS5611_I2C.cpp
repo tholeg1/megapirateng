@@ -60,11 +60,9 @@ bool AP_Baro_MS5611_I2C::init( AP_PeriodicProcess *scheduler )
 {
 	healthy = false;
 	
-	scheduler->stop();
 	delay(10);
 	init_hardware();
 	scheduler->register_process( AP_Baro_MS5611_I2C::_update );
-	scheduler->start();
 
 	return healthy;
 }

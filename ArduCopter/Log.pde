@@ -1,5 +1,14 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
+// print_latlon - prints an latitude or longitude value held in an int32_t
+// probably this should be moved to AP_Common
+void print_latlon(BetterStream *s, int32_t lat_or_lon)
+{
+    int32_t dec_portion = lat_or_lon / T7;
+    int32_t frac_portion = labs(lat_or_lon - dec_portion*T7);
+    s->printf("%ld.%07ld",(long)dec_portion,(long)frac_portion);
+}
+
 #if LOGGING_ENABLED == ENABLED
 
 // Code to Write and Read packets from DataFlash log memory
@@ -43,6 +52,19 @@ const struct Menu::command log_menu_commands[] PROGMEM = {
 	{"disable",	select_logs}
 };
 
+static int32_t get_int(float f)
+{
+	float_int.float_value = f;
+	return float_int.int_value;
+}
+
+static float get_float(int32_t i)
+{
+	float_int.int_value = i;
+	return float_int.float_value;
+}
+
+
 // A Macro to create the Menu
 MENU2(log_menu, "Log", log_menu_commands, print_log_menu);
 
@@ -72,6 +94,7 @@ print_log_menu(void)
 		if (g.log_bitmask & MASK_LOG_CUR)			Serial.printf_P(PSTR(" CURRENT"));
 		if (g.log_bitmask & MASK_LOG_MOTORS)		Serial.printf_P(PSTR(" MOTORS"));
 		if (g.log_bitmask & MASK_LOG_OPTFLOW)		Serial.printf_P(PSTR(" OPTFLOW"));
+		if (g.log_bitmask & MASK_LOG_PID)			Serial.printf_P(PSTR(" PID"));
 	}
 
 	Serial.println();
@@ -136,18 +159,11 @@ dump_log(uint8_t argc, const Menu::arg *argv)
 	return (0);
 }
 
-void erase_callback(unsigned long t) {
-    mavlink_delay(t);
-    if (DataFlash.GetWritePage() % 128 == 0) {
-        Serial.printf_P(PSTR("+"));
-    }
-}
-
 static void do_erase_logs(void)
 {
-	Serial.printf_P(PSTR("\nErasing log...\n"));
-    DataFlash.EraseAll(erase_callback);
-	Serial.printf_P(PSTR("\nLog erased.\n"));
+	gcs_send_text_P(SEVERITY_LOW, PSTR("Erasing logs"));
+    DataFlash.EraseAll(mavlink_delay);
+	gcs_send_text_P(SEVERITY_LOW, PSTR("Log erase complete"));
 }
 
 static int8_t
@@ -193,6 +209,7 @@ select_logs(uint8_t argc, const Menu::arg *argv)
 		TARG(CUR);
 		TARG(MOTORS);
 		TARG(OPTFLOW);
+		TARG(PID);
 		#undef TARG
 	}
 
@@ -212,15 +229,6 @@ process_logs(uint8_t argc, const Menu::arg *argv)
 	return 0;
 }
 
-
-// print_latlon - prints an latitude or longitude value held in an int32_t
-// probably this should be moved to AP_Common
-void print_latlon(BetterStream *s, int32_t lat_or_lon)
-{
-    int32_t dec_portion = lat_or_lon / T7;
-    int32_t frac_portion = labs(lat_or_lon - dec_portion*T7);
-    s->printf("%ld.%07ld",(long)dec_portion,(long)frac_portion);
-}
 
 // Write an GPS packet. Total length : 31 bytes
 static void Log_Write_GPS()
@@ -276,26 +284,21 @@ static void Log_Write_Raw()
 	Vector3f accel = imu.get_accel();
 	//Vector3f accel_filt	= imu.get_accel_filtered();
 
-	gyro *= t7;								// Scale up for storage as long integers
-	accel *= t7;
+	//gyro *= t7;								// Scale up for storage as long integers
+	//accel *= t7;
 	//accel_filt *= t7;
 
 	DataFlash.WriteByte(HEAD_BYTE1);
 	DataFlash.WriteByte(HEAD_BYTE2);
 	DataFlash.WriteByte(LOG_RAW_MSG);
 
-	DataFlash.WriteLong(gyro.x);
-	DataFlash.WriteLong(gyro.y);
-	DataFlash.WriteLong(gyro.z);
+	DataFlash.WriteLong(get_int(gyro.x));
+	DataFlash.WriteLong(get_int(gyro.y));
+	DataFlash.WriteLong(get_int(gyro.z));
 
-
-	//DataFlash.WriteLong(accels_rot.x * t7);
-	//DataFlash.WriteLong(accels_rot.y * t7);
-	//DataFlash.WriteLong(accels_rot.z * t7);
-
-	DataFlash.WriteLong(accel.x);
-	DataFlash.WriteLong(accel.y);
-	DataFlash.WriteLong(accel.z);
+	DataFlash.WriteLong(get_int(accel.x));
+	DataFlash.WriteLong(get_int(accel.y));
+	DataFlash.WriteLong(get_int(accel.z));
 
 	DataFlash.WriteByte(END_BYTE);
 }
@@ -306,9 +309,9 @@ static void Log_Read_Raw()
 	float logvar;
 	Serial.printf_P(PSTR("RAW,"));
 	for (int y = 0; y < 6; y++) {
-		logvar = (float)DataFlash.ReadLong() / t7;
+		logvar = get_float(DataFlash.ReadLong());
 		Serial.print(logvar);
-		Serial.print(",");
+		Serial.print(", ");
 	}
 	Serial.println(" ");
 }
@@ -355,52 +358,52 @@ static void Log_Write_Motors()
 	DataFlash.WriteByte(LOG_MOTORS_MSG);
 
 	#if FRAME_CONFIG ==	TRI_FRAME
-	DataFlash.WriteInt(motor_out[CH_1]);//1
-	DataFlash.WriteInt(motor_out[CH_2]);//2
-	DataFlash.WriteInt(motor_out[CH_4]);//3
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_1]);//1
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_2]);//2
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_4]);//3
 	DataFlash.WriteInt(g.rc_4.radio_out);//4
 
 	#elif FRAME_CONFIG == HEXA_FRAME
-	DataFlash.WriteInt(motor_out[CH_1]);//1
-	DataFlash.WriteInt(motor_out[CH_2]);//2
-	DataFlash.WriteInt(motor_out[CH_3]);//3
-	DataFlash.WriteInt(motor_out[CH_4]);//4
-	DataFlash.WriteInt(motor_out[CH_7]);//5
-	DataFlash.WriteInt(motor_out[CH_8]);//6
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_1]);//1
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_2]);//2
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_3]);//3
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_4]);//4
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_5]);//5
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_6]);//6
 
 	#elif FRAME_CONFIG == Y6_FRAME
 	//left
-	DataFlash.WriteInt(motor_out[CH_2]);//1
-	DataFlash.WriteInt(motor_out[CH_3]);//2
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_2]);//1
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_3]);//2
 	//right
-	DataFlash.WriteInt(motor_out[CH_7]);//3
-	DataFlash.WriteInt(motor_out[CH_1]);//4
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_5]);//3
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_1]);//4
 	//back
-	DataFlash.WriteInt(motor_out[CH_8]);//5
-	DataFlash.WriteInt(motor_out[CH_4]);//6
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_6]);//5
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_4]);//6
 
 	#elif FRAME_CONFIG == OCTA_FRAME || FRAME_CONFIG == OCTA_QUAD_FRAME
-	DataFlash.WriteInt(motor_out[CH_1]);//1
-	DataFlash.WriteInt(motor_out[CH_2]);//2
-	DataFlash.WriteInt(motor_out[CH_3]);//3
-	DataFlash.WriteInt(motor_out[CH_4]);//4
-	DataFlash.WriteInt(motor_out[CH_7]);//5
-	DataFlash.WriteInt(motor_out[CH_8]); //6
-	DataFlash.WriteInt(motor_out[CH_10]);//7
-	DataFlash.WriteInt(motor_out[CH_11]);//8
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_1]);//1
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_2]);//2
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_3]);//3
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_4]);//4
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_5]);//5
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_6]); //6
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_7]);//7
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_8]);//8
 
 	#elif FRAME_CONFIG == HELI_FRAME
-	DataFlash.WriteInt(heli_servo_out[0]);//1
-	DataFlash.WriteInt(heli_servo_out[1]);//2
-	DataFlash.WriteInt(heli_servo_out[2]);//3
-	DataFlash.WriteInt(heli_servo_out[3]);//4
-	DataFlash.WriteInt(g.heli_ext_gyro_gain);//5
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_1]);//1
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_2]);//2
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_3]);//3
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_4]);//4
+	DataFlash.WriteInt(motors.ext_gyro_gain);//5
 
 	#else // quads
-	DataFlash.WriteInt(motor_out[CH_1]);//1
-	DataFlash.WriteInt(motor_out[CH_2]);//2
-	DataFlash.WriteInt(motor_out[CH_3]);//3
-	DataFlash.WriteInt(motor_out[CH_4]);//4
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_1]);//1
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_2]);//2
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_3]);//3
+	DataFlash.WriteInt(motors.motor_out[AP_MOTORS_MOT_4]);//4
 	#endif
 
 	DataFlash.WriteByte(END_BYTE);
@@ -762,7 +765,13 @@ static void Log_Read_Startup()
 
 static void Log_Write_Data(int8_t _type, float _data)
 {
-	Log_Write_Data(_type, (int32_t)(_data * 1000));
+	DataFlash.WriteByte(HEAD_BYTE1);
+	DataFlash.WriteByte(HEAD_BYTE2);
+	DataFlash.WriteByte(LOG_DATA_MSG);
+	DataFlash.WriteByte(_type);
+	DataFlash.WriteByte(1);
+	DataFlash.WriteLong(get_int(_data));
+	DataFlash.WriteByte(END_BYTE);
 }
 
 static void Log_Write_Data(int8_t _type, int32_t _data)
@@ -771,6 +780,7 @@ static void Log_Write_Data(int8_t _type, int32_t _data)
 	DataFlash.WriteByte(HEAD_BYTE2);
 	DataFlash.WriteByte(LOG_DATA_MSG);
 	DataFlash.WriteByte(_type);
+	DataFlash.WriteByte(0);
 	DataFlash.WriteLong(_data);
 	DataFlash.WriteByte(END_BYTE);
 }
@@ -779,8 +789,55 @@ static void Log_Write_Data(int8_t _type, int32_t _data)
 static void Log_Read_Data()
 {
 	int8_t  temp1 = DataFlash.ReadByte();
-	int32_t temp2 = DataFlash.ReadLong();
-	Serial.printf_P(PSTR("DATA: %d, %ld\n"), temp1, temp2);
+	int8_t  temp2 = DataFlash.ReadByte();
+
+	if(temp2 == 1){
+		float temp3 = get_float(DataFlash.ReadLong());
+		Serial.printf_P(PSTR("DATA: %d, %1.6f\n"), temp1, temp3);
+	}else{
+		int32_t temp3 = DataFlash.ReadLong();
+		Serial.printf_P(PSTR("DATA: %d, %ld\n"), temp1, temp3);
+	}
+}
+
+// Write an PID packet. Total length : 28 bytes
+static void Log_Write_PID(int8_t pid_id, int32_t error, int32_t p, int32_t i, int32_t d, int32_t output, float gain)
+{
+	DataFlash.WriteByte(HEAD_BYTE1);
+	DataFlash.WriteByte(HEAD_BYTE2);
+	DataFlash.WriteByte(LOG_PID_MSG);
+
+	DataFlash.WriteByte(pid_id);			// 1
+	DataFlash.WriteLong(error);				// 2
+	DataFlash.WriteLong(p);					// 3
+	DataFlash.WriteLong(i);					// 4
+	DataFlash.WriteLong(d);					// 5
+	DataFlash.WriteLong(output);			// 6
+	DataFlash.WriteLong(gain * 1000);		// 7
+
+	DataFlash.WriteByte(END_BYTE);
+}
+
+// Read a PID packet
+static void Log_Read_PID()
+{
+	int8_t temp1 	= DataFlash.ReadByte();		// pid id
+	int32_t temp2 	= DataFlash.ReadLong();		// error
+	int32_t temp3 	= DataFlash.ReadLong();		// p
+	int32_t temp4 	= DataFlash.ReadLong();		// i
+	int32_t temp5 	= DataFlash.ReadLong();		// d
+	int32_t temp6 	= DataFlash.ReadLong();		// output
+	float temp7 	= DataFlash.ReadLong() / 1000.f;		// gain
+
+						   //  1    2    3    4    5    6      7
+	Serial.printf_P(PSTR("PID-%d, %ld, %ld, %ld, %ld, %ld, %4.4f\n"),
+                    (int)temp1,		// pid id
+                    (long)temp2,	// error
+                    (long)temp3,	// p
+                    (long)temp4,	// i
+                    (long)temp5,	// d
+                    (long)temp6,	// output
+                    temp7);			// gain
 }
 
 // Read the DataFlash log memory
@@ -791,6 +848,7 @@ static void Log_Read(int start_page, int end_page)
 	#ifdef AIRFRAME_NAME
 		Serial.printf_P(PSTR((AIRFRAME_NAME)
 	#endif
+
 	Serial.printf_P(PSTR("\n" THISFIRMWARE
 						 "\nFree RAM: %u\n"),
                     memcheck_available_memory());
@@ -890,6 +948,10 @@ static int Log_Read_Process(int start_page, int end_page)
 					case LOG_DATA_MSG:
 						Log_Read_Data();
 						break;
+
+					case LOG_PID_MSG:
+						Log_Read_PID();
+						break;
 				}
 				break;
 			case 3:
@@ -925,6 +987,7 @@ static void Log_Write_Nav_Tuning() {}
 static void Log_Write_Control_Tuning() {}
 static void Log_Write_Motors() {}
 static void Log_Write_Performance() {}
+static void Log_Write_PID() {}
 static int8_t process_logs(uint8_t argc, const Menu::arg *argv) { return 0; }
 
 #endif // LOGGING_DISABLED

@@ -302,6 +302,25 @@ void APM_RC_PIRATES::OutputCh(uint8_t ch, uint16_t pwm)
   } 
 }
 
+uint16_t APM_RC_PIRATES::OutputCh_current(uint8_t ch)
+{
+	uint16_t pwm=0;
+	switch(ch) {
+	case 0:  pwm=OCR3A; break;  //ch1
+	case 1:  pwm=OCR4A; break;  //ch2
+	case 2:  pwm=OCR3B; break;  //ch3
+	case 3:  pwm=OCR3C; break;  //ch4
+	case 4:  pwm=OCRxx1[1]; break;  //ch5
+	case 5:  pwm=OCRxx1[0]; break;  //ch6
+	case 6:  pwm=OCR4B; break;  //ch7
+	case 7:  pwm=OCR4C; break;  //ch8
+//	case 8:  pwm=OCR5A; break;  //ch9
+	case 9:  pwm=OCR1A; break;  //ch9
+	case 10: pwm=OCR1B; break;  //ch10
+	}
+	return pwm>>1;
+}
+
 void APM_RC_PIRATES::enable_out(uint8_t ch)
 {
   switch(ch) {

@@ -59,37 +59,55 @@ get_stabilize_pitch(int32_t target_angle)
 static int16_t
 get_stabilize_yaw(int32_t target_angle)
 {
-	// angle error
-	target_angle 		= wrap_180(target_angle - ahrs.yaw_sensor);
+	static int8_t log_counter = 0;		// used to slow down logging of PID values to dataflash
+	int32_t target_rate,i_term;
+	int32_t angle_error;
+	int32_t output;
 
-#if FRAME_CONFIG == HELI_FRAME  // cannot use rate control for helicopters
+	// angle error
+	angle_error	 	= wrap_180(target_angle - ahrs.yaw_sensor);
+
 	// limit the error we're feeding to the PID
-	target_angle 		= constrain(target_angle, -4500, 4500);
+#if FRAME_CONFIG == HELI_FRAME
+	angle_error 		= constrain(angle_error, -4500, 4500);
 #else
-	// limit the error we're feeding to the PID
-	target_angle 		= constrain(target_angle, -2000, 2000);
+	angle_error 		= constrain(angle_error, -2000, 2000);
 #endif
 
-	// conver to desired Rate:
-	int32_t target_rate = g.pi_stabilize_yaw.get_p(target_angle);
-	int16_t iterm 		= g.pi_stabilize_yaw.get_i(target_angle, G_Dt);
+	// convert angle error to desired Rate:
+	target_rate = g.pi_stabilize_yaw.get_p(angle_error);
+	i_term = g.pi_stabilize_yaw.get_i(angle_error, G_Dt);
 
-#if FRAME_CONFIG == HELI_FRAME  // cannot use rate control for helicopters
-	if(!g.heli_ext_gyro_enabled){
-		return get_rate_yaw(target_rate) + iterm;
+	// do not use rate controllers for helicotpers with external gyros
+#if FRAME_CONFIG == HELI_FRAME
+	if(!motors.ext_gyro_enabled){
+		output = get_rate_yaw(target_rate) + i_term;
 	}else{
-		return constrain((target_rate + iterm), -4500, 4500);
+		output = constrain((target_rate + i_term), -4500, 4500);
 	}
 #else
-	return get_rate_yaw(target_rate) + iterm;
+	output = get_rate_yaw(target_rate) + i_term;
 #endif
+
+#if LOGGING_ENABLED == ENABLED
+	// log output if PID logging is on and we are tuning the yaw
+	if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_YAW_KP || g.radio_tuning == CH6_YAW_RATE_KP) ) {
+		log_counter++;
+		if( log_counter >= 10 ) {	// (update rate / desired output rate) = (100hz / 10hz) = 10
+			log_counter = 0;
+			Log_Write_PID(CH6_YAW_KP, angle_error, target_rate, i_term, 0, output, tuning_value);
+		}
+	}
+#endif
+
+	// ensure output does not go beyond barries of what an int16_t can hold
+	return constrain(output,-32000,32000);
 }
 
 static int16_t
 get_acro_roll(int32_t target_rate)
 {
 	target_rate = target_rate * g.acro_p;
-	target_rate = constrain(target_rate, -10000, 10000);
 	return get_rate_roll(target_rate);
 }
 
@@ -97,7 +115,6 @@ static int16_t
 get_acro_pitch(int32_t target_rate)
 {
 	target_rate = target_rate * g.acro_p;
-	target_rate = constrain(target_rate, -10000, 10000);
 	return get_rate_pitch(target_rate);
 }
 
@@ -105,15 +122,17 @@ static int16_t
 get_acro_yaw(int32_t target_rate)
 {
 	target_rate = g.pi_stabilize_yaw.get_p(target_rate);
-	target_rate = constrain(target_rate, -15000, 15000);
 	return get_rate_yaw(target_rate);
 }
 
 static int16_t
 get_rate_roll(int32_t target_rate)
 {
+	static int8_t log_counter = 0;					// used to slow down logging of PID values to dataflash
 	static int32_t last_rate = 0;					// previous iterations rate
+	int32_t p,i,d;									// used to capture pid values for logging
 	int32_t current_rate;							// this iteration's rate
+	int32_t rate_error;								// simply target_rate - current_rate
 	int32_t rate_d;  								// roll's acceleration
 	int32_t output;									// output from pid controller
 	int32_t rate_d_dampener;						// value to dampen output based on acceleration
@@ -128,22 +147,43 @@ get_rate_roll(int32_t target_rate)
 	last_rate 		= current_rate;
 
 	// call pid controller
-	output 			= g.pid_rate_roll.get_pid(target_rate - current_rate, G_Dt);
+	rate_error	= target_rate - current_rate;
+	p 			= g.pid_rate_roll.get_p(rate_error);
+	i			= g.pid_rate_roll.get_i(rate_error, G_Dt);
+	d			= g.pid_rate_roll.get_d(rate_error, G_Dt);
+	output		= p + i + d;
 
 	// Dampening output with D term
 	rate_d_dampener = rate_d * roll_scale_d;
 	rate_d_dampener = constrain(rate_d_dampener, -400, 400);
 	output -= rate_d_dampener;
 
+	// constrain output
+	output = constrain(output, -2500, 2500);
+
+#if LOGGING_ENABLED == ENABLED
+	// log output if PID logging is on and we are tuning the rate P, I or D gains
+	if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_RATE_KP || g.radio_tuning == CH6_RATE_KI || g.radio_tuning == CH6_RATE_KD) ) {
+		log_counter++;
+		if( log_counter >= 10 ) {	// (update rate / desired output rate) = (100hz / 10hz) = 10
+			log_counter = 0;
+			Log_Write_PID(CH6_RATE_KP, rate_error, p, i, d-rate_d_dampener, output, tuning_value);
+		}
+	}
+#endif
+
 	// output control
-	return constrain(output, -2500, 2500);
+	return output;
 }
 
 static int16_t
 get_rate_pitch(int32_t target_rate)
 {
+	static int8_t log_counter = 0;					// used to slow down logging of PID values to dataflash
 	static int32_t last_rate = 0;					// previous iterations rate
+	int32_t p,i,d;									// used to capture pid values for logging
 	int32_t current_rate;							// this iteration's rate
+	int32_t rate_error;								// simply target_rate - current_rate
 	int32_t rate_d;  								// roll's acceleration
 	int32_t output;									// output from pid controller
 	int32_t rate_d_dampener;						// value to dampen output based on acceleration
@@ -158,29 +198,72 @@ get_rate_pitch(int32_t target_rate)
 	last_rate 		= current_rate;
 
 	// call pid controller
-	output 			= g.pid_rate_pitch.get_pid(target_rate - current_rate, G_Dt);
+	rate_error	= target_rate - current_rate;
+	p 			= g.pid_rate_pitch.get_p(rate_error);
+	i 			= g.pid_rate_pitch.get_i(rate_error, G_Dt);
+	d 			= g.pid_rate_pitch.get_d(rate_error, G_Dt);
+	output		= p + i + d;
 
 	// Dampening output with D term
 	rate_d_dampener = rate_d * pitch_scale_d;
 	rate_d_dampener = constrain(rate_d_dampener, -400, 400);
 	output -= rate_d_dampener;
 
+	// constrain output
+	output = constrain(output, -2500, 2500);
+
+#if LOGGING_ENABLED == ENABLED
+	// log output if PID logging is on and we are tuning the rate P, I or D gains
+	if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_RATE_KP || g.radio_tuning == CH6_RATE_KI || g.radio_tuning == CH6_RATE_KD) ) {
+		log_counter++;
+		if( log_counter >= 10 ) {	// (update rate / desired output rate) = (100hz / 10hz) = 10
+			log_counter = 0;
+			Log_Write_PID(CH6_RATE_KP+100, rate_error, p, i, d-rate_d_dampener, output, tuning_value);
+		}
+	}
+#endif
+
 	// output control
-	return constrain(output, -2500, 2500);
+	return output;
 }
 
 static int16_t
 get_rate_yaw(int32_t target_rate)
 {
+	static int8_t log_counter = 0;					// used to slow down logging of PID values to dataflash
+	int32_t p,i,d;									// used to capture pid values for logging
+	int32_t rate_error;
+	int32_t output;
+
 	// rate control
-	target_rate	 	= target_rate - (omega.z * DEGX100);
-	target_rate 	= g.pid_rate_yaw.get_pid(target_rate, G_Dt);
+	rate_error	 	= target_rate - (omega.z * DEGX100);
+
+	// separately calculate p, i, d values for logging
+	p = g.pid_rate_yaw.get_p(rate_error);
+	i = g.pid_rate_yaw.get_i(rate_error, G_Dt);
+	d = g.pid_rate_yaw.get_d(rate_error, G_Dt);
+
+	output 	= p+i+d;
 
 	// output control:
 	int16_t yaw_limit = 1400 + abs(g.rc_4.control_in);
 
-	// smoother Yaw control:
-	return constrain(target_rate, -yaw_limit, yaw_limit);
+	// constrain output
+	output = constrain(output, -yaw_limit, yaw_limit);
+
+#if LOGGING_ENABLED == ENABLED
+	// log output if PID loggins is on and we are tuning the yaw
+	if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_YAW_KP || g.radio_tuning == CH6_YAW_RATE_KP) ) {
+		log_counter++;
+		if( log_counter >= 10 ) {	// (update rate / desired output rate) = (100hz / 10hz) = 10
+			log_counter = 0;
+			Log_Write_PID(CH6_YAW_RATE_KP, rate_error, p, i, d, output, tuning_value);
+		}
+	}
+#endif
+
+	// constrain output
+	return output;
 }
 
 static int16_t
@@ -346,6 +429,20 @@ static int16_t get_angle_boost(int16_t value)
 //	return (int)(temp * value);
 }
 
+#if FRAME_CONFIG == HELI_FRAME
+// heli_angle_boost - adds a boost depending on roll/pitch values
+// equivalent of quad's angle_boost function
+// throttle value should be 0 ~ 1000
+static int16_t heli_get_angle_boost(int16_t throttle)
+{
+    float angle_boost_factor = cos_pitch_x * cos_roll_x;
+	angle_boost_factor = 1.0 - constrain(angle_boost_factor, .5, 1.0);
+	int throttle_above_mid = max(throttle - motors.throttle_mid,0);
+	return throttle + throttle_above_mid*angle_boost_factor;
+
+}
+#endif // HELI_FRAME
+
 #define NUM_G_SAMPLES 40
 
 #if ACCEL_ALT_HOLD == 2
@@ -486,9 +583,11 @@ static int32_t
 get_of_roll(int32_t control_roll)
 {
 #ifdef OPTFLOW_ENABLED
+	static int8_t log_counter = 0;					// used to slow down logging of PID values to dataflash
 	static float tot_x_cm = 0;  // total distance from target
     static uint32_t last_of_roll_update = 0;
 	int32_t new_roll = 0;
+	int32_t p,i,d;
 
 	// check if new optflow data available
 	if( optflow.last_update != last_of_roll_update) {
@@ -499,17 +598,35 @@ get_of_roll(int32_t control_roll)
 
 		// only stop roll if caller isn't modifying roll
 		if( control_roll == 0 && current_loc.alt < 1500) {
-			new_roll = g.pid_optflow_roll.get_pid(-tot_x_cm, 1.0);  // we could use the last update time to calculate the time change
+			p = g.pid_optflow_roll.get_p(-tot_x_cm);
+			i = g.pid_optflow_roll.get_i(-tot_x_cm,1.0);  // we could use the last update time to calculate the time change
+			d = g.pid_optflow_roll.get_d(-tot_x_cm,1.0);
+			new_roll = p+i+d;
 		}else{
 		    g.pid_optflow_roll.reset_I();
 			tot_x_cm = 0;
+			p = 0;  // for logging
+			i = 0;
+			d = 0;
 		}
 		// limit amount of change and maximum angle
 		of_roll = constrain(new_roll, (of_roll-20), (of_roll+20));
+
+#if LOGGING_ENABLED == ENABLED
+		// log output if PID logging is on and we are tuning the rate P, I or D gains
+		if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_OPTFLOW_KP || g.radio_tuning == CH6_OPTFLOW_KI || g.radio_tuning == CH6_OPTFLOW_KD) ) {
+			log_counter++;
+			if( log_counter >= 5 ) {	// (update rate / desired output rate) = (100hz / 10hz) = 10
+				log_counter = 0;
+				Log_Write_PID(CH6_OPTFLOW_KP, tot_x_cm, p, i, d, of_roll, tuning_value);
+			}
+		}
+#endif  // LOGGING_ENABLED == ENABLED
 	}
 
 	// limit max angle
     of_roll = constrain(of_roll, -1000, 1000);
+
     return control_roll+of_roll;
 #else
     return control_roll;
@@ -520,9 +637,11 @@ static int32_t
 get_of_pitch(int32_t control_pitch)
 {
 #ifdef OPTFLOW_ENABLED
+	static int8_t log_counter = 0;					// used to slow down logging of PID values to dataflash
     static float tot_y_cm = 0;  // total distance from target
     static uint32_t last_of_pitch_update = 0;
 	int32_t new_pitch = 0;
+	int32_t p,i,d;
 
 	// check if new optflow data available
 	if( optflow.last_update != last_of_pitch_update ) {
@@ -533,18 +652,36 @@ get_of_pitch(int32_t control_pitch)
 
 		// only stop roll if caller isn't modifying pitch
 		if( control_pitch == 0 && current_loc.alt < 1500 ) {
-			new_pitch = g.pid_optflow_pitch.get_pid(tot_y_cm, 1.0);  // we could use the last update time to calculate the time change
+			p = g.pid_optflow_pitch.get_p(tot_y_cm);
+			i = g.pid_optflow_pitch.get_i(tot_y_cm, 1.0);  // we could use the last update time to calculate the time change
+			d = g.pid_optflow_pitch.get_d(tot_y_cm, 1.0);
+			new_pitch = p + i + d;
 		}else{
 		    tot_y_cm = 0;
 		    g.pid_optflow_pitch.reset_I();
+			p = 0;  // for logging
+			i = 0;
+			d = 0;
 		}
 
 		// limit amount of change
 		of_pitch = constrain(new_pitch, (of_pitch-20), (of_pitch+20));
+
+#if LOGGING_ENABLED == ENABLED
+		// log output if PID logging is on and we are tuning the rate P, I or D gains
+		if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_OPTFLOW_KP || g.radio_tuning == CH6_OPTFLOW_KI || g.radio_tuning == CH6_OPTFLOW_KD) ) {
+			log_counter++;
+			if( log_counter >= 5 ) {	// (update rate / desired output rate) = (100hz / 10hz) = 10
+				log_counter = 0;
+				Log_Write_PID(CH6_OPTFLOW_KP+100, tot_y_cm, p, i, d, of_pitch, tuning_value);
+			}
+		}
+#endif  // LOGGING_ENABLED == ENABLED
 	}
 
 	// limit max angle
 	of_pitch = constrain(of_pitch, -1000, 1000);
+
     return control_pitch+of_pitch;
 #else
     return control_pitch;

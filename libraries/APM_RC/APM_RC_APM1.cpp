@@ -1,6 +1,6 @@
 /*
 	APM_RC_APM1.cpp - Radio Control Library for Ardupilot Mega. Arduino
-	Code by Jordi Muï¿½oz and Jose Julio. DIYDrones.com
+	Code by Jordi Muñoz and Jose Julio. DIYDrones.com
 
 	This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -24,7 +24,7 @@
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
 #else
-#include "WProgram.h"
+	#include "WProgram.h"
 #endif
 
 #if !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__)
@@ -157,6 +157,25 @@ void APM_RC_APM1::OutputCh(uint8_t ch, uint16_t pwm)
   }
 }
 
+uint16_t APM_RC_APM1::OutputCh_current(uint8_t ch)
+{
+	uint16_t pwm=0;
+	switch(ch) {
+	case 0:  pwm=OCR5B; break;  //ch1
+	case 1:  pwm=OCR5C; break;  //ch2
+	case 2:  pwm=OCR1B; break;  //ch3
+	case 3:  pwm=OCR1C; break;  //ch4
+	case 4:  pwm=OCR4C; break;  //ch5
+	case 5:  pwm=OCR4B; break;  //ch6
+	case 6:  pwm=OCR3C; break;  //ch7
+	case 7:  pwm=OCR3B; break;  //ch8
+	case 8:  pwm=OCR5A; break;  //ch9,  PL3
+	case 9:  pwm=OCR1A; break;  //ch10, PB5
+	case 10: pwm=OCR3A; break;  //ch11, PE3
+	}
+	return pwm>>1;
+}
+
 void APM_RC_APM1::enable_out(uint8_t ch)
 {
  switch(ch){
@@ -193,23 +212,23 @@ void APM_RC_APM1::disable_out(uint8_t ch)
 
 uint16_t APM_RC_APM1::InputCh(uint8_t ch)
 {
-  uint16_t result;
+	uint16_t result;
 
-  if (_HIL_override[ch] != 0) {
-    return _HIL_override[ch];
-  }
+	if (_HIL_override[ch] != 0) {
+		return _HIL_override[ch];
+	}
 
 	// we need to stop interrupts to be sure we get a correct 16 bit value
 	cli();
-  result =  _PWM_RAW[ch];
+	result = _PWM_RAW[ch];
 	sei();
 
 	// Because timer runs at 0.5us we need to do value/2
 	result >>= 1;
 
-  // Limit values to a valid range
-  result = constrain(result,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
-  _radio_status=0; // Radio channel read
+	// Limit values to a valid range
+	result = constrain(result,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
+	_radio_status = 0; // Radio channel read
 	return result;
 }
 
@@ -253,22 +272,22 @@ void APM_RC_APM1::SetFastOutputChannels(uint32_t chmask, uint16_t speed_hz)
 
 	if ((chmask & ( _BV(CH_1) | _BV(CH_2) | _BV(CH_9))) != 0) {
 		ICR1 = icr;
-}
+	}
 
 	if ((chmask & ( _BV(CH_3) | _BV(CH_4) | _BV(CH_10))) != 0) {
 		ICR5 = icr;
-}
+	}
 
 #if 0
 	if ((chmask & ( _BV(CH_5) | _BV(CH_6))) != 0) {
 		/* These channels intentionally left blank:
-   * Can't change output speed of ch5 (OCR4B) and ch6 (OCR4C).
-   * Timer 4 period controlled by OCR4A, and used for input
-   * capture on ICR4.
-   * If the period of Timer 4 must be changed, the input capture
-   * code will have to be adjusted as well
-   */
-}
+		 * Can't change output speed of ch5 (OCR4B) and ch6 (OCR4C).
+		 * Timer 4 period controlled by OCR4A, and used for input
+		 * capture on ICR4.
+		 * If the period of Timer 4 must be changed, the input capture
+		 * code will have to be adjusted as well
+		 */
+	}
 #endif
 
 	if ((chmask & ( _BV(CH_7) | _BV(CH_8) | _BV(CH_11))) != 0) {

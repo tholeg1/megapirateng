@@ -76,13 +76,9 @@ static void init_ardupilot()
 	// Console serial port
 	//
 	// The console port buffers are defined to be sufficiently large to support
-	// the console's use as a logging device, optionally as the GPS port when
-	// GPS_PROTOCOL_IMU is selected, and as the telemetry port.
+    // the MAVLink protocol efficiently
 	//
-	// XXX This could be optimised to reduce the buffer sizes in the cases
-	// where they are not otherwise required.
-	//
-	Serial.begin(SERIAL0_BAUD, 128, 128);
+	Serial.begin(SERIAL0_BAUD, 128, 256);
 
 	// GPS serial port.
 	//
@@ -150,17 +146,22 @@ static void init_ardupilot()
 	//  	   76543210
 	//DDRK |= B01010000;
 
-	#if MOTOR_LEDS == 1
-		pinMode(FR_LED, OUTPUT);			// GPS status LED
-		pinMode(RE_LED, OUTPUT);			// GPS status LED
-		pinMode(RI_LED, OUTPUT);			// GPS status LED
-		pinMode(LE_LED, OUTPUT);			// GPS status LED
+#if COPTER_LEDS == ENABLED
+	pinMode(COPTER_LED_1, OUTPUT);		//Motor LED
+	pinMode(COPTER_LED_2, OUTPUT);		//Motor LED
+	pinMode(COPTER_LED_3, OUTPUT);		//Motor LED
+	pinMode(COPTER_LED_4, OUTPUT);		//Motor LED
+	pinMode(COPTER_LED_5, OUTPUT);		//Motor or Aux LED
+	pinMode(COPTER_LED_6, OUTPUT);		//Motor or Aux LED
+	pinMode(COPTER_LED_7, OUTPUT);		//Motor or GPS LED
+	pinMode(COPTER_LED_8, OUTPUT);		//Motor or GPS LED
+
+	if ( !bitRead(g.copter_leds_mode, 3) ){	
+		piezo_beep();
+	}
+	
 	#endif
 
-	#if PIEZO == 1
-		pinMode(PIEZO_PIN,OUTPUT);
-		piezo_beep();
-	#endif
 
     // load parameters from EEPROM
     load_parameters();
@@ -172,11 +173,11 @@ static void init_ardupilot()
     if (!usb_connected) {
         // we are not connected via USB, re-init UART0 with right
         // baud rate
-        Serial.begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
+        Serial.begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
     }
 #else
     // we have a 2nd serial port for telemetry
-	Serial3.begin(map_baudrate(g.serial3_baud,SERIAL3_BAUD), 128, 128);
+    Serial3.begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 256);
 	gcs3.init(&Serial3);
 #endif
 
@@ -206,8 +207,8 @@ static void init_ardupilot()
 	#endif
 
     #if FRAME_CONFIG ==	HELI_FRAME
-		g.heli_servo_manual = false;
-		heli_init_swash();  // heli initialisation
+		motors.servo_manual = false;
+		motors.init_swash();  // heli initialisation
 	#endif
 
     RC_Channel::set_apm_rc(&APM_RC);
@@ -218,7 +219,6 @@ static void init_ardupilot()
 
 	timer_scheduler.init( &isr_registry );
 	
-
 	#if HIL_MODE != HIL_MODE_ATTITUDE
 		#if CONFIG_ADC == ENABLED
 			// begin filtering the ADC Gyros
@@ -272,7 +272,7 @@ static void init_ardupilot()
 	#endif
 
 	// Start scheduler
-	timer_scheduler.start();
+	timer_scheduler.resume_timer();
 	
 	// initialize commands
 	// -------------------
@@ -422,7 +422,7 @@ static void set_mode(byte mode)
 	control_mode = constrain(control_mode, 0, NUM_MODES - 1);
 
 	// used to stop fly_aways
-	motor_auto_armed = (g.rc_3.control_in > 0);
+	motors.auto_armed(g.rc_3.control_in > 0);
 
 	// clearing value used in interactive alt hold
 	manual_boost = 0;
@@ -434,7 +434,7 @@ static void set_mode(byte mode)
 	slow_wp = false;
 
 	// do not auto_land if we are leaving RTL
-	auto_land_timer = 0;
+	loiter_timer = 0;
 
 	// if we change modes, we must clear landed flag
 	land_complete 	= false;
@@ -513,6 +513,13 @@ static void set_mode(byte mode)
 			do_land();
 			break;
 
+		case APPROACH:
+			yaw_mode 		= LOITER_YAW;
+			roll_pitch_mode = LOITER_RP;
+			throttle_mode 	= THROTTLE_AUTO;
+			do_approach();
+			break;
+
 		case RTL:
 			yaw_mode 		= RTL_YAW;
 			roll_pitch_mode = RTL_RP;
@@ -537,7 +544,7 @@ static void set_mode(byte mode)
 		throttle_mode = THROTTLE_AUTO;
 		// does not wait for us to be in high throttle, since the
 		// Receiver will be outputting low throttle
-		motor_auto_armed = true;
+		motors.auto_armed(true);
 	}
 
 	// called to calculate gain for alt hold
@@ -637,9 +644,9 @@ static void check_usb_mux(void)
     // the user has switched to/from the telemetry port
     usb_connected = usb_check;
     if (usb_connected) {
-        Serial.begin(SERIAL0_BAUD, 128, 128);
+        Serial.begin(SERIAL0_BAUD);
     } else {
-        Serial.begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
+        Serial.begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
     }
 }
 #endif

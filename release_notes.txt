@@ -1,4 +1,13 @@
-Release Notes for MegaPirateNG 2.5.1 R3
+Release Notes for MegaPirateNG 2.5.5 R1
+
+=== How to compile MegaPirateNG ===
+
+1. Download and install Arduino 1.0.1!!!!
+2. See additional requirements for BlackVortex boards in the release_notes_BlackVortex.txt
+3. Delete original libraries folder in Arduino IDE folder
+4. Copy libraries folder from MegaPirateNG distributive into Arduino IDE folder
+5. Select your Frame, Sensor, Tranmitter type in the APM_config.h (Quad X, ALLINONE by default)
+
 
 === MPNG History ===
 --- 2.5.1 R3
@@ -26,15 +35,6 @@ TX configuration moved from APM_RC_PIRATES.cpp to common configuration file APM_
 
 --- 2.3
 Version is compatible with Arduino IDE 1.0!
-
-=== How to compile MegaPirateNG ===
-
-1. See additional requirements for BlackVortex boards in the release_notes_BlackVortex.txt
-2. Delete libraries folder in Arduino IDE folder
-3. Copy libraries folder from Arduino IDE distributive into Arduino IDE folder
-4. Copy libraries folder from MegaPirateNG distributive into Arduino IDE folder
-5. Select your Frame, Sensor, Tranmitter type in the APM_config.h (Quad X, ALLINONE by default)
-
 
 === Arduino board pin mapping ===
 

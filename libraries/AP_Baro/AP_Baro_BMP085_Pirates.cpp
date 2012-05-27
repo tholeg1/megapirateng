@@ -26,11 +26,9 @@ bool AP_Baro::healthy = false;
 // Public Methods //////////////////////////////////////////////////////////////
 bool AP_Baro_BMP085_Pirates::init( AP_PeriodicProcess * scheduler )
 {
-	scheduler->stop();
 	delay(10);
 	init_hardware();
 	scheduler->register_process( &AP_Baro_BMP085_Pirates::_update );
-	scheduler->start();
 
 	return healthy;
 }

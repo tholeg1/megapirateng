@@ -82,6 +82,8 @@ public:
 	// attitude
 	virtual Matrix3f get_dcm_matrix(void) = 0;
 
+	static const struct AP_Param::GroupInfo var_info[];
+
 protected:
 	// pointer to compass object, if enabled
 	Compass 	* _compass;
@@ -91,8 +93,8 @@ protected:
 
 	// note: we use ref-to-pointer here so that our caller can change the GPS without our noticing
 	//       IMU under us without our noticing.
-	GPS 		*&_gps;
 	IMU 		*_imu;
+	GPS 		*&_gps;
 
 	// true if we are doing centripetal acceleration correction
 	bool		_centripetal;
@@ -100,6 +102,9 @@ protected:
 	// the limit of the gyro drift claimed by the sensors, in
 	// radians/s/s
 	float           _gyro_drift_limit;
+
+	// acceleration due to gravity in m/s/s
+	static const float _gravity = 9.80665;
 };
 
 #include <AP_AHRS_DCM.h>

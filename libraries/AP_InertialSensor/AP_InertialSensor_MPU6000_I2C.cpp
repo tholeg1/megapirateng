@@ -34,6 +34,7 @@
 #define MPUREG_FIFO_COUNTH 0x72
 #define MPUREG_FIFO_COUNTL 0x73
 #define MPUREG_FIFO_R_W 0x74
+#define MPUREG_PRODUCT_ID 0x0C	// Product ID Register
 
 
 // Configuration bits MPU 3000 and MPU 6000 (not revised)?
@@ -62,19 +63,35 @@
 #define BIT_I2C_IF_DIS              0x10
 #define BIT_INT_STATUS_DATA   0x01
 
-/* pch: by the data sheet, the gyro scale should be 16.4LSB per DPS
- *      Given the radians conversion factor (0.174532), the gyro scale factor
- *      is waaaay off - output values are way too sensitive.
- *      Previously a divisor of 128 was appropriate.
- *      After tridge's changes to ::read, 50.0 seems about right based
- *      on making some 360 deg rotations on my desk.
- *      This issue requires more investigation.
+											// Product ID Description for MPU6000
+											// high 4 bits 	low 4 bits
+											// Product Name	Product Revision
+#define MPU6000ES_REV_C4 			0x14 	// 0001			0100
+#define MPU6000ES_REV_C5 			0x15 	// 0001			0101
+#define MPU6000ES_REV_D6 			0x16	// 0001			0110
+#define MPU6000ES_REV_D7 			0x17	// 0001			0111
+#define MPU6000ES_REV_D8 			0x18	// 0001			1000	
+#define MPU6000_REV_C4 				0x54	// 0101			0100 
+#define MPU6000_REV_C5 				0x55	// 0101			0101
+#define MPU6000_REV_D6 				0x56	// 0101			0110	
+#define MPU6000_REV_D7 				0x57	// 0101			0111
+#define MPU6000_REV_D8 				0x58	// 0101			1000
+#define MPU6000_REV_D9 				0x59	// 0101			1001
+
+/* 
+   RS-MPU-6000A-00.pdf, page 33, section 4.25 lists LSB sensitivity of
+   gyro as 16.4 LSB/DPS at scale factor of +/- 2000dps (FS_SEL==3)
  */
 const float AP_InertialSensor_MPU6000_I2C::_gyro_scale = (0.0174532 / 16.4);
 
-// Actually, samples has half of accel sensitivity
-//const float AP_InertialSensor_MPU6000_I2C::_accel_scale = 9.81 / 4096.0;
-const float AP_InertialSensor_MPU6000_I2C::_accel_scale = 9.81 / 2048.0;
+/* 
+   RS-MPU-6000A-00.pdf, page 31, section 4.23 lists LSB sensitivity of
+   accel as 4096 LSB/mg at scale factor of +/- 8g (AFS_SEL==2)
+
+   See note below about accel scaling of engineering sample MPU6k
+   variants however
+ */
+const float AP_InertialSensor_MPU6000_I2C::_accel_scale = 9.81 / 4096.0;
 
 /* pch: I believe the accel and gyro indicies are correct
  *      but somone else should please confirm.
@@ -86,6 +103,9 @@ const uint8_t AP_InertialSensor_MPU6000_I2C::_accel_data_index[3] = { 0, 1, 2 };
 const int8_t  AP_InertialSensor_MPU6000_I2C::_accel_data_sign[3]  = { -1, 1, -1 };
 
 const uint8_t AP_InertialSensor_MPU6000_I2C::_temp_data_index = 3;
+
+static uint8_t _product_id;
+
 
 AP_InertialSensor_MPU6000_I2C::AP_InertialSensor_MPU6000_I2C()
 {
@@ -99,15 +119,14 @@ AP_InertialSensor_MPU6000_I2C::AP_InertialSensor_MPU6000_I2C()
   _initialised = 0;
 }
 
-void AP_InertialSensor_MPU6000_I2C::init( AP_PeriodicProcess * scheduler )
+uint16_t AP_InertialSensor_MPU6000_I2C::init( AP_PeriodicProcess * scheduler )
 {
-    if (_initialised) return;
-    _initialised = 1;
-    scheduler->stop();
-    delay(50);
-    hardware_init();
-    scheduler->register_process( &AP_InertialSensor_MPU6000_I2C::read );
-    scheduler->start();
+	if (_initialised) return _product_id;
+	_initialised = 1;
+	delay(50);
+	hardware_init();
+	scheduler->register_process( &AP_InertialSensor_MPU6000_I2C::read );
+	return _product_id;
 }
 
 // accumulation in ISR - must be read with interrupts disabled
@@ -274,9 +293,25 @@ void AP_InertialSensor_MPU6000_I2C::hardware_init()
     delay(1);
 //		if (I2c.write(MPU6000_ADDR, MPUREG_ACCEL_CONFIG, 0x08) != 0) { // Accel scale 4g (4096LSB/g)
 		// Set Accel sensivity AFS_SEL=2, 8g (4096LSB/g)
-		if (I2c.write(MPU6000_ADDR, MPUREG_ACCEL_CONFIG, 0x10) != 0) { // Accel scale 4g (4096LSB/g)
+
+		if (I2c.read(MPU6000_ADDR, MPUREG_PRODUCT_ID, (int)_product_id) != 0) { 
 			return;
-		} 	
+		}
+		
+		if ((_product_id == MPU6000ES_REV_C4) || (_product_id == MPU6000ES_REV_C5) ||
+			(_product_id == MPU6000_REV_C4)   || (_product_id == MPU6000_REV_C5)){
+			// Accel scale 8g (4096 LSB/g)
+			// Rev C has different scaling than rev D
+			if (I2c.write(MPU6000_ADDR, MPUREG_ACCEL_CONFIG, 1<<3) != 0) { // Accel scale 4g (4096LSB/g)
+				return;
+			} 	
+		} else {
+			// Accel scale 8g (4096 LSB/g)
+			if (I2c.write(MPU6000_ADDR, MPUREG_ACCEL_CONFIG, 2<<3) != 0) { // Accel scale 4g (4096LSB/g)
+				return;
+			} 	
+		}
+			
     delay(1);
 
 		// Enable I2C bypass mode, to work with Magnetometer 5883L

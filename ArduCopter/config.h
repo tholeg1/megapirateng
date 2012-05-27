@@ -28,7 +28,12 @@
 /// DO NOT EDIT THIS INCLUDE - if you want to make a local change, make that
 /// change in your local copy of APM_Config.h.
 ///
+#ifdef USE_CMAKE_APM_CONFIG
+#include "APM_Config_cmake.h"  // <== Prefer cmake config if it exists
+#else
 #include "APM_Config.h"  // <== THIS INCLUDE, DO NOT EDIT IT. EVER.
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -147,9 +152,14 @@
 
 // default RC speed in Hz if INSTANT_PWM is not used
 #ifndef RC_FAST_SPEED
-# define RC_FAST_SPEED 400
+# if FRAME_CONFIG == HELI_FRAME
+#   define RC_FAST_SPEED 125
+# else
+# define RC_FAST_SPEED 490
+#endif
 #endif
 
+////////////////////////////////////////////////////////
 // LED and IO Pins
 //
 #if CONFIG_APM_HARDWARE == APM_HARDWARE_APM1
@@ -188,10 +198,51 @@
 # define PUSHBUTTON_PIN   (-1)
 # define CLI_SLIDER_ENABLED DISABLED
 # define USB_MUX_PIN 23
-# define OPTFLOW_CS_PIN   A6
+# define OPTFLOW_CS_PIN   A3
 # define BATTERY_PIN_1      1
 # define CURRENT_PIN_1      2
 #endif
+
+////////////////////////////////////////////////////////////////////////////////
+// CopterLEDs
+//
+
+#ifndef COPTER_LEDS
+#define COPTER_LEDS ENABLED
+#endif
+
+#define COPTER_LED_ON		HIGH
+#define COPTER_LED_OFF		LOW
+
+#if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
+#define COPTER_LED_1 AN4  	// Motor or Aux LED
+#define COPTER_LED_2 AN5  	// Motor LED or Beeper
+#define COPTER_LED_3 AN6 	// Motor or GPS LED
+#define COPTER_LED_4 AN7 	// Motor LED
+#define COPTER_LED_5 AN8	// Motor LED
+#define COPTER_LED_6 AN9 	// Motor LED
+#define COPTER_LED_7 AN10 	// Motor LED
+#define COPTER_LED_8 AN11 	// Motor LED
+#elif CONFIG_APM_HARDWARE == APM_HARDWARE_APM1
+#define COPTER_LED_1 AN8  	// Motor or Aux LED
+#define COPTER_LED_2 AN9  	// Motor LED
+#define COPTER_LED_3 AN10 	// Motor or GPS LED
+#define COPTER_LED_4 AN11 	// Motor LED
+#define COPTER_LED_5 AN12	// Motor LED
+#define COPTER_LED_6 AN13 	// Motor LED
+#define COPTER_LED_7 AN14 	// Motor LED
+#define COPTER_LED_8 AN15 	// Motor LED
+#elif CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
+#define COPTER_LED_1 55  	// Motor or Aux LED
+#define COPTER_LED_2 56  	// Motor LED
+#define COPTER_LED_3 57 	// Motor or GPS LED
+#define COPTER_LED_4 58 	// Motor LED
+#define COPTER_LED_5 AN12	// Motor LED
+#define COPTER_LED_6 AN13 	// Motor LED
+#define COPTER_LED_7 AN14 	// Motor LED
+#define COPTER_LED_8 AN15 	// Motor LED
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Pushbutton & Relay
@@ -342,15 +393,7 @@
 #endif
 
 
-#ifndef PIEZO
-# define PIEZO				ENABLED				//Enables Piezo Code and beeps once on Startup to verify operation
-#endif
-#ifndef PIEZO_LOW_VOLTAGE
-# define PIEZO_LOW_VOLTAGE	ENABLED				//Enables Tone on reaching low battery or current alert
-#endif
-#ifndef PIEZO_ARMING
-# define PIEZO_ARMING		ENABLED				//Two tones on ARM, 1 Tone on disarm
-#endif
+
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -492,11 +535,6 @@
 # define GROUND_START_DELAY		3
 #endif
 
-#ifndef AUTOMATIC_DECLINATION
-	#define AUTOMATIC_DECLINATION DISABLED
-#endif
-
-
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 // FLIGHT AND NAVIGATION CONTROL
@@ -589,6 +627,11 @@
 // RTL Mode
 #ifndef RTL_AUTO_LAND
 # define RTL_AUTO_LAND 		ENABLED
+#endif
+
+// RTL Approach Delay in seconds
+#ifndef RTL_APPROACH_DELAY
+# define RTL_APPROACH_DELAY	20
 #endif
 
 
@@ -744,13 +787,13 @@
 // Loiter Navigation control gains
 //
 #ifndef LOITER_RATE_P
-# define LOITER_RATE_P		2.0			//
+# define LOITER_RATE_P		2.5			//
 #endif
 #ifndef LOITER_RATE_I
-# define LOITER_RATE_I		0.2		// Wind control
+# define LOITER_RATE_I		0.08		// Wind control
 #endif
 #ifndef LOITER_RATE_D
-# define LOITER_RATE_D		0			// try 2 or 3 for LOITER_RATE 1
+# define LOITER_RATE_D		0.45			// try 2 or 3 for LOITER_RATE 1
 #endif
 #ifndef LOITER_RATE_IMAX
 # define LOITER_RATE_IMAX			30			// degrees
@@ -789,6 +832,10 @@
 //////////////////////////////////////////////////////////////////////////////
 // Throttle control gains
 //
+#ifndef AUTO_THROTTLE_HOLD
+# define AUTO_THROTTLE_HOLD 1
+#endif
+
 #ifndef THROTTLE_CRUISE
 # define THROTTLE_CRUISE	450			//
 #endif
@@ -893,9 +940,12 @@
 #ifndef LOG_MOTORS
 # define LOG_MOTORS				DISABLED
 #endif
-// guess!
+// optical flow
 #ifndef LOG_OPTFLOW
 # define LOG_OPTFLOW				DISABLED
+#endif
+#ifndef LOG_PID
+# define LOG_PID				DISABLED
 #endif
 
 // calculate the default log_bitmask
@@ -913,7 +963,8 @@
                LOGBIT(CMD)                             | \
                LOGBIT(CUR)						| \
                LOGBIT(MOTORS)					| \
-               LOGBIT(OPTFLOW)
+			LOGBIT(OPTFLOW)			| \
+			LOGBIT(PID)
 
 // if we are using fast, Disable Medium
 //#if LOG_ATTITUDE_FAST == ENABLED
@@ -970,11 +1021,6 @@
 # define CUT_MOTORS		1		// do we cut the motors with no throttle?
 #endif
 
-#ifndef MOTOR_LEDS
-# define MOTOR_LEDS		1		// 0 = off, 1 = on
-#endif
-
-
 //////////////////////////////////////////////////////////////////////////////
 // RC override
 //
@@ -1005,6 +1051,11 @@
 // experimental quaternion code
 #ifndef QUATERNION_ENABLE
 # define QUATERNION_ENABLE DISABLED
+#endif
+
+
+#ifndef RETRO_LOITER_MODE
+# define RETRO_LOITER_MODE DISABLED
 #endif
 
 #endif // __ARDUCOPTER_CONFIG_H__
