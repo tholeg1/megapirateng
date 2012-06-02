@@ -47,10 +47,6 @@ Adam M Rivera		:Auto Compass Declination
 Marco Robustini		:Alpha testing
 Robert Lefebvre		:Heli Support & LEDs
 
-And much more so PLEASE PM me on DIYDRONES to add your contribution to the List
-
-Requires modified "mrelax" version of Arduino, which can be found here:
-http://code.google.com/p/ardupilot-mega/downloads/list
 
 */
 
@@ -71,7 +67,6 @@ http://code.google.com/p/ardupilot-mega/downloads/list
 #include <APM_RC.h>         // ArduPilot Mega RC Library
 #include <AP_GPS.h>         // ArduPilot GPS library
 #include <I2C.h>			// Arduino I2C lib
-#include <AP_ADC.h>         // ArduPilot Mega Analog to Digital Converter Library
 #include <AP_AnalogSource.h>
 #include <AP_Baro.h>
 #include <AP_Compass.h>     // ArduPilot Mega Magnetometer Library
@@ -210,6 +205,7 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 	    AP_Baro_BMP085_HIL barometer;
 	    AP_Compass_HIL          compass;
 	#else
+
 		#if CONFIG_BARO == AP_BARO_BMP085
 			#if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
 				AP_Baro_BMP085 barometer(true);
@@ -400,8 +396,6 @@ static const char* flight_mode_strings[] = {
 static int16_t x_actual_speed;
 static int16_t y_actual_speed;
 
-static int16_t x_rate_d;
-static int16_t y_rate_d;
 
 // The difference between the desired rate of travel and the actual rate of travel
 // updated after GPS read - 5-10hz
@@ -420,8 +414,6 @@ static bool		do_simple 			= false;
 // Used to maintain the state of the previous control switch position
 // This is set to -1 when we need to re-read the switch
 static byte 	oldSwitchPosition;
-// This is used to look for change in the control switch
-static byte 	old_control_mode	= STABILIZE;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -457,9 +449,9 @@ static byte 	old_control_mode	= STABILIZE;
 
 #if FRAME_CONFIG ==	HELI_FRAME  // helicopter constructor requires more arguments
 	#if INSTANT_PWM == 1
-		MOTOR_CLASS	motors(CONFIG_APM_HARDWARE, &APM_RC, &g.rc_1, &g.rc_2, &g.rc_3, &g.rc_4, &g.heli_servo_1, &g.heli_servo_2, &g.heli_servo_3, &g.heli_servo_4, AP_MOTORS_SPEED_INSTANT_PWM);   // this hardware definition is slightly bad because it assumes APM_HARDWARE_APM2 == AP_MOTORS_APM2
+		MOTOR_CLASS	motors(CONFIG_APM_HARDWARE, &APM_RC, &g.rc_1, &g.rc_2, &g.rc_3, &g.rc_4, &g.rc_8, &g.heli_servo_1, &g.heli_servo_2, &g.heli_servo_3, &g.heli_servo_4, AP_MOTORS_SPEED_INSTANT_PWM);   // this hardware definition is slightly bad because it assumes APM_HARDWARE_APM2 == AP_MOTORS_APM2
 	#else
-		MOTOR_CLASS	motors(CONFIG_APM_HARDWARE, &APM_RC, &g.rc_1, &g.rc_2, &g.rc_3, &g.rc_4, &g.heli_servo_1, &g.heli_servo_2, &g.heli_servo_3, &g.heli_servo_4);
+		MOTOR_CLASS	motors(CONFIG_APM_HARDWARE, &APM_RC, &g.rc_1, &g.rc_2, &g.rc_3, &g.rc_4, &g.rc_8, &g.heli_servo_1, &g.heli_servo_2, &g.heli_servo_3, &g.heli_servo_4);
 	#endif
 #elif FRAME_CONFIG == TRI_FRAME  // tri constructor requires additional rc_7 argument to allow tail servo reversing
 	#if INSTANT_PWM == 1
@@ -726,8 +718,6 @@ static byte		throttle_mode;
 // We must be in the air with throttle for 5 seconds before this flag is true
 // This flag is reset when we are in a manual throttle mode with 0 throttle or disarmed
 static boolean	takeoff_complete;
-// Used to record the most recent time since we enaged the throttle to take off
-static uint32_t	takeoff_timer;
 // Used to see if we have landed and if we should shut our engines - not fully implemented
 static boolean	land_complete = true;
 // used to manually override throttle in interactive Alt hold modes
@@ -1264,11 +1254,6 @@ static void slow_loop()
 			slow_loopCounter++;
 			superslow_loopCounter++;
 
-			// update throttle hold every 20 seconds
-			if(superslow_loopCounter > 60){
-				update_throttle_cruise();
-			}
-
 			if(superslow_loopCounter > 1200){
 				#if HIL_MODE != HIL_MODE_ATTITUDE
 					if(g.rc_3.control_in == 0 && control_mode == STABILIZE && g.compass_enabled){
@@ -1320,22 +1305,22 @@ static void slow_loop()
 	}
 }
 
-#define AUTO_ARMING_DELAY 60
+#define AUTO_DISARMING_DELAY 25
 // 1Hz loop
 static void super_slow_loop()
 {
 	if (g.log_bitmask & MASK_LOG_CUR && motors.armed())
 		Log_Write_Current();
 
-	// this function disarms the copter if it has been sitting on the ground for any moment of time greater than 30s
+	// this function disarms the copter if it has been sitting on the ground for any moment of time greater than 25 seconds
 	// but only of the control mode is manual
 	if((control_mode <= ACRO) && (g.rc_3.control_in == 0)){
 		auto_disarming_counter++;
 
-		if(auto_disarming_counter == AUTO_ARMING_DELAY){
+		if(auto_disarming_counter == AUTO_DISARMING_DELAY){
 			init_disarm_motors();
-		}else if (auto_disarming_counter > AUTO_ARMING_DELAY){
-			auto_disarming_counter = AUTO_ARMING_DELAY + 1;
+		}else if (auto_disarming_counter > AUTO_DISARMING_DELAY){
+			auto_disarming_counter = AUTO_DISARMING_DELAY + 1;
 		}
 	}else{
 		auto_disarming_counter = 0;
@@ -1691,25 +1676,14 @@ void update_throttle_mode(void)
 				}
 				#endif
 
-				// Code to manage the Copter state
-				if ((millis() - takeoff_timer) > 5000){
+				if (takeoff_complete == false && motors.armed()){
+					if (g.rc_3.control_in > g.throttle_cruise){
 					// we must be in the air by now
 					takeoff_complete 	= true;
 				}
-			}else{
-				// we are on the ground
-				takeoff_complete = false;
-
-				// reset baro data if we are near home
-				if(home_distance < 400  || GPS_enabled == false){ // 4m from home
-					// causes Baro to do a quick recalibration
-					// XXX commented until further testing
-					// reset_baro();
 				}
 
-				// remember our time since takeoff
-				// -------------------------------
-				takeoff_timer = millis();
+			}else{
 
 				// make sure we also request 0 throttle out
 				// so the props stop ... properly
@@ -1838,7 +1812,11 @@ static void update_navigation()
 			if((wp_distance <= g.waypoint_radius) || check_missed_wp()){
 				// if loiter_timer value > 0, we are set to trigger auto_land or approach after 20 seconds
 				set_mode(LOITER);
-				if(g.rtl_approach_alt >= 1 || g.rtl_land_enabled || failsafe)
+				// force loitering above home
+				next_WP.lat = home.lat;
+				next_WP.lng = home.lng;
+
+				if(g.rtl_land_enabled || failsafe)
 					loiter_timer = millis();
 				else
 					loiter_timer = 0;
@@ -2293,8 +2271,8 @@ static void update_nav_wp()
 		if (circle_angle > 6.28318531)
 			circle_angle -= 6.28318531;
 
-		circle_WP.lng = next_WP.lng + (g.loiter_radius * 100 * cos(1.57 - circle_angle) * scaleLongUp);
-		circle_WP.lat = next_WP.lat + (g.loiter_radius * 100 * sin(1.57 - circle_angle));
+		next_WP.lng = circle_WP.lng + (g.loiter_radius * 100 * cos(1.57 - circle_angle) * scaleLongUp);
+		next_WP.lat = circle_WP.lat + (g.loiter_radius * 100 * sin(1.57 - circle_angle));
 
 		// calc the lat and long error to the target
 		calc_location_error(&circle_WP);
