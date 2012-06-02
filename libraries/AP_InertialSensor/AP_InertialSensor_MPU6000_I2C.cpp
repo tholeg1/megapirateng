@@ -66,6 +66,7 @@
 											// Product ID Description for MPU6000
 											// high 4 bits 	low 4 bits
 											// Product Name	Product Revision
+#define MPU6000_REV_A4 			0x04 	// 0001			0100
 #define MPU6000ES_REV_C4 			0x14 	// 0001			0100
 #define MPU6000ES_REV_C5 			0x15 	// 0001			0101
 #define MPU6000ES_REV_D6 			0x16	// 0001			0110
@@ -294,11 +295,11 @@ void AP_InertialSensor_MPU6000_I2C::hardware_init()
 //		if (I2c.write(MPU6000_ADDR, MPUREG_ACCEL_CONFIG, 0x08) != 0) { // Accel scale 4g (4096LSB/g)
 		// Set Accel sensivity AFS_SEL=2, 8g (4096LSB/g)
 
-		if (I2c.read(MPU6000_ADDR, MPUREG_PRODUCT_ID, (int)_product_id) != 0) { 
+		if (I2c.read(MPU6000_ADDR, MPUREG_PRODUCT_ID, 1, &_product_id) != 0) { 
 			return;
 		}
 		
-		if ((_product_id == MPU6000ES_REV_C4) || (_product_id == MPU6000ES_REV_C5) ||
+		if ( (_product_id == MPU6000_REV_A4) || (_product_id == MPU6000ES_REV_C4) || (_product_id == MPU6000ES_REV_C5) ||
 			(_product_id == MPU6000_REV_C4)   || (_product_id == MPU6000_REV_C5)){
 			// Accel scale 8g (4096 LSB/g)
 			// Rev C has different scaling than rev D
@@ -316,22 +317,22 @@ void AP_InertialSensor_MPU6000_I2C::hardware_init()
 
 		// Enable I2C bypass mode, to work with Magnetometer 5883L
 		// Disable I2C Master mode
-		byte user_ctrl;
-		if (I2c.read(MPU6000_ADDR, MPUREG_USER_CTRL, (int)user_ctrl) != 0) { 
+		uint8_t user_ctrl;
+		if (I2c.read(MPU6000_ADDR, MPUREG_USER_CTRL, 1, &user_ctrl) != 0) { 
 			return;
 		}
 		user_ctrl = user_ctrl & ~(1 << 5); // reset I2C_MST_EN bit
-		if (I2c.write(MPU6000_ADDR, MPUREG_USER_CTRL, (int)user_ctrl) != 0) {
+		if (I2c.write(MPU6000_ADDR, MPUREG_USER_CTRL, &user_ctrl, 1) != 0) {
 			return;
 		} 	
     delay(1);
     
 		// Enable I2C Bypass mode
-		if (I2c.read(MPU6000_ADDR, MPUREG_INT_PIN_CFG, (int)user_ctrl) != 0) { 
+		if (I2c.read(MPU6000_ADDR, MPUREG_INT_PIN_CFG, 1, &user_ctrl) != 0) { 
 			return;
 		}
 		user_ctrl = user_ctrl | (1 << 1); // set I2C_BYPASS_EN bit
-		if (I2c.write(MPU6000_ADDR, MPUREG_INT_PIN_CFG, (int)user_ctrl) != 0) {
+		if (I2c.write(MPU6000_ADDR, MPUREG_INT_PIN_CFG, &user_ctrl, 1) != 0) {
 			return;
 		} 	
 }

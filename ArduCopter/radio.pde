@@ -66,6 +66,11 @@ static void init_rc_out()
 		read_radio();
 	}
 
+	// we want the input to be scaled correctly
+	g.rc_3.set_range_out(0,1000);
+
+
+
     // sanity check - prevent unconfigured radios from outputting
     if(g.rc_3.radio_min >= 1300){
         g.rc_3.radio_min = g.rc_3.radio_in;
@@ -141,12 +146,13 @@ static void throttle_failsafe(uint16_t pwm)
 		// throttle has dropped below the mark
 		failsafeCounter++;
 		if (failsafeCounter == FS_COUNTER-1){
-			//
+			// called right before trigger
+			// do nothing
 		}else if(failsafeCounter == FS_COUNTER) {
 			// Don't enter Failsafe if we are not armed
 			// home distance is in meters
 			// This is to prevent accidental RTL
-			if(motors.armed() && (home_distance > 1000)){
+			if(motors.armed() && takeoff_complete){
 				SendDebug("MSG FS ON ");
 				SendDebugln(pwm, DEC);
 				set_failsafe(true);

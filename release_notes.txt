@@ -1,4 +1,4 @@
-Release Notes for MegaPirateNG 2.5.5 R1
+Release Notes for MegaPirateNG 2.5.5 R2
 
 === How to compile MegaPirateNG ===
 

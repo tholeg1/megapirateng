@@ -82,15 +82,6 @@ static void init_ardupilot()
 
 	// GPS serial port.
 	//
-	// Not used if the IMU/X-Plane GPS is in use.
-	//
-	// XXX currently the EM406 (SiRF receiver) is nominally configured
-	// at 57600, however it's not been supported to date.  We should
-	// probably standardise on 38400.
-	//
-	// XXX the 128 byte receive buffer may be too small for NMEA, depending
-	// on the message set configured.
-	//
 	#if GPS_PROTOCOL != GPS_PROTOCOL_IMU
 		Serial2.begin(SERIAL2_BAUD, 128, 16);
 	#endif
@@ -142,9 +133,6 @@ static void init_ardupilot()
 #if CONFIG_RELAY == ENABLED
 	DDRL |= B00000100;						// Set Port L, pin 2 to output for the relay
 #endif
-	// XXX set Analog out 14 to output
-	//  	   76543210
-	//DDRK |= B01010000;
 
 #if COPTER_LEDS == ENABLED
 	pinMode(COPTER_LED_1, OUTPUT);		//Motor LED
@@ -417,7 +405,6 @@ static void set_mode(byte mode)
 			mode = STABILIZE;
 	}
 
-	old_control_mode = control_mode;
 	control_mode = mode;
 	control_mode = constrain(control_mode, 0, NUM_MODES - 1);
 
@@ -481,6 +468,7 @@ static void set_mode(byte mode)
 			roll_pitch_mode = CIRCLE_RP;
 			throttle_mode 	= CIRCLE_THR;
 			set_next_WP(&current_loc);
+			circle_WP 		= next_WP;
 			circle_angle 	= 0;
 			break;
 
