@@ -259,6 +259,9 @@ static void init_ardupilot()
 		init_sonar();
 	#endif
 
+	if(g.compass_enabled)
+		init_compass();
+
 	// Start scheduler
 	timer_scheduler.resume_timer();
 	
@@ -276,11 +279,7 @@ static void init_ardupilot()
 		init_z_damper();
 	#endif
 
-
 	startup_ground();
-
-	if(g.compass_enabled)
-		init_compass();
 
 	// Init LED sequencer
 	#if LED_SEQUENCER == ENABLED
@@ -416,6 +415,7 @@ static void set_mode(byte mode)
 
 	// clearing value used to force the copter down in landing mode
 	landing_boost = 0;
+	reset_throttle_flag = false;
 
 	// do we want to come to a stop or pass a WP?
 	slow_wp = false;

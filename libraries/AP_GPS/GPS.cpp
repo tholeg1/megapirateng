@@ -1,38 +1,53 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 
+#include <FastSerial.h>
+
+#define GPS_DEBUGGING 0
+
+#if GPS_DEBUGGING
+#include <FastSerial.h>
+# define Debug(fmt, args...)  do {Serial.printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__ , ##args); delay(0); } while(0)
+#else
+# define Debug(fmt, args...)
+#endif
+
 #include "GPS.h"
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
 #else
-#include "WProgram.h"
+	#include "WProgram.h"
 #endif
 
 void
 GPS::update(void)
 {
-	bool	result;
+    bool	result;
+	uint32_t tnow;
 
-	// call the GPS driver to process incoming data
-	result = read();
+    // call the GPS driver to process incoming data
+    result = read();
 
-	// if we did not get a message, and the idle timer has expired, re-init
-	if (!result) {
-		if ((millis() - _idleTimer) > idleTimeout) {
-			_status = NO_GPS;
-			
-			init();
-			// reset the idle timer
-			_idleTimer = millis();
-		}
-	} else {
-		// we got a message, update our status correspondingly
-		_status = fix ? GPS_OK : NO_FIX;
+	tnow = millis();
 
-		valid_read = true;
-		new_data = true;
+    // if we did not get a message, and the idle timer has expired, re-init
+    if (!result) {
+        if ((tnow - _idleTimer) > idleTimeout) {
+			Debug("gps read timeout %lu %lu", (unsigned long)tnow, (unsigned long)_idleTimer);
+            _status = NO_GPS;
 
-		// reset the idle timer
-		_idleTimer = millis();
+            init();
+            // reset the idle timer
+            _idleTimer = tnow;
+        }
+    } else {
+        // we got a message, update our status correspondingly
+        _status = fix ? GPS_OK : NO_FIX;
+
+        valid_read = true;
+        new_data = true;
+
+        // reset the idle timer
+        _idleTimer = tnow;
 
 		if (_status == GPS_OK) {
 			// update our acceleration
@@ -51,7 +66,7 @@ GPS::update(void)
 				_acceleration = (0.7 * _acceleration) + (0.3 * (deltav/deltat));
 			}
 		}
-	}
+    }
 }
 
 void
@@ -64,5 +79,5 @@ GPS::setHIL(long _time, float _latitude, float _longitude, float _altitude,
 void
 GPS::_error(const char *msg)
 {
-	Serial.println(msg);
+    Serial.println(msg);
 }
