@@ -107,6 +107,13 @@
 # endif
 #endif
 
+//////////////////////////////////////////////////////////////////////////////
+// MAVLINK10
+//
+#ifndef MAVLINK10
+# define MAVLINK10	ENABLED
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // FRAME_CONFIG
@@ -207,10 +214,6 @@
 // CopterLEDs
 //
 
-#ifndef COPTER_LEDS
-#define COPTER_LEDS ENABLED
-#endif
-
 #define COPTER_LED_ON		HIGH
 #define COPTER_LED_OFF		LOW
 
@@ -223,6 +226,9 @@
 #define COPTER_LED_6 AN9 	// Motor LED
 #define COPTER_LED_7 AN10 	// Motor LED
 #define COPTER_LED_8 AN11 	// Motor LED
+#ifndef COPTER_LEDS
+#define COPTER_LEDS ENABLED
+#endif
 #elif CONFIG_APM_HARDWARE == APM_HARDWARE_APM1
 #define COPTER_LED_1 AN8  	// Motor or Aux LED
 #define COPTER_LED_2 AN9  	// Motor LED
@@ -232,7 +238,13 @@
 #define COPTER_LED_6 AN13 	// Motor LED
 #define COPTER_LED_7 AN14 	// Motor LED
 #define COPTER_LED_8 AN15 	// Motor LED
+#ifndef COPTER_LEDS
+#define COPTER_LEDS ENABLED
+#endif
 #elif CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
+#ifndef COPTER_LEDS
+#define COPTER_LEDS DISABLED
+#endif
 #define COPTER_LED_1 55  	// Motor or Aux LED
 #define COPTER_LED_2 56  	// Motor LED
 #define COPTER_LED_3 57 	// Motor or GPS LED
@@ -723,26 +735,26 @@
 // Stabilize Rate Control
 //
 #ifndef RATE_ROLL_P
-# define RATE_ROLL_P        0.14
+# define RATE_ROLL_P        0.18
 #endif
 #ifndef RATE_ROLL_I
 # define RATE_ROLL_I         0.0
 #endif
 #ifndef RATE_ROLL_D
-# define RATE_ROLL_D        0.000 //.002
+# define RATE_ROLL_D        0.004
 #endif
 #ifndef RATE_ROLL_IMAX
 # define RATE_ROLL_IMAX	 	5			// degrees
 #endif
 
 #ifndef RATE_PITCH_P
-# define RATE_PITCH_P       0.14
+# define RATE_PITCH_P       0.18
 #endif
 #ifndef RATE_PITCH_I
 # define RATE_PITCH_I		0.0
 #endif
 #ifndef RATE_PITCH_D
-# define RATE_PITCH_D       0.00
+# define RATE_PITCH_D       0.004
 #endif
 #ifndef RATE_PITCH_IMAX
 # define RATE_PITCH_IMAX   	5			// degrees
@@ -763,7 +775,7 @@
 
 
 #ifndef STABILIZE_D
-# define STABILIZE_D 		0.15
+# define STABILIZE_D 		0.00
 #endif
 
 #ifndef STABILIZE_D_SCHEDULE

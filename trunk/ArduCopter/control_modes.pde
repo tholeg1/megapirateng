@@ -51,9 +51,8 @@ static void read_trim_switch()
 {
 	#if CH7_OPTION == CH7_FLIP
 		if (g.rc_7.radio_in > CH_7_PWM_TRIGGER && g.rc_3.control_in != 0){
-			do_flip = true;
+			init_flip();
 		}
-
 	#elif CH7_OPTION == CH7_SET_HOVER
 		// switch is engaged
 		if (g.rc_7.radio_in > CH_7_PWM_TRIGGER){

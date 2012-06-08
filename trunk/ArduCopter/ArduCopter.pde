@@ -1,7 +1,9 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.5.5 R1"
+#define THISFIRMWARE "MegaPirateNG V2.6 R1"
 /*
+Firmware based on ArduCopter 2.6 Delta
+
 Please, read release_notes.txt before you go!
 
 Porting to MegaPirate Next Generation by
@@ -1392,6 +1394,11 @@ static void update_GPS(void)
 	// A counter that is used to grab at least 10 reads before commiting the Home location
 	static byte ground_start_count	= 10;
 
+	// return immediately if GPS is not enabled
+	if( !GPS_enabled ) {
+		return;
+	}
+
 	g_gps->update();
 	update_GPS_light();
 
@@ -1515,8 +1522,12 @@ void update_roll_pitch_mode(void)
 	// hack to do auto_flip - need to remove, no one is using.
 	#if CH7_OPTION == CH7_FLIP
 	if (do_flip){
+		if(g.rc_1.control_in == 0){
 		roll_flip();
 		return;
+		}else{
+			do_flip = false;
+		}
 	}
 	#endif
 
