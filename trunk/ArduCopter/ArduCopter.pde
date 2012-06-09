@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.6 R1"
+#define THISFIRMWARE "MegaPirateNG V2.6 R2"
 /*
 Firmware based on ArduCopter 2.6 Delta
 
