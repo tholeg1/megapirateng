@@ -3,6 +3,9 @@
 
 #include <I2C.h>
 
+#define PIRATES_FREEIMU_4 4
+#define PIRATES_DROTEK_10DOF_MPU 5 
+
 // MPU 6000 registers
 #define MPU6000_ADDR 0x68 //
 #define MPUREG_WHOAMI 0x75 //
@@ -97,27 +100,61 @@ const float AP_InertialSensor_MPU6000_I2C::_accel_scale = 9.81 / 4096.0;
 /* pch: I believe the accel and gyro indicies are correct
  *      but somone else should please confirm.
  */
-const uint8_t AP_InertialSensor_MPU6000_I2C::_gyro_data_index[3]  = { 4, 5, 6 };
-const int8_t  AP_InertialSensor_MPU6000_I2C::_gyro_data_sign[3]   = { -1, 1, -1 };
-
-const uint8_t AP_InertialSensor_MPU6000_I2C::_accel_data_index[3] = { 0, 1, 2 };
-const int8_t  AP_InertialSensor_MPU6000_I2C::_accel_data_sign[3]  = { -1, 1, -1 };
-
 const uint8_t AP_InertialSensor_MPU6000_I2C::_temp_data_index = 3;
 
 static uint8_t _product_id;
 
+uint8_t AP_InertialSensor_MPU6000_I2C::_board_Type = PIRATES_FREEIMU_4;
+int AP_InertialSensor_MPU6000_I2C::mpu_addr = 0;
 
-AP_InertialSensor_MPU6000_I2C::AP_InertialSensor_MPU6000_I2C()
+uint8_t AP_InertialSensor_MPU6000_I2C::_gyro_data_index[3];
+int8_t AP_InertialSensor_MPU6000_I2C::_gyro_data_sign[3];
+
+uint8_t AP_InertialSensor_MPU6000_I2C::_accel_data_index[3];
+int8_t AP_InertialSensor_MPU6000_I2C::_accel_data_sign[3];
+
+AP_InertialSensor_MPU6000_I2C::AP_InertialSensor_MPU6000_I2C(uint8_t addr, uint8_t brd)
 {
-  _gyro.x = 0;
-  _gyro.y = 0;
-  _gyro.z = 0;
-  _accel.x = 0;
-  _accel.y = 0;
-  _accel.z = 0;
-  _temp = 0;
-  _initialised = 0;
+	_gyro.x = 0;
+	_gyro.y = 0;
+	_gyro.z = 0;
+	_accel.x = 0;
+	_accel.y = 0;
+	_accel.z = 0;
+	_temp = 0;
+	_initialised = 0;
+	_board_Type = brd;
+	mpu_addr = addr; // Look at config.h for actual value
+
+	if (_board_Type == PIRATES_FREEIMU_4) {
+		_gyro_data_index[0]  = 4;		// X
+		_gyro_data_index[1]  = 5;		// Y
+		_gyro_data_index[2]  = 6;		// Z
+		_gyro_data_sign[0]   = -1;	// -X
+		_gyro_data_sign[1]   = 1;		// Y
+		_gyro_data_sign[2]   = -1;	// -Z
+	
+		_accel_data_index[0] = 0;
+		_accel_data_index[1] = 1;
+		_accel_data_index[2] = 2;
+		_accel_data_sign[0]  = -1;
+		_accel_data_sign[1]  = 1;
+		_accel_data_sign[2]  = -1;
+	} else if (_board_Type == PIRATES_DROTEK_10DOF_MPU) {
+		_gyro_data_index[0]  = 5;	// Y
+		_gyro_data_index[1]  = 4; // X
+		_gyro_data_index[2]  = 6;	// Z
+		_gyro_data_sign[0]   = 1;	// Y
+		_gyro_data_sign[1]   = 1;	// X
+		_gyro_data_sign[2]   = -1;// -Z
+	
+		_accel_data_index[0] = 1;
+		_accel_data_index[1] = 0;
+		_accel_data_index[2] = 2;
+		_accel_data_sign[0]  = 1;
+		_accel_data_sign[1]  = 1;
+		_accel_data_sign[2]  = -1;
+	}
 }
 
 uint16_t AP_InertialSensor_MPU6000_I2C::init( AP_PeriodicProcess * scheduler )
@@ -246,7 +283,7 @@ void AP_InertialSensor_MPU6000_I2C::read(uint32_t tnow)
 	// now read the data
 	uint8_t rawMPU[14];
 	
-	if (I2c.read(MPU6000_ADDR, MPUREG_ACCEL_XOUT_H, 14, rawMPU) != 0) {
+	if (I2c.read(mpu_addr, MPUREG_ACCEL_XOUT_H, 14, rawMPU) != 0) {
 //		healthy = false;
 		return;
 	}
@@ -269,33 +306,33 @@ void AP_InertialSensor_MPU6000_I2C::read(uint32_t tnow)
 void AP_InertialSensor_MPU6000_I2C::hardware_init()
 {
     // Chip reset
-		if (I2c.write(MPU6000_ADDR, MPUREG_PWR_MGMT_1, BIT_H_RESET) != 0) {
+		if (I2c.write(mpu_addr, MPUREG_PWR_MGMT_1, BIT_H_RESET) != 0) {
 			return;
 		} 	
     delay(100);
     // Wake up device and select GyroZ clock (better performance)
-		if (I2c.write(MPU6000_ADDR, MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ) != 0) {
+		if (I2c.write(mpu_addr, MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ) != 0) {
 			return;
 		} 	
     delay(1);
 		// Sample rate = 200Hz    Fsample= 1Khz/(4+1) = 200Hz
-		if (I2c.write(MPU6000_ADDR, MPUREG_SMPLRT_DIV, 0x04) != 0) {
+		if (I2c.write(mpu_addr, MPUREG_SMPLRT_DIV, 0x04) != 0) {
 			return;
 		} 	
     delay(1);
     // FS & DLPF   FS=2000º/s, DLPF = 98Hz (low pass filter)
-		if (I2c.write(MPU6000_ADDR, MPUREG_CONFIG, BITS_DLPF_CFG_10HZ) != 0) {
+		if (I2c.write(mpu_addr, MPUREG_CONFIG, BITS_DLPF_CFG_10HZ) != 0) {
 			return;
 		} 	
     delay(1);
-		if (I2c.write(MPU6000_ADDR, MPUREG_GYRO_CONFIG, BITS_FS_2000DPS) != 0) { // Gyro scale 2000º/s
+		if (I2c.write(mpu_addr, MPUREG_GYRO_CONFIG, BITS_FS_2000DPS) != 0) { // Gyro scale 2000º/s
 			return;
 		} 	
     delay(1);
 //		if (I2c.write(MPU6000_ADDR, MPUREG_ACCEL_CONFIG, 0x08) != 0) { // Accel scale 4g (4096LSB/g)
 		// Set Accel sensivity AFS_SEL=2, 8g (4096LSB/g)
 
-		if (I2c.read(MPU6000_ADDR, MPUREG_PRODUCT_ID, 1, &_product_id) != 0) { 
+		if (I2c.read(mpu_addr, MPUREG_PRODUCT_ID, 1, &_product_id) != 0) { 
 			return;
 		}
 		
@@ -303,12 +340,12 @@ void AP_InertialSensor_MPU6000_I2C::hardware_init()
 			(_product_id == MPU6000_REV_C4)   || (_product_id == MPU6000_REV_C5)){
 			// Accel scale 8g (4096 LSB/g)
 			// Rev C has different scaling than rev D
-			if (I2c.write(MPU6000_ADDR, MPUREG_ACCEL_CONFIG, 1<<3) != 0) { // Accel scale 4g (4096LSB/g)
+			if (I2c.write(mpu_addr, MPUREG_ACCEL_CONFIG, 1<<3) != 0) { // Accel scale 4g (4096LSB/g)
 				return;
 			} 	
 		} else {
 			// Accel scale 8g (4096 LSB/g)
-			if (I2c.write(MPU6000_ADDR, MPUREG_ACCEL_CONFIG, 2<<3) != 0) { // Accel scale 4g (4096LSB/g)
+			if (I2c.write(mpu_addr, MPUREG_ACCEL_CONFIG, 2<<3) != 0) { // Accel scale 4g (4096LSB/g)
 				return;
 			} 	
 		}
@@ -318,21 +355,21 @@ void AP_InertialSensor_MPU6000_I2C::hardware_init()
 		// Enable I2C bypass mode, to work with Magnetometer 5883L
 		// Disable I2C Master mode
 		uint8_t user_ctrl;
-		if (I2c.read(MPU6000_ADDR, MPUREG_USER_CTRL, 1, &user_ctrl) != 0) { 
+		if (I2c.read(mpu_addr, MPUREG_USER_CTRL, 1, &user_ctrl) != 0) { 
 			return;
 		}
 		user_ctrl = user_ctrl & ~(1 << 5); // reset I2C_MST_EN bit
-		if (I2c.write(MPU6000_ADDR, MPUREG_USER_CTRL, &user_ctrl, 1) != 0) {
+		if (I2c.write(mpu_addr, MPUREG_USER_CTRL, &user_ctrl, 1) != 0) {
 			return;
 		} 	
     delay(1);
     
 		// Enable I2C Bypass mode
-		if (I2c.read(MPU6000_ADDR, MPUREG_INT_PIN_CFG, 1, &user_ctrl) != 0) { 
+		if (I2c.read(mpu_addr, MPUREG_INT_PIN_CFG, 1, &user_ctrl) != 0) { 
 			return;
 		}
 		user_ctrl = user_ctrl | (1 << 1); // set I2C_BYPASS_EN bit
-		if (I2c.write(MPU6000_ADDR, MPUREG_INT_PIN_CFG, &user_ctrl, 1) != 0) {
+		if (I2c.write(mpu_addr, MPUREG_INT_PIN_CFG, &user_ctrl, 1) != 0) {
 			return;
 		} 	
 }

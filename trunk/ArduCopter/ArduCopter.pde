@@ -263,7 +263,7 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 	#if CONFIG_IMU_TYPE == CONFIG_IMU_MPU6000
 		AP_InertialSensor_MPU6000 ins( CONFIG_MPU6000_CHIP_SELECT_PIN );
 	#elif CONFIG_IMU_TYPE == CONFIG_IMU_MPU6000_I2C
-		AP_InertialSensor_MPU6000_I2C ins;
+		AP_InertialSensor_MPU6000_I2C ins(GYRO_ADDR, PIRATES_SENSOR_BOARD);
 	#elif CONFIG_IMU_TYPE == CONFIG_IMU_PIRATES
 		AP_InertialSensor_Pirates ins(PIRATES_SENSOR_BOARD);
 	#else
