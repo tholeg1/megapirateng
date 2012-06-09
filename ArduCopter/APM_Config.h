@@ -13,12 +13,13 @@
 	PIRATES_FFIMU
 	PIRATES_FREEIMU
 	PIRATES_BLACKVORTEX
-	PIRATES_FREEIMU_4 // New FreeIMU 0.4.1 with MPU6000, MS5611 and 5883L
+	PIRATES_FREEIMU_4 					// New FreeIMU 0.4.1 with MPU6000, MS5611 and 5883L
+	PIRATES_DROTEK_10DOF_MPU 		// MPU6000, MS5611 and 5883L
 */
 
 // RC configuration
 // Uncomment if you uses PPM Sum signal from receiver
-#define SERIAL_PPM DISABLED
+#define SERIAL_PPM ENABLED
 
 #define TX_CHANNEL_SET	TX_mwi
 /*
@@ -63,7 +64,7 @@
 	
 #define SERIAL0_BAUD			 115200	// Console port 
 #define SERIAL2_BAUD			 38400	// GPS port
-#define SERIAL3_BAUD			 115200	// Telemetry (MAVLINK) port
+#define SERIAL3_BAUD			 57600	// Telemetry (MAVLINK) port
 
 // New in 2.0.43, but unused in MegairateNG
 // MPNG: Piezo uses AN5 pin in ArduCopter, we uses AN5 for CLI switch
@@ -159,8 +160,7 @@
 // Enable Jeb Madgwick sensor fusion algo
 //#define QUATERNION_ENABLE ENABLED
 
-// use this to enable the new MAVLink 1.0 protocol, instead of the
-// older 0.9 protocol
-// #define MAVLINK10 ENABLED
+// use this to disable the new MAVLink 1.0 protocol
+// #define MAVLINK10 DISABLED
 
 #endif //__ARDUCOPTER_APMCONFIG_H__

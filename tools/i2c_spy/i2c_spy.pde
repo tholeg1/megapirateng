@@ -16,15 +16,17 @@ for(int i=0;i<128;i++)  {
   Wire.requestFrom(i, 1);
   while(Wire.available())
   { 
-    byte c = Wire.receive();
+    byte c = Wire.read();
     Serial.print("Detected device addr: 0x");
-    Serial.print(i<<1,HEX);
-    switch (i<<1)
-    { case 0x3c: Serial.println(" HMC5883/43 (compass)");break;
-      case 0xD0: Serial.println(" ITG3200 (gyro)");break;
-      case 0x82: Serial.println(" BMA180 (accel) Allinone board");break;
-      case 0x80: Serial.println(" BMA180 (accel) FFIMU or BB");break;
-      case 0xEE: Serial.println(" BMP085 (baro)");break;
+    Serial.print(i,HEX);
+    switch (i)
+    { case 0x1E: Serial.println(" HMC5883/43 (compass)");break;
+      case 0x40: Serial.println(" BMA180 (accel) FFIMU or BB");break;
+      case 0x41: Serial.println(" BMA180 (accel) Allinone board");break;
+      case 0x68: Serial.println(" ITG3200 (gyro), MPU6050 (gyro+accel)");break;
+      case 0x69: Serial.println(" MPU6050 (gyro+accel)");break;
+      case 0x76: Serial.println(" MS5611 (baro)");break;
+      case 0x77: Serial.println(" BMP085 (baro), MS5611 (baro)");break;
       default: Serial.println(" unknown device!");break;
     }  }}
 Serial.println("=================================");
