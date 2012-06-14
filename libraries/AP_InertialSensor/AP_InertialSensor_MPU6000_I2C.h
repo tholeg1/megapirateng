@@ -62,7 +62,7 @@ class AP_InertialSensor_MPU6000_I2C : public AP_InertialSensor
   static int16_t _data[7];
 
   static uint8_t _board_Type;
-  static uint8_t mpu_addr;
+  static int mpu_addr;
 
   // ensure we can't initialise twice
   unsigned _initialised:1;
