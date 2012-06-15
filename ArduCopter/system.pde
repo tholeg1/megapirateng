@@ -291,7 +291,7 @@ static void init_ardupilot()
 #if HIL_MODE == HIL_MODE_DISABLED
 	// Do GPS init
 	g_gps = &g_gps_driver;
-	g_gps->init();			// GPS Initialization
+	g_gps->init(GPS::GPS_ENGINE_AIRBORNE_1G);			// GPS Initialization
 	g_gps->callback = mavlink_delay;
 
 	// Read in the GPS

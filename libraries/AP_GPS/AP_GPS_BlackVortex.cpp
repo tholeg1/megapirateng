@@ -54,11 +54,11 @@ AP_GPS_BLACKVORTEX::AP_GPS_BLACKVORTEX(Stream *s) :
 	// and very little tx buffering, since we don't care about sending.
 	// Leave the port speed alone as we don't actually know at what rate we're running...
 	//
-	fs->begin(0, 200, 16);
+	fs->begin(0, 200, 32);
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
-void AP_GPS_BLACKVORTEX::init(void)
+void AP_GPS_BLACKVORTEX::init(enum GPS_Engine_Setting nav_setting)
 {
 	byte ublox_set_5hz[14]={0xB5 ,0x62 ,0x06 ,0x08 ,0x06 ,0x00 ,0xC8 ,0x00 ,
   				                0x01 ,0x00 ,0x01 ,0x00 ,0xDE ,0x6A};   
@@ -76,7 +76,7 @@ void AP_GPS_BLACKVORTEX::init(void)
 	for (i=0;i<14;i++) fs->write(ublox_set_5hz[i]);
 	callback(100);
 	for (i=0;i<28;i++) fs->write(ublox_set_384[i]);
-	callback(1000);
+	callback(100);
 	fs->begin(38400);
 
 	idleTimeout = 1200;
