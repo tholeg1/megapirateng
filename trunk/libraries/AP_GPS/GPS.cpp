@@ -2,7 +2,7 @@
 
 #include <FastSerial.h>
 
-#define GPS_DEBUGGING 0
+#define GPS_DEBUGGING 1
 
 #if GPS_DEBUGGING
 #include <FastSerial.h>
@@ -35,7 +35,7 @@ GPS::update(void)
 			Debug("gps read timeout %lu %lu", (unsigned long)tnow, (unsigned long)_idleTimer);
             _status = NO_GPS;
 
-            init();
+            init(_nav_setting);
             // reset the idle timer
             _idleTimer = tnow;
         }

@@ -917,29 +917,18 @@ test_baro(uint8_t argc, const Menu::arg *argv)
 	#else
 	print_hit_enter();
 	init_barometer();
-	Serial.printf_P(PSTR("Alt\tPress\tTemp\tRawPress\tRawTemp\tRawAlt\n"));
 
 	while(1){
 		delay(100);
 		int32_t alt = read_barometer(); // calls barometer.read()
-		if (!barometer.healthy) {
-                Serial.println_P(PSTR("not healthy"));
-		} else {
+
 	        int32_t pres = barometer.get_pressure();
-	        float temp = barometer.get_temperature()/10.0;
+			int16_t temp = barometer.get_temperature();
 	        int32_t raw_pres = barometer.get_raw_pressure();
 	        int32_t raw_temp = barometer.get_raw_temp();
-	        float alt_raw = barometer.get_altitude();
-			#if defined( __AVR_ATmega1280__ )
-	        Serial.printf_P(PSTR("alt: %ldcm\n"),alt);
-			#else
-	        Serial.printf_P(PSTR("%ld\t%ld\t%3.3f\t%ld\t%ld\t%5.2f\n"),
-	                             alt, pres ,temp, raw_pres, raw_temp, alt_raw);
-/*	        Serial.printf_P(PSTR("alt: %ldcm\tpres: %ldmbar, temp: %3.1fdegC\t"
+			Serial.printf_P(PSTR("alt: %ldcm, pres: %ldmbar, temp: %d/100degC,"
 	                             " raw pres: %ld, raw temp: %ld\n"),
-	                             alt, pres ,temp, raw_pres, raw_temp);*/
-			#endif
-		}
+								 alt, pres ,temp, raw_pres, raw_temp);
 		if(Serial.available() > 0){
 			return (0);
 		}

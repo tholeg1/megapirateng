@@ -19,7 +19,7 @@
 
 // RC configuration
 // Uncomment if you uses PPM Sum signal from receiver
-#define SERIAL_PPM ENABLED
+#define SERIAL_PPM DISABLED
 
 #define TX_CHANNEL_SET	TX_mwi
 /*
@@ -105,6 +105,26 @@
 // Alt hold with accelerometer
 #define ACCEL_ALT_HOLD 0		// disabled by default, work in progress
 
+#define INERTIAL_NAV DISABLED
+
+
+#if INERTIAL_NAV == ENABLED
+	#define ALT_HOLD_P			0.5
+	#define ALT_HOLD_I			0.007
+	#define ALT_HOLD_IMAX		300
+
+	// RATE control
+	#define THROTTLE_P			2		//
+	#define THROTTLE_I			0.5		// Don't edit
+	#define THROTTLE_D			0.0		//
+
+	#define LOITER_P			0.50
+	#define LOITER_I			0.0
+	#define LOITER_RATE_P		12			//
+	#define LOITER_RATE_I		1.0		// Wind control
+	#define LOITER_RATE_D		0.0		// try 2 or 3 for LOITER_RATE 1
+#endif
+
 
 //#define RATE_ROLL_I 	0.18
 //#define RATE_PITCH_I	0.18
@@ -162,5 +182,7 @@
 
 // use this to disable the new MAVLink 1.0 protocol
 // #define MAVLINK10 DISABLED
+
+//#define CLI_ENABLED DISABLED
 
 #endif //__ARDUCOPTER_APMCONFIG_H__

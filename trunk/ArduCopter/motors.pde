@@ -112,6 +112,10 @@ static void init_arm_motors()
 						startup_ground();
 					}
 
+	#if INERTIAL_NAV == ENABLED
+	calibrate_accels();
+	#endif
+
 					#if HIL_MODE != HIL_MODE_ATTITUDE
 						// read Baro pressure at ground -
 						// this resets Baro for more accuracy

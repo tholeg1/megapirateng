@@ -297,7 +297,11 @@ get_nav_throttle(int32_t z_error)
 	int16_t i_hold 	= g.pi_alt_hold.get_i(z_error, .02);
 
 	// calculate rate error
-	z_rate_error 	= z_target_speed - climb_rate;
+	#if INERTIAL_NAV == ENABLED
+	z_rate_error	= z_target_speed - accels_velocity.z;			// calc the speed error
+	#else
+	z_rate_error	= z_target_speed - climb_rate;		// calc the speed error
+	#endif
 
 	// limit the rate
 	output =  constrain(g.pid_throttle.get_pid(z_rate_error, .02), -80, 120);
@@ -409,8 +413,22 @@ get_nav_yaw_offset(int yaw_input, int reset)
 		return ahrs.yaw_sensor;
 
 	}else{
+#if ALTERNATIVE_YAW_MODE == ENABLED
 		_yaw = nav_yaw + (yaw_input / 50);
 		return wrap_360(_yaw);
+#else
+		// re-define nav_yaw if we have stick input
+		if(yaw_input != 0){
+			// set nav_yaw + or - the current location
+			_yaw = yaw_input + ahrs.yaw_sensor;
+			// we need to wrap our value so we can be 0 to 360 (*100)
+			return wrap_360(_yaw);
+
+		}else{
+			// no stick input, lets not change nav_yaw
+			return nav_yaw;
+		}
+#endif
 		}
 }
 

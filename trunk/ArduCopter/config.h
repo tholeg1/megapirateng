@@ -220,6 +220,10 @@
 // CopterLEDs
 //
 
+#ifndef COPTER_LEDS
+#define COPTER_LEDS ENABLED
+#endif
+
 #define COPTER_LED_ON		HIGH
 #define COPTER_LED_OFF		LOW
 
@@ -528,10 +532,10 @@
 # define THROTTLE_FAILSAFE_ACTION	2
 #endif
 #ifndef MINIMUM_THROTTLE
-# define MINIMUM_THROTTLE	130
+# define MINIMUM_THROTTLE	200
 #endif
 #ifndef MAXIMUM_THROTTLE
-# define MAXIMUM_THROTTLE	850
+# define MAXIMUM_THROTTLE	1000
 #endif
 
 #ifndef AUTO_LAND_TIME
@@ -792,7 +796,7 @@
 // Loiter control gains
 //
 #ifndef LOITER_P
-# define LOITER_P			.35
+# define LOITER_P			.20
 #endif
 #ifndef LOITER_I
 # define LOITER_I			0.0
@@ -805,13 +809,13 @@
 // Loiter Navigation control gains
 //
 #ifndef LOITER_RATE_P
-# define LOITER_RATE_P		2.5			//
+# define LOITER_RATE_P		2.4			//
 #endif
 #ifndef LOITER_RATE_I
 # define LOITER_RATE_I		0.08		// Wind control
 #endif
 #ifndef LOITER_RATE_D
-# define LOITER_RATE_D		0.45			// try 2 or 3 for LOITER_RATE 1
+# define LOITER_RATE_D		0.40		// try 2 or 3 for LOITER_RATE 1
 #endif
 #ifndef LOITER_RATE_IMAX
 # define LOITER_RATE_IMAX			30			// degrees
@@ -1074,6 +1078,10 @@
 
 #ifndef RETRO_LOITER_MODE
 # define RETRO_LOITER_MODE DISABLED
+#endif
+
+#ifndef ALTERNATIVE_YAW_MODE
+# define ALTERNATIVE_YAW_MODE DISABLED
 #endif
 
 #endif // __ARDUCOPTER_CONFIG_H__
