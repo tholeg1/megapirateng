@@ -213,7 +213,6 @@ static void init_ardupilot()
 			adc.Init(&timer_scheduler);       // APM ADC library initialization
 		#endif // CONFIG_ADC
 
-		barometer.init(&timer_scheduler); 
 
 	#endif // HIL_MODE
 
@@ -248,23 +247,11 @@ static void init_ardupilot()
     Serial.printf_P(PSTR("\nPress ENTER 3 times for CLI\n\n"));
 #endif // CLI_ENABLED
 
-	#if HIL_MODE != HIL_MODE_ATTITUDE
-	// read Baro pressure at ground
-	//-----------------------------
-		init_barometer();
-	#endif
-
 	// initialise sonar
 	#if CONFIG_SONAR == ENABLED
 		init_sonar();
 	#endif
 
-	if(g.compass_enabled)
-		init_compass();
-
-	// Start scheduler
-	timer_scheduler.resume_timer();
-	
 	// initialize commands
 	// -------------------
 	init_commands();
@@ -280,6 +267,19 @@ static void init_ardupilot()
 	#endif
 
 	startup_ground();
+
+	if(g.compass_enabled)
+		init_compass();
+
+	barometer.init(&timer_scheduler); 
+	#if HIL_MODE != HIL_MODE_ATTITUDE
+	// read Baro pressure at ground
+	//-----------------------------
+		init_barometer();
+	#endif
+
+	// Start scheduler
+	timer_scheduler.resume_timer();
 
 	// Init LED sequencer
 	#if LED_SEQUENCER == ENABLED

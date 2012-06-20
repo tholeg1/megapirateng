@@ -120,16 +120,16 @@ bool AP_Compass_HMC5843_Pirates::re_initialise()
 	if (! write_register(ConfigRegA, _base_config)) {
 		Serial.println("Fail to initialize ConfigRegA");
 	  return false;
-	}
-	if (! write_register(ConfigRegB, magGain)) {
+	} else if (! write_register(ConfigRegB, magGain)) {
 		Serial.println("Fail to initialize ConfigRegB");
-	  return false;
-	}
-	if (! write_register(ModeRegister, ContinuousConversion)) {
+		healthy = false;
+	} else if (! write_register(ModeRegister, ContinuousConversion)) {
 		Serial.println("Fail to initialize ModeRegister");
-	  return false;
+		healthy = false;
+	} else {
+		healthy = true;
 	}
-   return true;
+  return healthy;
 }
 
 bool AP_Compass_HMC5843_Pirates::init(AP_PeriodicProcess *scheduler)
@@ -286,23 +286,13 @@ void AP_Compass_HMC5843_Pirates::_update(uint32_t tnow)
 // Read Sensor data
 bool AP_Compass_HMC5843_Pirates::read()
 {
-	if (!healthy && !re_initialise()) {
+	if (!healthy) {
 		return false;
 	}
 	
-	healthy = true;
-	
-/*	Serial.println("compass read ");
-	Serial.print("mag_x: ");
-	Serial.print(_raw_mag_x);
-	Serial.print(" mag_y: ");
-	Serial.print(_raw_mag_y);
-	Serial.print(" mag_z: ");
-	Serial.println(_raw_mag_z);*/
-
-	if (_updated) {
+	if (_updated) 
+	{
 		_updated = false;
-		
 
 		mag_x = _raw_mag_x * calibration[0];
 		mag_y = _raw_mag_y * calibration[1];
@@ -321,13 +311,6 @@ bool AP_Compass_HMC5843_Pirates::read()
 		mag_x = rot_mag.x;
 		mag_y = rot_mag.y;
 		mag_z = rot_mag.z;
-/*		Serial.println("compass read 2 ");
-		Serial.print("mag_x: ");
-		Serial.print(mag_x);
-		Serial.print(" mag_y: ");
-		Serial.print(mag_y);
-		Serial.print(" mag_z: ");
-		Serial.println(mag_z);*/
 	}
 
 	return true;
