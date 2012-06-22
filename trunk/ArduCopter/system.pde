@@ -98,7 +98,7 @@ static void init_ardupilot()
 	I2c.timeOut(5);
 	// initially set a fast I2c speed, and drop it on first failures
 	I2c.setSpeed(true); // set fast I2C
-	I2c.pullup(false);
+//	I2c.pullup(true);
 #endif
 
     //SPI.begin();
@@ -272,14 +272,14 @@ static void init_ardupilot()
 		init_compass();
 
 	barometer.init(&timer_scheduler); 
+	// Start scheduler
+	timer_scheduler.resume_timer();
+
 	#if HIL_MODE != HIL_MODE_ATTITUDE
 	// read Baro pressure at ground
 	//-----------------------------
 		init_barometer();
 	#endif
-
-	// Start scheduler
-	timer_scheduler.resume_timer();
 
 	// Init LED sequencer
 	#if LED_SEQUENCER == ENABLED

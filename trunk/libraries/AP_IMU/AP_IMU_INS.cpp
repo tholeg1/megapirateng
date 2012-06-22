@@ -34,8 +34,10 @@ AP_IMU_INS::init( Start_style style,
         _sensor_cal.load();
     } else {
 
+				scheduler->resume_timer(); 
         // do cold-start calibration for both accel and gyro
         _init_gyro(delay_cb, flash_leds_cb);
+				scheduler->suspend_timer(); 
 
         // save calibration
         _sensor_cal.save();
