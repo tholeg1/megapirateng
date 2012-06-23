@@ -34,6 +34,12 @@
 
 #include "AP_GPS_BlackVortex.h"
 
+const prog_char AP_GPS_BLACKVORTEX::_ublox_init_string[] PROGMEM =
+	"$PUBX,40,gga,0,1,0,0,0,0*7B\r\n"	// GGA on at one per fix
+	"$PUBX,40,vtg,0,1,0,0,0,0*7F\r\n"	// VTG on at one per fix
+	"$PUBX,40,rmc,0,0,0,0,0,0*67\r\n"	// RMC off (XXX suppress other message types?)
+	"";
+
 // NMEA message identifiers ////////////////////////////////////////////////////
 //
 const char AP_GPS_BLACKVORTEX::_gprmc_string[] PROGMEM = "GPRMC";
@@ -78,6 +84,10 @@ void AP_GPS_BLACKVORTEX::init(enum GPS_Engine_Setting nav_setting)
 	for (i=0;i<28;i++) fs->write(ublox_set_384[i]);
 	callback(100);
 	fs->begin(38400);
+
+	// send the ublox init strings
+	BetterStream	*bs = (BetterStream *)_port;
+	bs->print_P((const prog_char_t *)_ublox_init_string);
 
 	idleTimeout = 1200;
 }
@@ -146,10 +156,10 @@ int AP_GPS_BLACKVORTEX::_from_hex(char a)
 		return a - '0';
 }
 
-unsigned long AP_GPS_BLACKVORTEX::_parse_decimal()
+uint32_t AP_GPS_BLACKVORTEX::_parse_decimal()
 {
 	char *p = _term;
-	unsigned long ret = 100UL * atol(p);
+    uint32_t ret = 100UL * atol(p);
 	while (isdigit(*p))
 		++p;
 	if (*p == '.') {
@@ -162,11 +172,12 @@ unsigned long AP_GPS_BLACKVORTEX::_parse_decimal()
 	return ret;
 }
 
-unsigned long AP_GPS_BLACKVORTEX::_parse_degrees()
+uint32_t AP_GPS_BLACKVORTEX::_parse_degrees()
 {
 	char *p, *q;
 	uint8_t deg = 0, min = 0;
 	unsigned int frac_min = 0;
+	int32_t ret = 0;
 
 	// scan for decimal point or end of field
 	for (p = _term; isdigit(*p); p++)
@@ -192,13 +203,14 @@ unsigned long AP_GPS_BLACKVORTEX::_parse_degrees()
 	// ten-thousandths of a minute
 	if (*p == '.') {
 		q = p + 1;
-		for (int i = 0; i < 4; i++) {
-			frac_min *= 10;
+        for (int i = 0; i < 5; i++) {
+            frac_min = (int32_t)(frac_min * 10);
 			if (isdigit(*q))
 				frac_min += *q++ - '0';
 		}
 	}
-	return deg * 100000UL + (min * 10000UL + frac_min) / 6;
+	ret = (int32_t)deg * (int32_t)1000000UL + (int32_t)((min * 100000UL + frac_min) / 6UL);
+    return ret;
 }
 
 // Processes a just-completed term
