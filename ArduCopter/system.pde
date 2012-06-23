@@ -266,12 +266,16 @@ static void init_ardupilot()
 		init_z_damper();
 	#endif
 
+	// Temporary enable scheduler to allow Gyro calibration
+	timer_scheduler.resume_timer();
 	startup_ground();
+	timer_scheduler.suspend_timer();
 
 	if(g.compass_enabled)
 		init_compass();
 
 	barometer.init(&timer_scheduler); 
+	
 	// Start scheduler
 	timer_scheduler.resume_timer();
 
