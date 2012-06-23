@@ -86,6 +86,7 @@ void AP_TimerProcess::run(void)
 	// timer calls
 	TCNT2 = _period;
 	sei();
+	static uint8_t curproc = 0;
 
 	uint32_t tnow = micros();
 
@@ -107,14 +108,12 @@ void AP_TimerProcess::run(void)
 	}
 	_in_timer_call = true;
 
-    if (!_suspended) {
-	// now call the timer based drivers
-	for (int i = 0; i < _pidx; i++) {
-		if (_proc[i] != NULL) {
-			_proc[i](tnow);
-		}
+	if (!_suspended && _pidx > 0) {
+		_proc[curproc](tnow); // call current driver
+		curproc++; // select next driver
+		if (curproc == _pidx)
+				curproc = 0;
 	}
-    }
 
 	// and the failsafe, if one is setup
 	if (_failsafe != NULL) {
