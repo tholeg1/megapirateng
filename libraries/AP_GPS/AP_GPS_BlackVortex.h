@@ -96,7 +96,7 @@ private:
 	/// @returns		The value expressed by the string in _term,
 	///					multiplied by 100.
 	///
-	unsigned long	_parse_decimal();
+    uint32_t	_parse_decimal();
 
 	/// Parses the current term as a NMEA-style degrees + minutes
 	/// value with up to four decimal digits.
@@ -106,7 +106,7 @@ private:
 	/// @returns		The value expressed by the string in _term,
 	///					multiplied by 10000.
 	///
-	unsigned long	_parse_degrees();
+    uint32_t	_parse_degrees();
 
 	/// Processes the current term when it has been deemed to be
 	/// complete.
@@ -140,6 +140,8 @@ private:
     long 			fc_lat_prev,fc_lon_prev;
 
     uint8_t			_new_satellite_count;	///< satellite count parsed from a term
+
+    static const prog_char	_ublox_init_string[];	///< init string for ublox units
 
     /// @name	GPS message identifier strings
     //@{
