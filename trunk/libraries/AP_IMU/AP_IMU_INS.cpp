@@ -34,10 +34,8 @@ AP_IMU_INS::init( Start_style style,
         _sensor_cal.load();
     } else {
 
-				scheduler->resume_timer(); 
         // do cold-start calibration for both accel and gyro
         _init_gyro(delay_cb, flash_leds_cb);
-				scheduler->suspend_timer(); 
 
         // save calibration
         _sensor_cal.save();
@@ -96,7 +94,7 @@ AP_IMU_INS::_init_gyro(void (*delay_cb)(unsigned long t), void (*flash_leds_cb)(
 
         gyro_sum.zero();
         for (i=0; i<200; i++) {
-      _ins->update();
+              _ins->update();
       _ins->get_gyros(ins_gyro);
             gyro_sum += Vector3f(ins_gyro[0], ins_gyro[1], ins_gyro[2]);
             if (i % 40 == 20) {

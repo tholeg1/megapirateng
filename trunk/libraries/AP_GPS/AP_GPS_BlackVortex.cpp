@@ -216,8 +216,8 @@ bool AP_GPS_BLACKVORTEX::_term_complete()
 					date			= _new_date;
 					if(_new_latitude!=0) fc_lat_prev=_new_latitude; else _new_latitude=fc_lat_prev;
 					if(_new_longitude!=0) fc_lon_prev=_new_longitude; else _new_longitude=fc_lon_prev;
-					latitude		= _new_latitude * 100;	// degrees*10e5 -> 10e7
-					longitude		= _new_longitude * 100;	// degrees*10e5 -> 10e7
+					latitude		= _new_latitude * 10;	// degrees*10e5 -> 10e7
+					longitude		= _new_longitude * 10;	// degrees*10e5 -> 10e7
 					ground_speed	= _new_speed;
 					ground_course	= _new_course;
 					fix				= true;
@@ -227,8 +227,8 @@ bool AP_GPS_BLACKVORTEX::_term_complete()
 					time			= _new_time;
 					if(_new_latitude!=0) fc_lat_prev=_new_latitude; else _new_latitude=fc_lat_prev;
 					if(_new_longitude!=0) fc_lon_prev=_new_longitude; else _new_longitude=fc_lon_prev;
-					latitude		= _new_latitude * 100;	// degrees*10e5 -> 10e7
-					longitude		= _new_longitude * 100;	// degrees*10e5 -> 10e7
+					latitude		= _new_latitude * 10;	// degrees*10e5 -> 10e7
+					longitude		= _new_longitude * 10;	// degrees*10e5 -> 10e7
 					num_sats		= _new_satellite_count;
 					hdop			= _new_hdop;
 					fix				= true;
