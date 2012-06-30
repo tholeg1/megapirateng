@@ -42,9 +42,9 @@ const prog_char AP_GPS_BLACKVORTEX::_ublox_init_string[] PROGMEM =
 
 // NMEA message identifiers ////////////////////////////////////////////////////
 //
-const char AP_GPS_BLACKVORTEX::_gprmc_string[] PROGMEM = "GPRMC";
-const char AP_GPS_BLACKVORTEX::_gpgga_string[] PROGMEM = "GPGGA";
-const char AP_GPS_BLACKVORTEX::_gpvtg_string[] PROGMEM = "GPVTG";
+const char AP_GPS_BLACKVORTEX::_gprmc_string[] PROGMEM = "RMC";
+const char AP_GPS_BLACKVORTEX::_gpgga_string[] PROGMEM = "GGA";
+const char AP_GPS_BLACKVORTEX::_gpvtg_string[] PROGMEM = "VTG";
 
 // Convenience macros //////////////////////////////////////////////////////////
 //
@@ -79,11 +79,12 @@ void AP_GPS_BLACKVORTEX::init(enum GPS_Engine_Setting nav_setting)
 	if (callback == NULL) callback = delay;
 
 	fs->begin(9600);
-	for (i=0;i<14;i++) fs->write(ublox_set_5hz[i]);
-	callback(100);
 	for (i=0;i<28;i++) fs->write(ublox_set_384[i]);
 	callback(100);
 	fs->begin(38400);
+	callback(100);
+	for (i=0;i<14;i++) fs->write(ublox_set_5hz[i]);
+	callback(100);
 
 	// send the ublox init strings
 	BetterStream	*bs = (BetterStream *)_port;
@@ -94,53 +95,53 @@ void AP_GPS_BLACKVORTEX::init(enum GPS_Engine_Setting nav_setting)
 
 bool AP_GPS_BLACKVORTEX::read(void)
 {
-	int numc;
-	bool parsed = false;
+    int numc;
+    bool parsed = false;
 
-	numc = _port->available();
-	while (numc--) {
-		if (_decode(_port->read())) {
-			parsed = true;
-		}
-	}
-	return parsed;
+    numc = _port->available();
+    while (numc--) {
+        if (_decode(_port->read())) {
+            parsed = true;
+        }
+    }
+    return parsed;
 }
 
 bool AP_GPS_BLACKVORTEX::_decode(char c)
 {
-	bool valid_sentence = false;
+    bool valid_sentence = false;
 
-	switch (c) {
-	case ',': // term terminators
-		_parity ^= c;
-	case '\r':
-	case '\n':
-	case '*':
-		if (_term_offset < sizeof(_term)) {
-			_term[_term_offset] = 0;
-			valid_sentence = _term_complete();
-		}
-		++_term_number;
-		_term_offset = 0;
-		_is_checksum_term = c == '*';
-		return valid_sentence;
+    switch (c) {
+    case ',': // term terminators
+        _parity ^= c;
+    case '\r':
+    case '\n':
+    case '*':
+        if (_term_offset < sizeof(_term)) {
+            _term[_term_offset] = 0;
+            valid_sentence = _term_complete();
+        }
+        ++_term_number;
+        _term_offset = 0;
+        _is_checksum_term = c == '*';
+        return valid_sentence;
 
-	case '$': // sentence begin
-		_term_number = _term_offset = 0;
-		_parity = 0;
-		_sentence_type = _GPS_SENTENCE_OTHER;
-		_is_checksum_term = false;
-		_gps_data_good = false;
-		return valid_sentence;
-	}
+    case '$': // sentence begin
+        _term_number = _term_offset = 0;
+        _parity = 0;
+        _sentence_type = _GPS_SENTENCE_OTHER;
+        _is_checksum_term = false;
+        _gps_data_good = false;
+        return valid_sentence;  // is false
+    }
 
-	// ordinary characters
-	if (_term_offset < sizeof(_term) - 1)
-		_term[_term_offset++] = c;
-	if (!_is_checksum_term)
-		_parity ^= c;
-
-	return valid_sentence;
+    // ordinary characters
+    if (_term_offset < sizeof(_term) - 1)
+        _term[_term_offset++] = c;
+    if (!_is_checksum_term)
+        _parity ^= c;
+    
+    return valid_sentence;  // is false
 }
 
 //
@@ -148,209 +149,211 @@ bool AP_GPS_BLACKVORTEX::_decode(char c)
 //
 int AP_GPS_BLACKVORTEX::_from_hex(char a)
 {
-	if (a >= 'A' && a <= 'F')
-		return a - 'A' + 10;
-	else if (a >= 'a' && a <= 'f')
-		return a - 'a' + 10;
-	else
-		return a - '0';
+    if (a >= 'A' && a <= 'F')
+        return a - 'A' + 10;
+    else if (a >= 'a' && a <= 'f')
+        return a - 'a' + 10;
+    else
+        return a - '0';
 }
 
-uint32_t AP_GPS_BLACKVORTEX::_parse_decimal()
+uint32_t AP_GPS_BLACKVORTEX::_parse_decimal(char *p, uint8_t numdec)
 {
-	char *p = _term;
-    uint32_t ret = 100UL * atol(p);
-	while (isdigit(*p))
-		++p;
-	if (*p == '.') {
-		if (isdigit(p[1])) {
-			ret += 10 * (p[1] - '0');
-			if (isdigit(p[2]))
-				ret += p[2] - '0';
+	unsigned long ret = 0;
+	byte ndec = 0;
+
+	while (ndec==0 || ndec <= numdec) {
+		if (*p == '.'){
+			ndec = 1;
 		}
+		else {
+			if (!isdigit(*p)) {
+                // we hit the end of the number; ensure we have correct exponent
+				while (ndec++ <= numdec) {
+					ret *= 10;
+				}
+				return ret;
+			}
+			ret *= 10;
+			ret += *p - '0';
+			if (ndec > 0)
+				ndec++;
+		}
+		p++;
 	}
-	return ret;
+    return ret;
 }
 
 uint32_t AP_GPS_BLACKVORTEX::_parse_degrees()
 {
-	char *p, *q;
-	uint8_t deg = 0, min = 0;
-	unsigned int frac_min = 0;
-	int32_t ret = 0;
+    char *p, *q;
+    uint8_t deg = 0;
+    uint32_t frac_min;
+    
+    // scan for decimal point or end of field
+    for (p = _term; isdigit(*p); p++)
+        ;
+    q = _term;
 
-	// scan for decimal point or end of field
-	for (p = _term; isdigit(*p); p++)
-		;
-	q = _term;
-
-	// convert degrees
-	while ((p - q) > 2) {
-		if (deg)
-			deg *= 10;
-		deg += DIGIT_TO_VAL(*q++);
-	}
-
-	// convert minutes
-	while (p > q) {
-		if (min)
-			min *= 10;
-		min += DIGIT_TO_VAL(*q++);
-	}
-
-	// convert fractional minutes
-	// expect up to four digits, result is in
-	// ten-thousandths of a minute
-	if (*p == '.') {
-		q = p + 1;
-        for (int i = 0; i < 5; i++) {
-            frac_min = (int32_t)(frac_min * 10);
-			if (isdigit(*q))
-				frac_min += *q++ - '0';
-		}
-	}
-	ret = (int32_t)deg * (int32_t)1000000UL + (int32_t)((min * 100000UL + frac_min) / 6UL);
-    return ret;
+    // convert degrees, leaving 2 digits for whole minutes
+    while ((p - q) > 2) {
+        if (deg)
+            deg *= 10;
+        deg += DIGIT_TO_VAL(*q++);
+        //deg = (deg << 1) + (deg << 3) + DIGIT_TO_VAL(*q++);   //faster, more obscure
+    }
+    
+    frac_min = _parse_decimal(q, 6);    // parse minutes * 10e6
+    //return deg * 10000000UL + (frac_min / 6); // raise to 10e7, with minutes x 10 / 60
+    
+    // Alternate, faster math
+    // To divide by 6 without using division routine,
+    // halve, then multiply by 0x555555/0x1000000 (1/3 in hex)
+    
+    // Knowing frac_min < 59999999, we can multiply by 0x55 within a long, then repeat the fractional part
+    // 0x55/0x100 is hex equivalent to, but not exactly equal to, decimal 0.33
+    frac_min = ((frac_min >> 1) * 0x55) / 0x100;
+    // Now repeat the digits. Equivalent to multiplying decimal 0.33 by 1.0101 to get 0.333333
+    // (These divisions will be optimised into moves by the compiler)
+    return (frac_min) + (frac_min / 0x100) + (frac_min / 0x10000) + (deg * 10000000UL);
 }
 
 // Processes a just-completed term
 // Returns true if new sentence has just passed checksum test and is validated
 bool AP_GPS_BLACKVORTEX::_term_complete()
 {
-	// handle the last term in a message
-	if (_is_checksum_term) {
-		uint8_t checksum = 16 * _from_hex(_term[0]) + _from_hex(_term[1]);
-		if (checksum == _parity) {
-			if (_gps_data_good) {
-				switch (_sentence_type) {
-				case _GPS_SENTENCE_GPRMC:
-					time			= _new_time;
-					date			= _new_date;
-					if(_new_latitude!=0) fc_lat_prev=_new_latitude; else _new_latitude=fc_lat_prev;
-					if(_new_longitude!=0) fc_lon_prev=_new_longitude; else _new_longitude=fc_lon_prev;
-					latitude		= _new_latitude * 10;	// degrees*10e5 -> 10e7
-					longitude		= _new_longitude * 10;	// degrees*10e5 -> 10e7
-					ground_speed	= _new_speed;
-					ground_course	= _new_course;
-					fix				= true;
-					break;
-				case _GPS_SENTENCE_GPGGA:
-					altitude		= _new_altitude;
-					time			= _new_time;
-					if(_new_latitude!=0) fc_lat_prev=_new_latitude; else _new_latitude=fc_lat_prev;
-					if(_new_longitude!=0) fc_lon_prev=_new_longitude; else _new_longitude=fc_lon_prev;
-					latitude		= _new_latitude * 10;	// degrees*10e5 -> 10e7
-					longitude		= _new_longitude * 10;	// degrees*10e5 -> 10e7
-					num_sats		= _new_satellite_count;
-					hdop			= _new_hdop;
-					fix				= true;
-					break;
-				case _GPS_SENTENCE_GPVTG:
-					ground_speed	= _new_speed;
-					ground_course	= _new_course;
-					// VTG has no fix indicator, can't change fix status
-					break;
-				}
-			} else {
-				switch (_sentence_type) {
-				case _GPS_SENTENCE_GPRMC:
-				case _GPS_SENTENCE_GPGGA:
-					// Only these sentences give us information about
-					// fix status.
-					fix = false;
-				}
-			}
-			// we got a good message
-			return true;
-		}
-		// we got a bad message, ignore it
-		return false;
-	}
+    // handle the last term in a message
+    if (_is_checksum_term) {
+        uint8_t checksum = 16 * _from_hex(_term[0]) + _from_hex(_term[1]);
+        if (checksum == _parity) {
+            if (_gps_data_good) {
+                switch (_sentence_type) {
+                case _GPS_SENTENCE_GPRMC:
+                    time			= _new_time;
+                    date			= _new_date;
+                    latitude		= _new_latitude;	// degrees*10e7
+                    longitude		= _new_longitude;	// degrees*10e7
+                    ground_speed	= _new_speed;
+                    ground_course	= _new_course;
+                    fix				= true;
+                    break;
+                case _GPS_SENTENCE_GPGGA:
+                    altitude		= _new_altitude;
+                    time			= _new_time;
+                    latitude		= _new_latitude;	// degrees*10e7
+                    longitude		= _new_longitude;	// degrees*10e7
+                    num_sats		= _new_satellite_count;
+                    hdop			= _new_hdop;
+                    fix				= true;
+                    break;
+                case _GPS_SENTENCE_GPVTG:
+                    ground_speed	= _new_speed;
+                    ground_course	= _new_course;
+                    // VTG has no fix indicator, can't change fix status
+                    break;
+                }
+            } else {    // Parity ok, but not _gps_data_good
+                switch (_sentence_type) {
+                case _GPS_SENTENCE_GPRMC:
+                case _GPS_SENTENCE_GPGGA:
+                    // Only these sentences must give us information about
+                    // fix status.  (optional in GPVTG?)
+                    fix = false;
+                }
+            }
+            // we got a good message & checksum match
+            return true;
+        }
+        // we got a checksum fail, ignore the message
+        return false;
+    }   // if _is_checksum_term
 
-	// the first term determines the sentence type
-	if (_term_number == 0) {
-		if (!strcmp_P(_term, _gprmc_string)) {
-			_sentence_type = _GPS_SENTENCE_GPRMC;
-		} else if (!strcmp_P(_term, _gpgga_string)) {
-			_sentence_type = _GPS_SENTENCE_GPGGA;
-		} else if (!strcmp_P(_term, _gpvtg_string)) {
-			_sentence_type = _GPS_SENTENCE_GPVTG;
-			// VTG may not contain a data qualifier, presume the solution is good
-			// unless it tells us otherwise.
-			_gps_data_good = true;
-		} else {
-			_sentence_type = _GPS_SENTENCE_OTHER;
-		}
-		return false;
-	}
+    // the first term contains talker ID (2 chars) plus sentence type (3 chars)
+    // (or, P indicates custom message followed by 3 char company ID and 1 char custom message ID)
+    if (_term_number == 0 && _term[0] != 'P') {
+        if (!strcmp_P(_term+2, _gprmc_string)) {
+            _sentence_type = _GPS_SENTENCE_GPRMC;
+        } else if (!strcmp_P(_term+2, _gpgga_string)) {
+            _sentence_type = _GPS_SENTENCE_GPGGA;
+        } else if (!strcmp_P(_term+2, _gpvtg_string)) {
+            _sentence_type = _GPS_SENTENCE_GPVTG;
+            // VTG may not contain a data qualifier, presume the solution is good
+            // unless it tells us otherwise.
+            _gps_data_good = true;
+        } else {
+            _sentence_type = _GPS_SENTENCE_OTHER;
+        }
+        return false;
+    }
+    
+    if (_sentence_type != _GPS_SENTENCE_OTHER && _term[0]) {
+        switch (_sentence_type + _term_number) {
+            // operational status
+            //
+        case _GPS_SENTENCE_GPRMC + 2: // validity (RMC) Autonomous | Differential | None | Estimated | Manual-input
+            _gps_data_good = _term[0] == 'A' || _term[0] == 'D';
+            break;
+        case _GPS_SENTENCE_GPGGA + 6: // Fix data (GGA)
+            _gps_data_good = _term[0] > '0';
+                   // 0 = invalid, 1=GPS fix (SPS), 2=DGPS fix, 3=PPS fix, 4=RTK, 5=Float RTK, 6=estimated (dead reckoning), 7=Manual input, 8=Simulated
+            break;
+        case _GPS_SENTENCE_GPVTG + 9: // validity (VTG) (we may not see this field)
+            _gps_data_good = _term[0] != 'N';
+            break;
+        case _GPS_SENTENCE_GPGGA + 7: // satellite count (GGA)
+            _new_satellite_count = atol(_term);
+            break;
+        case _GPS_SENTENCE_GPGGA + 8: // HDOP (GGA)
+            _new_hdop = _parse_decimal(_term, 2);
+            break;
 
-	// 32 = RMC, 64 = GGA, 96 = VTG
-	if (_sentence_type != _GPS_SENTENCE_OTHER && _term[0]) {
-		switch (_sentence_type + _term_number) {
-		// operational status
-		//
-		case _GPS_SENTENCE_GPRMC + 2: // validity (RMC)
-			_gps_data_good = _term[0] == 'A';
-			break;
-		case _GPS_SENTENCE_GPGGA + 6: // Fix data (GGA)
-			_gps_data_good = _term[0] > '0';
-			break;
-		case _GPS_SENTENCE_GPVTG + 9: // validity (VTG) (we may not see this field)
-			_gps_data_good = _term[0] != 'N';
-			break;
-		case _GPS_SENTENCE_GPGGA + 7: // satellite count (GGA)
-			_new_satellite_count = atol(_term);
-			break;
-		case _GPS_SENTENCE_GPGGA + 8: // HDOP (GGA)
-			_new_hdop = _parse_decimal();
-			break;
+            // time and date
+            //
+        case _GPS_SENTENCE_GPRMC + 1: // Time (RMC)
+        case _GPS_SENTENCE_GPGGA + 1: // Time (GGA)
+            _new_time = _parse_decimal(_term, 2);
+            break;
+        case _GPS_SENTENCE_GPRMC + 9: // Date (GPRMC)
+            _new_date = atol(_term);
+            break;
 
-			// time and date
-			//
-		case _GPS_SENTENCE_GPRMC + 1: // Time (RMC)
-		case _GPS_SENTENCE_GPGGA + 1: // Time (GGA)
-			_new_time = _parse_decimal();
-			break;
-		case _GPS_SENTENCE_GPRMC + 9: // Date (GPRMC)
-			_new_date = atol(_term);
-			break;
+            // location
+            //
+        case _GPS_SENTENCE_GPRMC + 3: // Latitude
+        case _GPS_SENTENCE_GPGGA + 2:
+            _new_latitude = _parse_degrees();
+            break;
+        case _GPS_SENTENCE_GPRMC + 4: // N/S
+        case _GPS_SENTENCE_GPGGA + 3:
+            if (_term[0] == 'S')
+                _new_latitude = -_new_latitude;
+            break;
+        case _GPS_SENTENCE_GPRMC + 5: // Longitude
+        case _GPS_SENTENCE_GPGGA + 4:
+            _new_longitude = _parse_degrees();
+            break;
+        case _GPS_SENTENCE_GPRMC + 6: // E/W
+        case _GPS_SENTENCE_GPGGA + 5:
+            if (_term[0] == 'W')
+                _new_longitude = -_new_longitude;
+            break;
+        case _GPS_SENTENCE_GPGGA + 9: // Altitude (GPGGA)
+            _new_altitude = _parse_decimal(_term, 2);
+            break;
 
-			// location
-			//
-		case _GPS_SENTENCE_GPRMC + 3: // Latitude
-		case _GPS_SENTENCE_GPGGA + 2:
-			_new_latitude = _parse_degrees();
-			break;
-		case _GPS_SENTENCE_GPRMC + 4: // N/S
-		case _GPS_SENTENCE_GPGGA + 3:
-			if (_term[0] == 'S')
-				_new_latitude = -_new_latitude;
-			break;
-		case _GPS_SENTENCE_GPRMC + 5: // Longitude
-		case _GPS_SENTENCE_GPGGA + 4:
-			_new_longitude = _parse_degrees();
-			break;
-		case _GPS_SENTENCE_GPRMC + 6: // E/W
-		case _GPS_SENTENCE_GPGGA + 5:
-			if (_term[0] == 'W')
-				_new_longitude = -_new_longitude;
-			break;
-		case _GPS_SENTENCE_GPGGA + 9: // Altitude (GPGGA)
-			_new_altitude = _parse_decimal();
-			break;
+            // course and speed
+            //
+        case _GPS_SENTENCE_GPRMC + 7: // Speed (GPRMC)
+        case _GPS_SENTENCE_GPVTG + 5: // Speed (VTG)
+            _new_speed = (_parse_decimal(_term, 2) * 514) / 1000; 	// knots-> m/sec, approximiates * 0.514
+            break;
+        case _GPS_SENTENCE_GPRMC + 8: // Course (GPRMC)
+        case _GPS_SENTENCE_GPVTG + 1: // Course (VTG)
+            _new_course = _parse_decimal(_term, 2);
+            break;
+        
+        }   // switch type + term number
+    }   // if supported sentence type
 
-			// course and speed
-			//
-		case _GPS_SENTENCE_GPRMC + 7: // Speed (GPRMC)
-		case _GPS_SENTENCE_GPVTG + 5: // Speed (VTG)
-			_new_speed = (_parse_decimal() * 514) / 1000; 	// knots-> m/sec, approximiates * 0.514
-			break;
-		case _GPS_SENTENCE_GPRMC + 8: // Course (GPRMC)
-		case _GPS_SENTENCE_GPVTG + 1: // Course (VTG)
-			_new_course = _parse_decimal();
-			break;
-		}
-	}
-
-	return false;
+    return false;   // Added a parm, but message not yet complete
 }
