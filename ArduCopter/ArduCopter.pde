@@ -8,7 +8,7 @@ Please, read release_notes.txt before you go!
 
 Porting to MegaPirate Next Generation by
   Sir Alex (rsoft@tut.by)
-  SovGVD sovgvd@gmail.com 
+  SovGVD (sovgvd@gmail.com)
   Romb89 (UBLOX GPS i2c library)
   Syberian (libraries from MegaPirate r741)
 

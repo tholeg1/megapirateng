@@ -4,7 +4,7 @@
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
 // Fast PWM 490Hz enabled by default (490 Hz can be changed in the APM Planner)
-#define INSTANT_PWM	DISABLED
+#define INSTANT_PWM	DESABLED
 
 // Select your sensor board
 #define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
@@ -184,5 +184,7 @@
 // #define MAVLINK10 DISABLED
 
 //#define CLI_ENABLED DISABLED
+
+//#define FAILSAFE
 
 #endif //__ARDUCOPTER_APMCONFIG_H__
