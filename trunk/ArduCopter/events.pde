@@ -38,6 +38,7 @@ static void failsafe_on_event()
 
 static void failsafe_off_event()
 {
+	
 	if (g.throttle_fs_action == 2){
 		// We're back in radio contact
 		// return to AP
@@ -55,6 +56,7 @@ static void failsafe_off_event()
 		// ------------------------------------------------------
 		set_mode(RTL);
 	}
+
 }
 
 static void low_battery_event(void)

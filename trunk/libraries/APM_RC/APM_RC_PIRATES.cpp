@@ -33,6 +33,9 @@ volatile bool use_ppm = 0;
 volatile bool bv_mode;
 uint8_t *pinRcChannel;
 
+// failsafe counter
+volatile uint8_t failsafeCnt=0;
+
 // ******************
 // rc functions split channels
 // ******************
@@ -118,6 +121,12 @@ static uint8_t PCintLast;
 	    if (!(pin & 1<<7)) {
 	      dTime = cTime-edgeTime[7]; if (1600<dTime && dTime<4400) rcPinValue[7] = dTime>>1;
 	    } else edgeTime[7] = cTime;
+	  
+	  // failsafe counter must be zero if all ok  
+	  if (mask & 1<<pinRcChannel[2]) {    // If pulse present on THROTTLE pin, clear FailSafe counter  - added by MIS fow multiwii (copy by SovGVD to megapirateNG)
+        failsafeCnt = 0;
+	  }
+
 	}
 }
 
@@ -370,6 +379,14 @@ uint8_t APM_RC_PIRATES::GetState(void)
 {
 	return(1);// always 1
 }
+
+uint8_t APM_RC_PIRATES::GetFailSafeState(void)
+{
+	failsafeCnt++;
+	if(failsafeCnt > 20) failsafeCnt = 20;
+	return(failsafeCnt);
+}
+
 
 // InstantPWM implementation
 void APM_RC_PIRATES::Force_Out(void)

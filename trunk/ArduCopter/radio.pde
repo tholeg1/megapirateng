@@ -114,7 +114,7 @@ void output_min()
 static void read_radio()
 {
 	if (APM_RC.GetState() == 1){
-		new_radio_frame = true;
+		new_radio_frame = true;		
 		g.rc_1.set_pwm(APM_RC.InputCh(CH_1));
 		g.rc_2.set_pwm(APM_RC.InputCh(CH_2));
 		g.rc_3.set_pwm(APM_RC.InputCh(CH_3));
@@ -123,17 +123,24 @@ static void read_radio()
 		g.rc_6.set_pwm(APM_RC.InputCh(CH_6));
 		g.rc_7.set_pwm(APM_RC.InputCh(CH_7));
 		g.rc_8.set_pwm(APM_RC.InputCh(CH_8));
+	
 
 		#if FRAME_CONFIG != HELI_FRAME
 			// limit our input to 800 so we can still pitch and roll
 			g.rc_3.control_in = min(g.rc_3.control_in, MAXIMUM_THROTTLE);
 		#endif
 
-		throttle_failsafe(g.rc_3.radio_in);
+		#if defined(FAILSAFE)
+			//if (motors.armed()) 
+			throttle_failsafe();
+		#endif
 	}
 }
+
+
 #define FS_COUNTER 3
-static void throttle_failsafe(uint16_t pwm)
+
+static void throttle_failsafe()
 {
 	// Don't enter Failsafe if not enabled by user
 	if(g.throttle_fs_enabled == 0)
@@ -141,7 +148,7 @@ static void throttle_failsafe(uint16_t pwm)
 
 	//check for failsafe and debounce funky reads
 	// ------------------------------------------
-	if (pwm < (unsigned)g.throttle_fs_value){
+	if (APM_RC.GetFailSafeState() > 15){
 		// we detect a failsafe from radio
 		// throttle has dropped below the mark
 		failsafeCounter++;
@@ -154,7 +161,7 @@ static void throttle_failsafe(uint16_t pwm)
 			// This is to prevent accidental RTL
 			if(motors.armed() && takeoff_complete){
 				SendDebug("MSG FS ON ");
-				SendDebugln(pwm, DEC);
+				//SendDebugln(pwm, DEC);
 				set_failsafe(true);
 			}
 		}else if (failsafeCounter > FS_COUNTER){
@@ -170,7 +177,7 @@ static void throttle_failsafe(uint16_t pwm)
 		}
 		if (failsafeCounter == 1){
 			SendDebug("MSG FS OFF ");
-			SendDebugln(pwm, DEC);
+			//SendDebugln(pwm, DEC);
 		}else if(failsafeCounter == 0) {
 			set_failsafe(false);
 		}else if (failsafeCounter <0){
@@ -178,6 +185,8 @@ static void throttle_failsafe(uint16_t pwm)
 		}
 	}
 }
+
+
 
 static void trim_radio()
 {
