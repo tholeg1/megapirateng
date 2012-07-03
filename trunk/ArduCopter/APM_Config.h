@@ -36,7 +36,10 @@
 	AP_BARO_MS5611_I2C
 */
 
-#define LED_SEQUENCER DISABLED
+// Warning: COPTER_LEDS is not compatible with LED_SEQUENCER, so enable only one option
+#define COPTER_LEDS DISABLED     // New feature coming from ArduCopter
+#define LED_SEQUENCER DISABLED   // Old Oleg's LED Sequencer, see leds.pde for more info
+
 #define MAX_SONAR_RANGE 400
 
 #define OSD_PROTOCOL OSD_PROTOCOL_NONE
@@ -46,7 +49,7 @@
 	OSD_PROTOCOL_REMZIBI  // Read more at: http://www.rcgroups.com/forums/showthread.php?t=921467
 */
 
-// For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will select automatically 
+// For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will be selected automatically
 #define GPS_PROTOCOL GPS_PROTOCOL_NONE
 /*
 	GPS_PROTOCOL_NONE 	without GPS
@@ -102,30 +105,6 @@
 	CH7_SAVE_WP
 */
 
-// Alt hold with accelerometer
-#define ACCEL_ALT_HOLD 0		// disabled by default, work in progress
-
-#define INERTIAL_NAV DISABLED
-
-
-#if INERTIAL_NAV == ENABLED
-	#define ALT_HOLD_P			0.5
-	#define ALT_HOLD_I			0.007
-	#define ALT_HOLD_IMAX		300
-
-	// RATE control
-	#define THROTTLE_P			2		//
-	#define THROTTLE_I			0.5		// Don't edit
-	#define THROTTLE_D			0.0		//
-
-	#define LOITER_P			0.50
-	#define LOITER_I			0.0
-	#define LOITER_RATE_P		12			//
-	#define LOITER_RATE_I		1.0		// Wind control
-	#define LOITER_RATE_D		0.0		// try 2 or 3 for LOITER_RATE 1
-#endif
-
-
 //#define RATE_ROLL_I 	0.18
 //#define RATE_PITCH_I	0.18
 //#define MOTORS_JD880
@@ -173,6 +152,28 @@
 
 
 // ************** EXPERIMENTAL FEATURES *****************
+
+// Alt hold with accelerometer
+#define ACCEL_ALT_HOLD 0		// disabled by default, work in progress
+
+#define INERTIAL_NAV DISABLED
+
+#if INERTIAL_NAV == ENABLED
+	#define ALT_HOLD_P			0.5
+	#define ALT_HOLD_I			0.007
+	#define ALT_HOLD_IMAX		300
+
+	// RATE control
+	#define THROTTLE_P			2		//
+	#define THROTTLE_I			0.5		// Don't edit
+	#define THROTTLE_D			0.0		//
+
+	#define LOITER_P			0.50
+	#define LOITER_I			0.0
+	#define LOITER_RATE_P		12			//
+	#define LOITER_RATE_I		1.0		// Wind control
+	#define LOITER_RATE_D		0.0		// try 2 or 3 for LOITER_RATE 1
+#endif
 
 // Enabling this will use the GPS lat/long coordinate to get the compass declination
 //#define AUTOMATIC_DECLINATION ENABLED
