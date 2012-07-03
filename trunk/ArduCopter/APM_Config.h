@@ -4,7 +4,7 @@
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
 // Fast PWM 490Hz enabled by default (490 Hz can be changed in the APM Planner)
-#define INSTANT_PWM	DESABLED
+#define INSTANT_PWM	DISABLED
 
 // Select your sensor board
 #define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
