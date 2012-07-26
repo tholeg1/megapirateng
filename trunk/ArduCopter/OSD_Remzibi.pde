@@ -159,9 +159,9 @@ void osd_heartbeat_10Hz(void)
 void osd_heartbeat_50Hz(void)
 {
 	SendSer("$I,");
-	SendSer(dcm.roll_sensor/100,DEC); //Roll
+	SendSer(ahrs.roll_sensor/100,DEC); //Roll
 	SendSer(",");
-	SendSer(dcm.pitch_sensor/100,DEC); //Pitch
+	SendSer(ahrs.pitch_sensor/100,DEC); //Pitch
 	SendSer(",");
 	SendSerln();
 } 

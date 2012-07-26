@@ -46,9 +46,9 @@ void osd_heartbeat_50Hz() // send each packet via
 	switch(osd_pak)
 	{ 
 	 case 0:  
-					dcmr=dcm.roll_sensor*0.005;
+					dcmr=ahrs.roll_sensor*0.005;
 					
-					dcmp=dcm.pitch_sensor*0.01;
+					dcmp=ahrs.pitch_sensor*0.01;
 					if(dcmp<-31) dcmp=-31;
 					if(dcmp>31) dcmp=31;
 					hom=get_bearing(&current_loc,&home);

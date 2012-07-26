@@ -72,6 +72,11 @@
 		#define CONFIG_IMU_TYPE   CONFIG_IMU_PIRATES
 		#define MAG_ORIENTATION	ROTATION_YAW_180 
 		#define CONFIG_BARO     AP_BARO_BMP085_PIRATES
+	#elif PIRATES_SENSOR_BOARD == PIRATES_CRIUS_AIO_PRO_V1
+		#define CONFIG_IMU_TYPE CONFIG_IMU_MPU6000_I2C
+		#define CONFIG_BARO AP_BARO_MS5611_I2C
+		#define MAG_ORIENTATION ROTATION_YAW_180
+		#define GYRO_ADDR 0x68		
 	#else
 		#define CONFIG_IMU_TYPE   CONFIG_IMU_PIRATES
 		#define MAG_ORIENTATION	ROTATION_YAW_180 
@@ -745,7 +750,7 @@
 // Stabilize Rate Control
 //
 #ifndef RATE_ROLL_P
-# define RATE_ROLL_P        0.18
+# define RATE_ROLL_P        0.1
 #endif
 #ifndef RATE_ROLL_I
 # define RATE_ROLL_I         0.0
@@ -758,7 +763,7 @@
 #endif
 
 #ifndef RATE_PITCH_P
-# define RATE_PITCH_P       0.18
+# define RATE_PITCH_P       0.1
 #endif
 #ifndef RATE_PITCH_I
 # define RATE_PITCH_I		0.0
