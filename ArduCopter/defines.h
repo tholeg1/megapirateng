@@ -399,6 +399,7 @@ enum gcs_severity {
 #define PIRATES_BLACKVORTEX 3
 #define PIRATES_FREEIMU_4 4
 #define PIRATES_DROTEK_10DOF_MPU 5
+#define PIRATES_CRIUS_AIO_PRO_V1 6
 
 #define AP_BARO_BMP085    1
 #define AP_BARO_MS5611    2
