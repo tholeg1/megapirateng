@@ -105,16 +105,12 @@ uint8_t AP_Baro_BMP085_Pirates::read()
 	return healthy;
 }
 
-int32_t AP_Baro_BMP085_Pirates::get_pressure() {
+float AP_Baro_BMP085_Pirates::get_pressure() {
     return Press;
 }
 
-int16_t AP_Baro_BMP085_Pirates::get_temperature() {
+float AP_Baro_BMP085_Pirates::get_temperature() {
     return Temp;
-}
-
-float AP_Baro_BMP085_Pirates::get_altitude() {
-    return 0.0; // TODO
 }
 
 int32_t AP_Baro_BMP085_Pirates::get_raw_pressure() {

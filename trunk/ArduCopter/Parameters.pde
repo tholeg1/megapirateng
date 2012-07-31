@@ -19,8 +19,14 @@ static const AP_Param::Info var_info[] PROGMEM = {
 
 	GSCALAR(sysid_this_mav,	"SYSID_THISMAV"),
 	GSCALAR(sysid_my_gcs,	"SYSID_MYGCS"),
+
+    // @Param: SERIAL3_BAUD
+	// @DisplayName: Telemetry Baud Rate
+	// @Description: The baud rate used on the telemetry port
+	// @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
+	// @User: Standard
 	GSCALAR(serial3_baud,	"SERIAL3_BAUD"),
-	
+
 	// @Param: ALT_HOLD_RTL
 	// @DisplayName: Alt Hold RTL
 	// @Description: This is the altitude the model will move to before Returning to Launch
@@ -29,14 +35,14 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	// @Increment: 1
 	// @User: Standard
 	GSCALAR(RTL_altitude,	"ALT_HOLD_RTL"),
-	
+
 	// @Param: SONAR_ENABLE
 	// @DisplayName: Enable Sonar
 	// @Description: Setting this to Enabled(1) will enable the sonar. Setting this to Disabled(0) will disable the sonar
 	// @Values: 0:Disabled,1:Enabled
 	// @User: Standard
 	GSCALAR(sonar_enabled,	"SONAR_ENABLE"),
-	
+
 	GSCALAR(sonar_type,	"SONAR_TYPE"),
 	GSCALAR(battery_monitoring, "BATT_MONITOR"),
 
@@ -47,6 +53,11 @@ static const AP_Param::Info var_info[] PROGMEM = {
 
 	GSCALAR(curr_amp_per_volt,	"AMP_PER_VOLT"),
 	GSCALAR(input_voltage,	"INPUT_VOLTS"),
+
+	// @Param: BATT_CAPACITY
+	// @DisplayName: Battery Capacity
+	// @Description: Battery capacity in milliamp-hours (mAh)
+	// @Units: mAh
 	GSCALAR(pack_capacity,	"BATT_CAPACITY"),
 
 	// @Param: MAG_ENABLE
@@ -55,14 +66,14 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	// @Values: 0:Disabled,1:Enabled
 	// @User: Standard
 	GSCALAR(compass_enabled,	"MAG_ENABLE"),
-	
+
 	// @Param: FLOW_ENABLE
 	// @DisplayName: Enable Optical Flow
 	// @Description: Setting this to Enabled(1) will enable optical flow. Setting this to Disabled(0) will disable optical flow
 	// @Values: 0:Disabled,1:Enabled
 	// @User: Standard
 	GSCALAR(optflow_enabled,	"FLOW_ENABLE"),
-	
+
 	// @Param: LOW_VOLT
 	// @DisplayName: Low Voltage
 	// @Description: Set this to the voltage you want to represent low voltage
@@ -70,52 +81,92 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	// @Increment: .1
 	// @User: Standard
 	GSCALAR(low_voltage,	"LOW_VOLT"),
-	
+
 	// @Param: SUPER_SIMPLE
 	// @DisplayName: Enable Super Simple Mode
 	// @Description: Setting this to Enabled(1) will enable Super Simple Mode. Setting this to Disabled(0) will disable Super Simple Mode
 	// @Values: 0:Disabled,1:Enabled
 	// @User: Standard
 	GSCALAR(super_simple,	"SUPER_SIMPLE"),
-	
+
 	// @Param: RTL_LAND
 	// @DisplayName: RTL Land
 	// @Description: Setting this to Enabled(1) will enable landing after RTL. Setting this to Disabled(0) will disable landing after RTL.
 	// @Values: 0:Disabled,1:Enabled
 	// @User: Standard
+	// @ DEPRICATED
 	GSCALAR(rtl_land_enabled,	"RTL_LAND"),
 
 	// @Param: APPROACH_ALT
 	// @DisplayName: Alt Hold RTL
-	// @Description: This is the altitude the model will move to before Returning to Launch
+	// @Description: This is the altitude the vehicle will move to before Returning to Launch
 	// @Units: Meters
 	// @Range: 1 10
 	// @Increment: .1
 	// @User: Standard
 	GSCALAR(rtl_approach_alt,	"APPROACH_ALT"),
 
-	// @Param: RETRO_LOITER
-	// @DisplayName: Retro Loiter
-	// @Description: Setting this to Enabled(1) will enable the Loiter from 2.0.49. Setting this to Disabled(0) will use the most recent Loiter routines.
-	// @Values: 0:Disabled,1:Enabled
-	// @User: Standard
-	GSCALAR(retro_loiter,	"RETRO_LOITER"),
+	GSCALAR(tilt_comp,	"TILT"),
 
 	GSCALAR(waypoint_mode,	"WP_MODE"),
 	GSCALAR(command_total,	"WP_TOTAL"),
 	GSCALAR(command_index,	"WP_INDEX"),
 	GSCALAR(command_nav_index,	"WP_MUST_INDEX"),
+
+    // @Param: WP_RADIUS
+	// @DisplayName: Waypoint Radius
+	// @Description: Defines the distance from a waypoint, that when crossed indicates the wp has been hit.
+	// @Units: Meters
+	// @Range: 1 127
+	// @Increment: 1
+	// @User: Standard
 	GSCALAR(waypoint_radius,	"WP_RADIUS"),
+
+    // @Param: WP_LOITER_RAD
+	// @DisplayName: Waypoint Loiter Radius
+	// @Description: Defines the distance from the waypoint center, the vehicle will maintain during a loiter
+	// @Units: Meters
+	// @Range: 1 127
+	// @Increment: 1
+	// @User: Standard
 	GSCALAR(loiter_radius,	"WP_LOITER_RAD"),
 	GSCALAR(waypoint_speed_max,	"WP_SPEED_MAX"),
 	GSCALAR(crosstrack_gain,	"XTRK_GAIN_SC"),
 	GSCALAR(auto_land_timeout,	"AUTO_LAND"),
 
+    // @Param: THR_MIN
+	// @DisplayName: Minimum Throttle
+	// @Description: The minimum throttle which the autopilot will apply.
+	// @Units: Percent
+	// @Range: 0 100
+	// @Increment: 1
+	// @User: Standard
 	GSCALAR(throttle_min,	"THR_MIN"),
+
+    // @Param: THR_MAX
+	// @DisplayName: Maximum Throttle
+	// @Description: The maximum throttle which the autopilot will apply.
+	// @Units: Percent
+	// @Range: 0 100
+	// @Increment: 1
+	// @User: Standard
 	GSCALAR(throttle_max,	"THR_MAX"),
+
+    // @Param: THR_FAILSAFE
+	// @DisplayName: Throttle Failsafe Enable
+	// @Description: The throttle failsafe allows you to configure a software failsafe activated by a setting on the throttle input channel
+	// @Values: 0:Disabled,1:Enabled
+	// @User: Standard
 	GSCALAR(throttle_fs_enabled,	"THR_FAILSAFE"),
+
 	GSCALAR(throttle_fs_action,	"THR_FS_ACTION"),
+
+    // @Param: THR_FS_VALUE
+	// @DisplayName: Throttle Failsafe Value
+	// @Description: The PWM level on channel 3 below which throttle sailsafe triggers
+	// @User: Standard
 	GSCALAR(throttle_fs_value, "THR_FS_VALUE"),
+
 	GSCALAR(throttle_cruise,	"TRIM_THROTTLE"),
 
 	GSCALAR(flight_mode1, "FLTMODE1"),
@@ -126,8 +177,16 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	GSCALAR(flight_mode6, "FLTMODE6"),
 	GSCALAR(simple_modes, "SIMPLE"),
 
+    // @Param: LOG_BITMASK
+	// @DisplayName: Log bitmask
+	// @Description: bitmap of log fields to enable
+	// @User: Advanced
 	GSCALAR(log_bitmask,	"LOG_BITMASK"),
 	GSCALAR(log_last_filenumber, "LOG_LASTFILE"),
+	// THOR
+	// Added to allow change of Rate in the Mission planner
+	GSCALAR(toy_yaw_rate, "TOY_RATE"),
+
 	GSCALAR(esc_calibrate, "ESC"),
 	GSCALAR(radio_tuning, "TUNE"),
 	GSCALAR(radio_tuning_low, "TUNE_LOW"),
@@ -143,19 +202,53 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	GGROUP(heli_servo_4,	"HS4_", RC_Channel),
 	#endif
 
+#if CAMERA == ENABLED
+	// @Group: CAM_
+	// @Path: ../libraries/AP_Camera/AP_Camera.cpp
+	GGROUP(camera,                  "CAM_",	AP_Camera),
+#endif
+
 	// RC channel
 	//-----------
+	// @Group: RC1_
+	// @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_1,	"RC1_", RC_Channel),
+	// @Group: RC2_
+	// @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_2,	"RC2_", RC_Channel),
+	// @Group: RC3_
+	// @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_3,	"RC3_", RC_Channel),
+	// @Group: RC4_
+	// @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_4,	"RC4_", RC_Channel),
+	// @Group: RC5_
+	// @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_5,	"RC5_", RC_Channel),
+	// @Group: RC6_
+	// @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_6,	"RC6_", RC_Channel),
-	GGROUP(rc_7,	"RC7_", RC_Channel),
-	GGROUP(rc_8,	"RC8_", RC_Channel),
-	GGROUP(rc_camera_pitch,	"CAM_P_", RC_Channel),
-	GGROUP(rc_camera_roll,	"CAM_R_", RC_Channel),
-	
+	// @Group: RC7_
+	// @Path: ../libraries/RC_Channel/RC_Channel.cpp
+	GGROUP(rc_7,    "RC7_", RC_Channel),
+	// @Group: RC8_
+	// @Path: ../libraries/RC_Channel/RC_Channel.cpp
+	GGROUP(rc_8,    "RC8_", RC_Channel),
+
+#if MOUNT == ENABLED
+	// @Group: CAM_R_
+	// @Path: ../libraries/RC_Channel/RC_Channel_aux.cpp
+	GGROUP(rc_camera_roll,	"CAM_R_", RC_Channel_aux),
+
+	// @Group: CAM_P_
+	// @Path: ../libraries/RC_Channel/RC_Channel_aux.cpp
+	GGROUP(rc_camera_pitch,	"CAM_P_", RC_Channel_aux),
+
+	// @Group: CAM_Y_
+	// @Path: ../libraries/RC_Channel/RC_Channel_aux.cpp
+	GGROUP(rc_camera_yaw,	"CAM_Y_", RC_Channel_aux),
+#endif
+
 	// @Param: RC_SPEED
 	// @DisplayName: ESC Update Speed
 	// @Description: This is the speed in Hertz that your ESCs will receive updates
@@ -166,10 +259,8 @@ static const AP_Param::Info var_info[] PROGMEM = {
 
 	// variable
 	//---------
-	GSCALAR(camera_pitch_gain, 	"CAM_P_G"),
-	GSCALAR(camera_roll_gain, 	"CAM_R_G"),
-	GSCALAR(stabilize_d, 		"STAB_D"),
-	
+	GSCALAR(stabilize_d, 			"STAB_D"),
+
 	// @Param: STAB_D_S
 	// @DisplayName: Stabilize D Schedule
 	// @Description: This value is a percentage of scheduling applied to the Stabilize D term.
@@ -211,10 +302,14 @@ static const AP_Param::Info var_info[] PROGMEM = {
 	GGROUP(pi_loiter_lon,	"HLD_LON_", APM_PI),
 
 	// variables not in the g class which contain EEPROM saved variables
-	
+
 	// @Group: COMPASS_
 	// @Path: ../libraries/AP_Compass/Compass.cpp
 	GOBJECT(compass,        "COMPASS_", Compass),
+
+	// @Group: INS_
+	// @Path: ../libraries/AP_InertialSensor/AP_InertialSensor_Oilpan.cpp
+	//GOBJECT(ins,        	"INS_", AP_InertialSensor_Oilpan),
 
 	GOBJECT(gcs0,			"SR0_",     GCS_MAVLINK),
 	GOBJECT(gcs3,			"SR3_",     GCS_MAVLINK),
@@ -225,7 +320,24 @@ static const AP_Param::Info var_info[] PROGMEM = {
 
 	// @Group: AHRS_
 	// @Path: ../libraries/AP_AHRS/AP_AHRS_DCM.cpp, ../libraries/AP_AHRS/AP_AHRS_Quaternion.cpp
-	GOBJECT(ahrs,			"AHRS_",    AP_AHRS),
+	GOBJECT(ahrs,			"AHRS_",    AP_AHRS_DCM),
+
+#if MOUNT == ENABLED
+	// @Group: MNT_
+	// @Path: ../libraries/AP_Mount/AP_Mount.cpp
+	GOBJECT(camera_mount,           "MNT_",	AP_Mount),
+#endif
+
+#ifdef DESKTOP_BUILD
+	GOBJECT(sitl, "SIM_", SITL),
+#endif
+
+	//@Group: LIM_
+	//@Path: ../libraries/AP_Limits/AP_Limits.cpp,../libraries/AP_Limits/AP_Limit_GPSLock.cpp, ../libraries/AP_Limits/AP_Limit_Geofence.cpp, ../libraries/AP_Limits/AP_Limit_Altitude.cpp, ../libraries/AP_Limits/AP_Limit_Module.cpp
+	GOBJECT(limits,			"LIM_",    AP_Limits),
+	GOBJECT(gpslock_limit,		"LIM_",    AP_Limit_GPSLock),
+	GOBJECT(geofence_limit,		"LIM_",    AP_Limit_Geofence),
+	GOBJECT(altitude_limit,		"LIM_",    AP_Limit_Altitude),
 
 	#if FRAME_CONFIG ==	HELI_FRAME
 	// @Group: H_
@@ -248,6 +360,9 @@ static void load_parameters(void)
 			delay(1000);
 		}
 	}
+
+	// change the default for the AHRS_GPS_GAIN for ArduCopter
+	ahrs.gps_gain.set(0.0);
 
 	if (!g.format_version.load() ||
 	    g.format_version != Parameters::k_format_version) {

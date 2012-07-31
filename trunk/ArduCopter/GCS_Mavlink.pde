@@ -29,7 +29,6 @@ static bool mavlink_active;
 
 static NOINLINE void send_heartbeat(mavlink_channel_t chan)
 {
-#if MAVLINK10 == ENABLED
     uint8_t base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
     uint8_t system_status = MAV_STATE_ACTIVE;
     uint32_t custom_mode = control_mode;
@@ -79,19 +78,13 @@ static NOINLINE void send_heartbeat(mavlink_channel_t chan)
         base_mode,
         custom_mode,
         system_status);
-#else // MAVLINK10
-    mavlink_msg_heartbeat_send(
-        chan,
-        MAV_QUADROTOR,
-        MAV_AUTOPILOT_ARDUPILOTMEGA);
-#endif // MAVLINK10
 }
 
 static NOINLINE void send_attitude(mavlink_channel_t chan)
 {
     mavlink_msg_attitude_send(
         chan,
-        micros(),
+        millis(),
         ahrs.roll,
         ahrs.pitch,
         ahrs.yaw,
@@ -100,9 +93,16 @@ static NOINLINE void send_attitude(mavlink_channel_t chan)
         omega.z);
 }
 
+#if AP_LIMITS == ENABLED
+static NOINLINE void send_limits_status(mavlink_channel_t chan)
+{
+	limits_send_mavlink_status(chan);
+}
+#endif
+
+
 static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t packet_drops)
 {
-#if MAVLINK10 == ENABLED
     uint32_t control_sensors_present = 0;
     uint32_t control_sensors_enabled;
     uint32_t control_sensors_health;
@@ -152,64 +152,36 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
     // at the moment all sensors/controllers are assumed healthy
     control_sensors_health = control_sensors_present;
 
-    uint16_t battery_remaining = 1000.0 * (float)(g.pack_capacity - current_total1)/(float)g.pack_capacity;	//Mavlink scaling 100% = 1000
+    uint16_t battery_current = -1;
+    uint8_t  battery_remaining = -1;
+
+    if (current_total1 != 0 && g.pack_capacity != 0) {
+        battery_remaining = (100.0 * (g.pack_capacity - current_total1) / g.pack_capacity);
+    }
+    if (current_total1 != 0) {
+        battery_current = current_amps1 * 100;
+    }
+
+    if (g.battery_monitoring == 3) {
+        /*setting a out-of-range value.
+        It informs to external devices that
+        it cannot be calculated properly just by voltage*/
+        battery_remaining = 150;
+    }
 
     mavlink_msg_sys_status_send(
         chan,
         control_sensors_present,
         control_sensors_enabled,
         control_sensors_health,
-        0,
+        0, // CPU Load not supported in AC yet
         battery_voltage1 * 1000, // mV
-        0,
+        battery_current,        // in 10mA units
         battery_remaining,      // in %
         0, // comm drops %,
         0, // comm drops in pkts,
         0, 0, 0, 0);
 
-#else // MAVLINK10
-    uint8_t mode 	 = MAV_MODE_UNINIT;
-    uint8_t nav_mode = MAV_NAV_VECTOR;
-
-    switch(control_mode) {
-    case LOITER:
-        mode 		= MAV_MODE_AUTO;
-        nav_mode 	= MAV_NAV_HOLD;
-        break;
-    case AUTO:
-        mode 		= MAV_MODE_AUTO;
-        nav_mode 	= MAV_NAV_WAYPOINT;
-        break;
-    case RTL:
-        mode 		= MAV_MODE_AUTO;
-        nav_mode 	= MAV_NAV_RETURNING;
-        break;
-    case GUIDED:
-        mode 		= MAV_MODE_GUIDED;
-        nav_mode 	= MAV_NAV_WAYPOINT;
-        break;
-    default:
-        mode 		= control_mode + 100;
-    }
-
-    uint8_t status 		= MAV_STATE_ACTIVE;
-
-    if (!motors.armed()) {
-        status 		= MAV_STATE_STANDBY;
-    }
-
-    uint16_t battery_remaining = 1000.0 * (float)(g.pack_capacity - current_total1)/(float)g.pack_capacity;	//Mavlink scaling 100% = 1000
-
-    mavlink_msg_sys_status_send(
-        chan,
-        mode,
-        nav_mode,
-        status,
-        0,
-        battery_voltage1 * 1000,
-        battery_remaining,
-        packet_drops);
-#endif // MAVLINK10
 }
 
 static void NOINLINE send_meminfo(mavlink_channel_t chan)
@@ -226,8 +198,8 @@ static void NOINLINE send_location(mavlink_channel_t chan)
         millis(),
         current_loc.lat,                // in 1E7 degrees
         current_loc.lng,                // in 1E7 degrees
-        g_gps->altitude*10,             // millimeters above sea level
-        current_loc.alt * 10,           // millimeters above ground
+        g_gps->altitude * 10,             // millimeters above sea level
+        (current_loc.alt - home.alt) * 10,           // millimeters above ground
         g_gps->ground_speed * rot.a.x,  // X speed cm/s
         g_gps->ground_speed * rot.b.x,  // Y speed cm/s
         g_gps->ground_speed * rot.c.x,
@@ -240,7 +212,7 @@ static void NOINLINE send_nav_controller_output(mavlink_channel_t chan)
         chan,
         nav_roll / 1.0e2,
         nav_pitch / 1.0e2,
-        nav_bearing / 1.0e2,
+        target_bearing / 1.0e2,
         target_bearing / 1.0e2,
         wp_distance / 1.0e2,
         altitude_error / 1.0e2,
@@ -248,7 +220,6 @@ static void NOINLINE send_nav_controller_output(mavlink_channel_t chan)
         crosstrack_error);	// was 0
 }
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
 static void NOINLINE send_ahrs(mavlink_channel_t chan)
 {
     Vector3f omega_I = ahrs.get_gyro_drift();
@@ -262,29 +233,12 @@ static void NOINLINE send_ahrs(mavlink_channel_t chan)
         ahrs.get_error_rp(),
         ahrs.get_error_yaw());
 }
-#endif // HIL_MODE != HIL_MODE_ATTITUDE
 
 #ifdef DESKTOP_BUILD
-void mavlink_simstate_send(uint8_t chan,
-                           float roll,
-                           float pitch,
-                           float yaw,
-                           float xAcc,
-                           float yAcc,
-                           float zAcc,
-                           float p,
-                           float q,
-                           float r)
-{
-    mavlink_msg_simstate_send((mavlink_channel_t)chan,
-                              roll, pitch, yaw, xAcc, yAcc, zAcc, p, q, r);
-}
-
 // report simulator state
 static void NOINLINE send_simstate(mavlink_channel_t chan)
 {
-    extern void sitl_simstate_send(uint8_t chan);
-    sitl_simstate_send((uint8_t)chan);
+    sitl.simstate_send(chan);
 }
 #endif
 
@@ -301,7 +255,6 @@ static void NOINLINE send_hwstatus(mavlink_channel_t chan)
 
 static void NOINLINE send_gps_raw(mavlink_channel_t chan)
 {
-#if MAVLINK10 == ENABLED
     uint8_t fix = g_gps->status();
     if (fix == GPS::GPS_OK) {
         fix = 3;
@@ -320,19 +273,6 @@ static void NOINLINE send_gps_raw(mavlink_channel_t chan)
         g_gps->ground_course, // 1/100 degrees,
         g_gps->num_sats);
 
-#else // MAVLINK10
-    mavlink_msg_gps_raw_send(
-        chan,
-        g_gps->last_fix_time*(uint64_t)1000,
-        g_gps->status(),
-        g_gps->latitude / 1.0e7,
-        g_gps->longitude / 1.0e7,
-        g_gps->altitude / 100.0,
-        g_gps->hdop,
-        current_loc.alt / 100.0, // was 0
-        g_gps->ground_speed / 100.0,
-        g_gps->ground_course / 100.0);
-#endif  // MAVLINK10
 }
 
 static void NOINLINE send_servo_out(mavlink_channel_t chan)
@@ -450,10 +390,9 @@ static void NOINLINE send_vfr_hud(mavlink_channel_t chan)
         (ahrs.yaw_sensor / 100) % 360,
         g.rc_3.servo_out/10,
         current_loc.alt / 100.0,
-        climb_rate);
+        climb_rate / 100.0);
 }
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
 static void NOINLINE send_raw_imu1(mavlink_channel_t chan)
 {
     Vector3f accel = imu.get_accel();
@@ -476,9 +415,9 @@ static void NOINLINE send_raw_imu2(mavlink_channel_t chan)
 {
     mavlink_msg_scaled_pressure_send(
         chan,
-        micros(),
+        millis(),
         (float)barometer.get_pressure()/100.0,
-        (float)(barometer.get_pressure()-ground_pressure)/100.0,
+        (float)(barometer.get_pressure() - barometer.get_ground_pressure())/100.0,
         (int)(barometer.get_temperature()*10));
 }
 
@@ -496,7 +435,6 @@ static void NOINLINE send_raw_imu3(mavlink_channel_t chan)
                                     imu.gx(), imu.gy(), imu.gz(),
                                     imu.ax(), imu.ay(), imu.az());
 }
-#endif // HIL_MODE != HIL_MODE_ATTITUDE
 
 static void NOINLINE send_gps_status(mavlink_channel_t chan)
 {
@@ -569,11 +507,7 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
         break;
 
     case MSG_GPS_RAW:
-#if MAVLINK10 == ENABLED
         CHECK_PAYLOAD_SIZE(GPS_RAW_INT);
-#else
-        CHECK_PAYLOAD_SIZE(GPS_RAW);
-#endif
         send_gps_raw(chan);
         break;
 
@@ -597,7 +531,6 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
         send_vfr_hud(chan);
         break;
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
     case MSG_RAW_IMU1:
         CHECK_PAYLOAD_SIZE(RAW_IMU);
         send_raw_imu1(chan);
@@ -612,7 +545,6 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
         CHECK_PAYLOAD_SIZE(SENSOR_OFFSETS);
         send_raw_imu3(chan);
         break;
-#endif // HIL_MODE != HIL_MODE_ATTITUDE
 
     case MSG_GPS_STATUS:
         CHECK_PAYLOAD_SIZE(GPS_STATUS);
@@ -647,11 +579,18 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
         send_statustext(chan);
         break;
 
+#if AP_LIMITS == ENABLED
+
+    case MSG_LIMITS_STATUS:
+    	CHECK_PAYLOAD_SIZE(LIMITS_STATUS);
+    	send_limits_status(chan);
+        break;
+
+#endif
+
     case MSG_AHRS:
-#if HIL_MODE != HIL_MODE_ATTITUDE
         CHECK_PAYLOAD_SIZE(AHRS);
         send_ahrs(chan);
-#endif
         break;
 
     case MSG_SIMSTATE:
@@ -915,6 +854,8 @@ GCS_MAVLINK::data_stream_send(void)
 			send_message(MSG_CURRENT_WAYPOINT);
 			send_message(MSG_GPS_RAW);			// TODO - remove this message after location message is working
 			send_message(MSG_NAV_CONTROLLER_OUTPUT);
+			send_message(MSG_LIMITS_STATUS);
+
 
             if (last_gps_satellites != g_gps->num_sats) {
                 // this message is mostly a huge waste of bandwidth,
@@ -928,9 +869,6 @@ GCS_MAVLINK::data_stream_send(void)
 
     if (stream_trigger(STREAM_POSITION)) {
 			// sent with GPS read
-#if HIL_MODE == HIL_MODE_ATTITUDE
-			send_message(MSG_LOCATION);
-#endif
 			//Serial.printf("mav3 %d\n", (int)streamRatePosition.get());
 		}
 
@@ -991,8 +929,6 @@ GCS_MAVLINK::send_text(gcs_severity severity, const prog_char_t *str)
 void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 {
 	struct Location tell_command = {};				// command for telemetry
-	static uint8_t mav_nav = 255;							// For setting mode (some require receipt of 2 messages...)
-
 	switch (msg->msgid) {
 
 	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM: //66
@@ -1070,7 +1006,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			break;
 		}
 
-#if MAVLINK10 == ENABLED
     case MAVLINK_MSG_ID_COMMAND_LONG:
         {
             // decode
@@ -1130,140 +1065,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
             break;
         }
-#else // !MAVLINK10
-	case MAVLINK_MSG_ID_ACTION: //10
-		{
-			// decode
-			mavlink_action_t packet;
-			mavlink_msg_action_decode(msg, &packet);
-			if (mavlink_check_target(packet.target,packet.target_component)) break;
-
-            if (in_mavlink_delay) {
-                // don't execute action commands while in sensor
-                // initialisation
-                break;
-            }
-
-			uint8_t result = 0;
-
-			// do action
-			send_text(SEVERITY_LOW,PSTR("action received: "));
-//Serial.println(packet.action);
-			switch(packet.action){
-
-				case MAV_ACTION_LAUNCH:
-					//set_mode(TAKEOFF);
-					break;
-
-				case MAV_ACTION_RETURN:
-					set_mode(RTL);
-					result=1;
-					break;
-
-				case MAV_ACTION_EMCY_LAND:
-					set_mode(LAND);
-					break;
-
-				case MAV_ACTION_HALT:
-					do_loiter_at_location();
-					result=1;
-					break;
-
-					/* No mappable implementation in APM 2.0
-				case MAV_ACTION_MOTORS_START:
-				case MAV_ACTION_CONFIRM_KILL:
-				case MAV_ACTION_EMCY_KILL:
-				case MAV_ACTION_MOTORS_STOP:
-				case MAV_ACTION_SHUTDOWN:
-					break;
-				*/
-
-				case MAV_ACTION_CONTINUE:
-					//process_command_queue();
-					result=1;
-					break;
-
-				case MAV_ACTION_SET_MANUAL:
-					set_mode(STABILIZE);
-					result=1;
-					break;
-
-				case MAV_ACTION_SET_AUTO:
-					set_mode(AUTO);
-					result=1;
-					break;
-
-				case MAV_ACTION_STORAGE_READ:
-                    // we load all variables at startup, and
-                    // save on each mavlink set
-					result=1;
-					break;
-
-				case MAV_ACTION_STORAGE_WRITE:
-                    // this doesn't make any sense, as we save
-                    // all settings as they come in
-					result=1;
-					break;
-
-				case MAV_ACTION_CALIBRATE_RC: break;
-					trim_radio();
-					result=1;
-					break;
-
-				case MAV_ACTION_CALIBRATE_GYRO:
-				case MAV_ACTION_CALIBRATE_MAG:
-				case MAV_ACTION_CALIBRATE_PRESSURE:
-					break;
-
-				case MAV_ACTION_CALIBRATE_ACC:
-					imu.init_accel(mavlink_delay, flash_leds);
-					result=1;
-					break;
-
-
-				//case MAV_ACTION_REBOOT:  // this is a rough interpretation
-					//startup_IMU_ground();
-					//result=1;
-				//	break;
-
-				/*	For future implemtation
-				case MAV_ACTION_REC_START: break;
-				case MAV_ACTION_REC_PAUSE: break;
-				case MAV_ACTION_REC_STOP: break;
-				*/
-
-				/* Takeoff is not an implemented flight mode in APM 2.0
-				case MAV_ACTION_TAKEOFF:
-					set_mode(TAKEOFF);
-					break;
-				*/
-
-				case MAV_ACTION_NAVIGATE:
-					set_mode(AUTO);
-					result=1;
-					break;
-
-				case MAV_ACTION_LAND:
-					set_mode(LAND);
-					break;
-
-				case MAV_ACTION_LOITER:
-					set_mode(LOITER);
-					result=1;
-					break;
-
-				default: break;
-				}
-
-				mavlink_msg_action_ack_send(
-					chan,
-					packet.action,
-					result
-					);
-
-			break;
-		}
-#endif // MAVLINK10
 
 	case MAVLINK_MSG_ID_SET_MODE:  //11
 		{
@@ -1271,7 +1072,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			mavlink_set_mode_t packet;
 			mavlink_msg_set_mode_decode(msg, &packet);
 
-#if MAVLINK10 == ENABLED
             if (!(packet.base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED)) {
                 // we ignore base_mode as there is no sane way to map
                 // from that bitmap to a APM flight mode. We rely on
@@ -1290,34 +1090,10 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             case POSITION:
             case LAND:
             case OF_LOITER:
-            case APPROACH:
                 set_mode(packet.custom_mode);
                 break;
             }
 
-#else // MAVLINK10
-			switch (packet.mode) {
-
-				case MAV_MODE_MANUAL:
-					set_mode(STABILIZE);
-					break;
-
-				case MAV_MODE_GUIDED:
-					set_mode(GUIDED);
-					break;
-
-				case MAV_MODE_AUTO:
-					if(mav_nav == 255 || mav_nav == MAV_NAV_WAYPOINT) 	set_mode(AUTO);
-					if(mav_nav == MAV_NAV_RETURNING)					set_mode(RTL);
-					if(mav_nav == MAV_NAV_LOITER)						set_mode(LOITER);
-					mav_nav = 255;
-					break;
-
-				case MAV_MODE_TEST1:
-					set_mode(STABILIZE);
-					break;
-			}
-#endif // MAVLINK10
             break;
 		}
 
@@ -1403,13 +1179,17 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 				z = tell_command.alt/1.0e2; // local (z), global/relative (altitude)
 			}
 
-			// Switch to map APM command fields inot MAVLink command fields
+			// Switch to map APM command fields into MAVLink command fields
 			switch (tell_command.id) {
 
 				case MAV_CMD_NAV_LOITER_TURNS:
 				case MAV_CMD_CONDITION_CHANGE_ALT:
 				case MAV_CMD_DO_SET_HOME:
 					param1 = tell_command.p1;
+					break;
+
+				case MAV_CMD_NAV_ROI:
+					param1 = tell_command.p1;	// MAV_ROI (aka roi mode) is held in wp's parameter but we actually do nothing with it because we only support pointing at a specific location provided by x,y and z parameters
 					break;
 
 				case MAV_CMD_CONDITION_YAW:
@@ -1628,13 +1408,16 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			tell_command.lat = 1.0e7 * packet.x; // in as DD converted to * t7
 			tell_command.lng = 1.0e7 * packet.y; // in as DD converted to * t7
 			tell_command.alt = packet.z * 1.0e2;
-			tell_command.options = 1; // store altitude relative!! Always!!
+			tell_command.options = 1; // store altitude relative to home alt!! Always!!
 
-			switch (tell_command.id) {					// Switch to map APM command fields inot MAVLink command fields
+			switch (tell_command.id) {					// Switch to map APM command fields into MAVLink command fields
 				case MAV_CMD_NAV_LOITER_TURNS:
 				case MAV_CMD_DO_SET_HOME:
-				case MAV_CMD_DO_SET_ROI:
 					tell_command.p1 = packet.param1;
+					break;
+
+				case MAV_CMD_NAV_ROI:
+					tell_command.p1 = packet.param1;	// MAV_ROI (aka roi mode) is held in wp's parameter but we actually do nothing with it because we only support pointing at a specific location provided by x,y and z parameters
 					break;
 
 				case MAV_CMD_CONDITION_YAW:
@@ -1847,88 +1630,21 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
         }
 
-#if HIL_MODE != HIL_MODE_DISABLED && MAVLINK10 != ENABLED
-        // This is used both as a sensor and to pass the location
-        // in HIL_ATTITUDE mode. Note that MAVLINK10 uses HIL_STATE
-        // instead
-	case MAVLINK_MSG_ID_GPS_RAW: //32
-        {
-            // decode
-            mavlink_gps_raw_t packet;
-            mavlink_msg_gps_raw_decode(msg, &packet);
 
-            // set gps hil sensor
-            g_gps->setHIL(packet.usec/1000.0,packet.lat,packet.lon,packet.alt,
-            packet.v,packet.hdg,0,0);
-            if (gps_base_alt == 0) {
-                gps_base_alt = packet.alt*100;
-            }
-            current_loc.lng = packet.lon * T7;
-            current_loc.lat = packet.lat * T7;
-            current_loc.alt = g_gps->altitude - gps_base_alt;
-            if (!home_is_set) {
-                init_home();
-            }
-            break;
-        }
-        
-#if HIL_MODE == HIL_MODE_ATTITUDE
-    case MAVLINK_MSG_ID_ATTITUDE: //30
-        {
-            // decode
-            mavlink_attitude_t packet;
-            mavlink_msg_attitude_decode(msg, &packet);
-
-            // set AHRS hil sensor
-            ahrs.setHil(packet.roll,packet.pitch,packet.yaw,packet.rollspeed,
-            packet.pitchspeed,packet.yawspeed);
-
-            // rad/sec
-            /*
-            Vector3f gyros;
-            gyros.x = (float)packet.rollspeed;
-            gyros.y = (float)packet.pitchspeed;
-            gyros.z = (float)packet.yawspeed;
-
-            imu.set_gyro(gyros);
-			*/
-            //imu.set_accel(accels);
-
-            // rad/sec            // JLN update - FOR HIL SIMULATION WITH AEROSIM
-            Vector3f gyros;
-            gyros.x = (float)packet.rollspeed / 1000.0;
-            gyros.y = (float)packet.pitchspeed / 1000.0;
-            gyros.z = (float)packet.yawspeed / 1000.0;
-
-            imu.set_gyro(gyros);
-
-            // m/s/s
-            Vector3f accels;
-            accels.x = (float)packet.roll * gravity / 1000.0;
-            accels.y = (float)packet.pitch * gravity / 1000.0;
-            accels.z = (float)packet.yaw * gravity / 1000.0;
-
-            imu.set_accel(accels);
-
-            break;
-        }
-#endif // HIL_MODE_ATTITUDE
-#endif // HIL_MODE != HIL_MODE_DISABLED && MAVLINK10 != ENABLED
-        
-#if MAVLINK10 == ENABLED && HIL_MODE != HIL_MODE_DISABLED
+#if HIL_MODE != HIL_MODE_DISABLED
 	case MAVLINK_MSG_ID_HIL_STATE:
 		{
 			mavlink_hil_state_t packet;
 			mavlink_msg_hil_state_decode(msg, &packet);
-			
+
 			float vel = sqrt((packet.vx * (float)packet.vx) + (packet.vy * (float)packet.vy));
 			float cog = wrap_360(ToDeg(atan2(packet.vx, packet.vy)) * 100);
-			
+
             // set gps hil sensor
-            g_gps->setHIL(packet.time_usec/1000.0,
+            g_gps->setHIL(packet.time_usec/1000,
                           packet.lat*1.0e-7, packet.lon*1.0e-7, packet.alt*1.0e-3,
                           vel*1.0e-2, cog*1.0e-2, 0, 10);
-                          
+
             if (gps_base_alt == 0) {
                 gps_base_alt = g_gps->altitude;
             }
@@ -1938,14 +1654,13 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             if (!home_is_set) {
                 init_home();
             }
-			
-			#if HIL_MODE == HIL_MODE_SENSORS
-			
+
+
 			// rad/sec
             Vector3f gyros;
-            gyros.x = (float)packet.xgyro / 1000.0;
-            gyros.y = (float)packet.ygyro / 1000.0;
-            gyros.z = (float)packet.zgyro / 1000.0;
+            gyros.x = packet.rollspeed;
+            gyros.y = packet.pitchspeed;
+            gyros.z = packet.yawspeed;
             // m/s/s
             Vector3f accels;
             accels.x = (float)packet.xacc / 1000.0;
@@ -1955,19 +1670,18 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             imu.set_gyro(gyros);
 
             imu.set_accel(accels);
-			
-			#else
+
 
 			// set AHRS hil sensor
             ahrs.setHil(packet.roll,packet.pitch,packet.yaw,packet.rollspeed,
             packet.pitchspeed,packet.yawspeed);
 
-#endif
+			
 
 			break;
 		}
-#endif //  MAVLINK10 == ENABLED && HIL_MODE != HIL_MODE_DISABLED
-        
+#endif //  HIL_MODE != HIL_MODE_DISABLED
+
 /*
 	case MAVLINK_MSG_ID_HEARTBEAT:
 		{
@@ -1987,7 +1701,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			mavlink_msg_gps_raw_decode(msg, &packet);
 
 			// set gps hil sensor
-			g_gps->setHIL(packet.usec/1000.0,packet.lat,packet.lon,packet.alt,
+			g_gps->setHIL(packet.usec/1000,packet.lat,packet.lon,packet.alt,
 			packet.v,packet.hdg,0,0);
 			break;
 		}
@@ -2041,6 +1755,40 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         }
 #endif // HIL_MODE
 
+#if CAMERA == ENABLED
+    case MAVLINK_MSG_ID_DIGICAM_CONFIGURE:
+		{
+			g.camera.configure_msg(msg);
+			break;
+		}
+
+    case MAVLINK_MSG_ID_DIGICAM_CONTROL:
+		{
+			g.camera.control_msg(msg);
+			break;
+		}
+#endif // CAMERA == ENABLED
+
+#if MOUNT == ENABLED
+    case MAVLINK_MSG_ID_MOUNT_CONFIGURE:
+		{
+			camera_mount.configure_msg(msg);
+			break;
+		}
+
+    case MAVLINK_MSG_ID_MOUNT_CONTROL:
+		{
+			camera_mount.control_msg(msg);
+			break;
+		}
+
+    case MAVLINK_MSG_ID_MOUNT_STATUS:
+		{
+			camera_mount.status_msg(msg);
+			break;
+		}
+#endif // MOUNT == ENABLED
+
     case MAVLINK_MSG_ID_RADIO:
         {
             mavlink_radio_t packet;
@@ -2063,6 +1811,42 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             }
             break;
         }
+
+#ifdef AP_LIMITS
+
+	// receive an AP_Limits fence point from GCS and store in EEPROM
+    	// receive a fence point from GCS and store in EEPROM
+        case MAVLINK_MSG_ID_FENCE_POINT: {
+            mavlink_fence_point_t packet;
+            mavlink_msg_fence_point_decode(msg, &packet);
+			if (packet.count != geofence_limit.fence_total()) {
+				send_text(SEVERITY_LOW,PSTR("bad fence point"));
+			} else {
+				Vector2l point;
+				point.x = packet.lat*1.0e7;
+				point.y = packet.lng*1.0e7;
+				geofence_limit.set_fence_point_with_index(point, packet.idx);
+			}
+            break;
+        }
+	// send a fence point to GCS
+	case MAVLINK_MSG_ID_FENCE_FETCH_POINT: {
+		mavlink_fence_fetch_point_t packet;
+		mavlink_msg_fence_fetch_point_decode(msg, &packet);
+		if (mavlink_check_target(packet.target_system, packet.target_component))
+			break;
+		if (packet.idx >= geofence_limit.fence_total()) {
+			send_text(SEVERITY_LOW,PSTR("bad fence point"));
+		} else {
+            Vector2l point = geofence_limit.get_fence_point_with_index(packet.idx);
+			mavlink_msg_fence_point_send(chan, 0, 0, packet.idx, geofence_limit.fence_total(),
+										 point.x*1.0e-7, point.y*1.0e-7);
+		}
+		break;
+	}
+
+
+#endif // AP_LIMITS ENABLED
 
 	} // end switch
 } // end handle mavlink

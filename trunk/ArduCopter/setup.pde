@@ -6,6 +6,7 @@
 static int8_t	setup_radio				(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_motors			(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_accel				(uint8_t argc, const Menu::arg *argv);
+static int8_t	setup_accel_scale		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_frame				(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_factory			(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_erase				(uint8_t argc, const Menu::arg *argv);
@@ -35,6 +36,7 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
 	{"frame",			setup_frame},
 	{"motors",			setup_motors},
 	{"level",			setup_accel},
+	{"accel",			setup_accel_scale},
 	{"modes",			setup_flightmodes},
 	{"battery",			setup_batt_monitor},
 	{"sonar",			setup_sonar},
@@ -252,6 +254,75 @@ setup_accel(uint8_t argc, const Menu::arg *argv)
 	return(0);
 }
 
+
+static int8_t
+setup_accel_scale(uint8_t argc, const Menu::arg *argv)
+{
+	#if CONFIG_ADC == ENABLED && HIL_MODE == HIL_MODE_DISABLED
+	int8_t accel_num;
+	float accel_avg = 0;
+
+	if (!strcmp_P(argv[1].str, PSTR("x"))) {
+		accel_num = 4;
+	}else if (!strcmp_P(argv[1].str, PSTR("y"))) {
+		accel_num = 5;
+	}else if (!strcmp_P(argv[1].str, PSTR("z"))) {
+		accel_num = 6;
+	}else{
+		Serial.printf_P(PSTR("x, y, or z\n"));
+		return 0;
+	}
+	print_hit_enter();
+	Serial.printf_P(PSTR("ADC\n"));
+
+			adc.Init(&timer_scheduler);       // APM ADC library initialization
+
+	int16_t low, high;
+
+	delay(1000);
+	accel_avg = adc.Ch(accel_num);
+	low = high = accel_avg;
+
+	while(1){
+		delay(50);
+		accel_avg = accel_avg * .95 + adc.Ch(accel_num) * .05;
+
+		if(accel_avg > high)
+			high = ceil(accel_avg);
+
+		if(accel_avg < low)
+			low = floor(accel_avg);
+
+		Serial.printf_P(PSTR("%1.2f, %d, %d\n"), accel_avg, low, high);
+
+		if(Serial.available() > 0){
+			if(wait_for_yes()){
+				if(accel_num == 4){
+					ins._x_high 	= high;
+					ins._x_low 		= low;
+					ins._x_high.save();
+					ins._x_low.save();
+				}else if(accel_num == 5){
+					ins._y_high 	= high;
+					ins._y_low 		= low;
+					ins._y_high.save();
+					ins._y_low.save();
+				}else{
+					ins._z_high 	= high;
+					ins._z_low 		= low;
+					ins._z_high.save();
+					ins._z_low.save();
+				}
+				print_done();
+			}
+			return (0);
+		}
+	}
+	#else
+	return 0;
+	#endif // CONFIG_ADC
+}
+
 static int8_t
 setup_frame(uint8_t argc, const Menu::arg *argv)
 {
@@ -431,12 +502,12 @@ setup_sonar(uint8_t argc, const Menu::arg *argv)
 	} else if (!strcmp_P(argv[1].str, PSTR("off"))) {
 		g.sonar_enabled.set_and_save(false);
 
-	} else if (argc > 1 && (argv[1].i >= 0 && argv[1].i <= 2)) {
+	} else if (argc > 1 && (argv[1].i >= 0 && argv[1].i <= 3)) {
 	    g.sonar_enabled.set_and_save(true);  // if you set the sonar type, surely you want it on
 		g.sonar_type.set_and_save(argv[1].i);
 
 	}else{
-		Serial.printf_P(PSTR("\nOp:[on, off, 0-2]\n"));
+		Serial.printf_P(PSTR("\nOp:[on, off, 0-3]\n"));
 		report_sonar();
 		return 0;
 	}
@@ -719,13 +790,13 @@ setup_mag_offset(uint8_t argc, const Menu::arg *argv)
 	int _max[3] = {0,0,0};
 
 	compass.read();
-	compass.calculate(0,0);	// roll = 0, pitch = 0
 
 	while(1){
 		delay(50);
+        float heading;
 
 		compass.read();
-		compass.calculate(0,0);	// roll = 0, pitch = 0
+		heading = compass.calculate_heading(0,0);	// roll = 0, pitch = 0
 
 		if(compass.mag_x < _min[0])	_min[0] = compass.mag_x;
 		if(compass.mag_y < _min[1])	_min[1] = compass.mag_y;
@@ -744,7 +815,7 @@ setup_mag_offset(uint8_t argc, const Menu::arg *argv)
 		// display all to user
 		Serial.printf_P(PSTR("Heading: %u, \t (%d, %d, %d), (%4.4f, %4.4f, %4.4f)\n"),
 
-				(uint16_t)(wrap_360(ToDeg(compass.heading) * 100)) /100,
+				(uint16_t)(wrap_360(ToDeg(heading) * 100)) /100,
 
 				compass.mag_x,
 				compass.mag_y,
@@ -824,7 +895,7 @@ static void report_sonar()
 	Serial.printf_P(PSTR("Sonar\n"));
 	print_divider();
 	print_enabled(g.sonar_enabled.get());
-	Serial.printf_P(PSTR("Type: %d (0=XL, 1=LV, 2=XLL)"), (int)g.sonar_type);
+	Serial.printf_P(PSTR("Type: %d (0=XL, 1=LV, 2=XLL, 3=HRLV)"), (int)g.sonar_type);
 	print_blanks(2);
 }
 
@@ -1086,6 +1157,24 @@ print_blanks(int num)
 		num--;
 		Serial.println("");
 	}
+}
+
+
+static bool
+wait_for_yes()
+{
+	int c;
+	Serial.flush();
+	Serial.printf_P(PSTR("Y to save\n"));
+
+	do {
+		c = Serial.read();
+	} while (-1 == c);
+
+	if (('y' == c) || ('Y' == c))
+		return true;
+	else
+		return false;
 }
 
 static void

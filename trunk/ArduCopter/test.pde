@@ -12,13 +12,13 @@ static int8_t	test_gps(uint8_t argc, 			const Menu::arg *argv);
 //static int8_t	test_tri(uint8_t argc, 			const Menu::arg *argv);
 //static int8_t	test_adc(uint8_t argc, 			const Menu::arg *argv);
 static int8_t	test_ins(uint8_t argc, 			const Menu::arg *argv);
-static int8_t	test_imu(uint8_t argc, 			const Menu::arg *argv);
+//static int8_t	test_imu(uint8_t argc, 			const Menu::arg *argv);
 //static int8_t	test_dcm_eulers(uint8_t argc, 	const Menu::arg *argv);
 //static int8_t	test_dcm(uint8_t argc, 			const Menu::arg *argv);
 //static int8_t	test_omega(uint8_t argc, 		const Menu::arg *argv);
 //static int8_t	test_stab_d(uint8_t argc, 		const Menu::arg *argv);
 static int8_t	test_battery(uint8_t argc, 		const Menu::arg *argv);
-//static int8_t	test_boost(uint8_t argc, 		const Menu::arg *argv);
+//static int8_t	test_toy(uint8_t argc, 		const Menu::arg *argv);
 //static int8_t	test_wp_nav(uint8_t argc, 		const Menu::arg *argv);
 //static int8_t	test_reverse(uint8_t argc, 		const Menu::arg *argv);
 static int8_t	test_tuning(uint8_t argc, 		const Menu::arg *argv);
@@ -30,7 +30,7 @@ static int8_t	test_sonar(uint8_t argc, 		const Menu::arg *argv);
 #endif
 static int8_t	test_mag(uint8_t argc, 			const Menu::arg *argv);
 static int8_t	test_optflow(uint8_t argc, 		const Menu::arg *argv);
-static int8_t	test_logging(uint8_t argc, 		const Menu::arg *argv);
+//static int8_t	test_logging(uint8_t argc, 		const Menu::arg *argv);
 //static int8_t	test_xbee(uint8_t argc, 		const Menu::arg *argv);
 static int8_t	test_eedump(uint8_t argc, 		const Menu::arg *argv);
 static int8_t	test_rawgps(uint8_t argc, 		const Menu::arg *argv);
@@ -66,7 +66,7 @@ const struct Menu::command test_menu_commands[] PROGMEM = {
 	{"gps",			test_gps},
 //	{"adc", 		test_adc},
 	{"ins", 		test_ins},
-	{"imu",			test_imu},
+//	{"imu",			test_imu},
 //	{"dcm",			test_dcm_eulers},
 	//{"omega",		test_omega},
 //	{"stab_d",		test_stab_d},
@@ -75,17 +75,17 @@ const struct Menu::command test_menu_commands[] PROGMEM = {
 	//{"tri",			test_tri},
 	{"relay",		test_relay},
 	{"wp",			test_wp},
-//	{"boost",		test_boost},
+//	{"toy",			test_toy},
 #if HIL_MODE != HIL_MODE_ATTITUDE
 	{"altitude",	test_baro},
 	{"sonar",		test_sonar},
 #endif
 	{"compass",		test_mag},
 	{"optflow",		test_optflow},
-//  {"xbee",		test_xbee},
+	//{"xbee",		test_xbee},
 	{"eedump",		test_eedump},
-	{"logging",		test_logging},
-	{"rawgps",		test_rawgps},
+//"logging",		test_logging},
+//	{"rawgps",		test_rawgps},
 //	{"mission",		test_mission},
 	//{"reverse",		test_reverse},
 	//{"wp",			test_wp_nav},
@@ -99,7 +99,7 @@ test_mode(uint8_t argc, const Menu::arg *argv)
 {
 	//Serial.printf_P(PSTR("Test Mode\n\n"));
 	test_menu.run();
-    return 0;
+	return 0;
 }
 
 static int8_t
@@ -125,33 +125,33 @@ test_radio_pwm(uint8_t argc, const Menu::arg *argv)
 		print_test_disabled();
 		return (0);
 	#else
-	print_hit_enter();
-	delay(1000);
+		print_hit_enter();
+		delay(1000);
 
-	while(1){
-		delay(20);
+		while(1){
+			delay(20);
 
-		// Filters radio input - adjust filters in the radio.pde file
-		// ----------------------------------------------------------
-		read_radio();
+			// Filters radio input - adjust filters in the radio.pde file
+			// ----------------------------------------------------------
+			read_radio();
 
-		// servo Yaw
-		//APM_RC.OutputCh(CH_7, g.rc_4.radio_out);
+			// servo Yaw
+			//APM_RC.OutputCh(CH_7, g.rc_4.radio_out);
 
-		Serial.printf_P(PSTR("IN: 1: %d\t2: %d\t3: %d\t4: %d\t5: %d\t6: %d\t7: %d\t8: %d\n"),
-							g.rc_1.radio_in,
-							g.rc_2.radio_in,
-							g.rc_3.radio_in,
-							g.rc_4.radio_in,
-							g.rc_5.radio_in,
-							g.rc_6.radio_in,
-							g.rc_7.radio_in,
-							g.rc_8.radio_in);
+			Serial.printf_P(PSTR("IN: 1: %d\t2: %d\t3: %d\t4: %d\t5: %d\t6: %d\t7: %d\t8: %d\n"),
+								g.rc_1.radio_in,
+								g.rc_2.radio_in,
+								g.rc_3.radio_in,
+								g.rc_4.radio_in,
+								g.rc_5.radio_in,
+								g.rc_6.radio_in,
+								g.rc_7.radio_in,
+								g.rc_8.radio_in);
 
-		if(Serial.available() > 0){
-			return (0);
+			if(Serial.available() > 0){
+				return (0);
+			}
 		}
-	}
 	#endif
 }
 
@@ -183,27 +183,30 @@ test_radio_pwm(uint8_t argc, const Menu::arg *argv)
 	}
 }*/
 
-/*
-static int8_t
-//test_boost(uint8_t argc, const Menu::arg *argv)
+
+/*static int8_t
+//test_toy(uint8_t argc, const Menu::arg *argv)
 {
-	print_hit_enter();
-	delay(1000);
-	int16_t temp = MINIMUM_THROTTLE;
+	int16_t yaw_rate;
+	int16_t roll_rate;
+	g.rc_1.control_in = -2500;
+	g.rc_2.control_in = 2500;
 
-	while(1){
-		delay(20);
-		g.rc_3.control_in = temp;
-		adjust_altitude();
-		Serial.printf("tmp:%d, boost: %d\n", temp, manual_boost);
-		temp++;
+	g.toy_yaw_rate = 3;
+	yaw_rate = g.rc_1.control_in / g.toy_yaw_rate;
+	roll_rate = ((int32_t)g.rc_2.control_in * (yaw_rate/100)) /40;
+	Serial.printf("yaw_rate, %d, roll_rate, %d\n", yaw_rate, roll_rate);
 
-		if(temp > MAXIMUM_THROTTLE){
-			return (0);
-	}
-}
-}
-//*/
+	g.toy_yaw_rate = 2;
+	yaw_rate = g.rc_1.control_in / g.toy_yaw_rate;
+	roll_rate = ((int32_t)g.rc_2.control_in * (yaw_rate/100)) /40;
+	Serial.printf("yaw_rate, %d, roll_rate, %d\n", yaw_rate, roll_rate);
+
+	g.toy_yaw_rate = 1;
+	yaw_rate = g.rc_1.control_in / g.toy_yaw_rate;
+	roll_rate = ((int32_t)g.rc_2.control_in * (yaw_rate/100)) /40;
+	Serial.printf("yaw_rate, %d, roll_rate, %d\n", yaw_rate, roll_rate);
+}*/
 
 static int8_t
 test_radio(uint8_t argc, const Menu::arg *argv)
@@ -334,7 +337,6 @@ test_radio(uint8_t argc, const Menu::arg *argv)
 				if(medium_loopCounter == 5){
                     Matrix3f m = dcm.get_dcm_matrix();
 					compass.read();		 				// Read magnetometer
-					compass.calculate(m);
                     compass.null_offsets();
 					medium_loopCounter = 0;
 				}
@@ -391,7 +393,7 @@ test_radio(uint8_t argc, const Menu::arg *argv)
 	}
 }
 */
-		
+
 
 /*
 #if HIL_MODE != HIL_MODE_ATTITUDE && CONFIG_ADC == ENABLED
@@ -419,46 +421,114 @@ test_radio(uint8_t argc, const Menu::arg *argv)
 }
 #endif
 */
-		
+
+/*
+static int8_t
+test_adc(uint8_t argc, const Menu::arg *argv)
+{
+	ins.init(&timer_scheduler);
+
+	int8_t mytimer = 0;
+	startup_ground();
+	Serial.println("OK");
+
+	while(1){
+		// We want this to execute fast
+		// ----------------------------
+		uint32_t timer 			= micros();
+
+		if ((timer - fast_loopTimer) >= 10000 && imu.new_data_available()) {
+			G_Dt 				= (float)(timer - fast_loopTimer) / 1000000.f;		// used by PI Loops
+			fast_loopTimer 		= timer;
+
+			read_AHRS();
+
+			//calc_inertia();
+			accels_rotated		= ahrs.get_dcm_matrix() * imu.get_accel();
+			//accels_rotated		+= accels_offset;						// skew accels to account for long term error using calibration
+
+			mytimer++;
+
+			if ((timer - fiftyhz_loopTimer) >= 20000) {
+				fiftyhz_loopTimer		= timer;
+				//sensed_loc.lng = sensed_loc.lat = sensed_loc.alt = 0;
+
+				// position fix
+				//inertial_error_correction();
+			}
+
+			if (mytimer >= 10){
+				float test = sqrt(sq(accels_rotated.x) + sq(accels_rotated.y) + sq(accels_rotated.z)) / 9.80665;
+
+				Vector3f _accels = imu.get_accel();
+				mytimer = 0;
+
+
+				Serial.printf("%1.4f, %1.4f, %1.4f  |   %1.4f, %1.4f, %1.4f   |  %d, %1.4f, %d, %1.4f \n",
+									_accels.x,
+									_accels.y,
+									_accels.z,
+									accels_rotated.x,
+									accels_rotated.y,
+									accels_rotated.z,
+									test);
+
+
+			}
+
+			if(Serial.available() > 0){
+				return (0);
+			}
+		}
+	}
+	return (0);
+}
+*/
+
 static int8_t
 test_ins(uint8_t argc, const Menu::arg *argv)
-			{
+{
 	#if defined( __AVR_ATmega1280__ )  // test disabled to save code size for 1280
 		print_test_disabled();
 		return (0);
 	#else
-    float gyro[3], accel[3], temp;
-	print_hit_enter();
-	Serial.printf_P(PSTR("InertialSensor\n"));
-	delay(1000);
+		float gyro[3], accel[3], temp;
+		print_hit_enter();
+		Serial.printf_P(PSTR("InertialSensor\n"));
+		delay(1000);
 
-    ins.init(&timer_scheduler);
+		ins.init(&timer_scheduler);
 
-    delay(50);
+		delay(50);
 
-	while(1){
-        ins.update();
-        ins.get_gyros(gyro);
-        ins.get_accels(accel);
-        temp = ins.temperature();
+		while(1){
+			ins.update();
+			ins.get_gyros(gyro);
+			ins.get_accels(accel);
+			temp = ins.temperature();
 
-        Serial.printf_P(PSTR("g"));
+			float test = sqrt(sq(accel[0]) + sq(accel[1]) + sq(accel[2])) / 9.80665;
 
-        for (int i = 0; i < 3; i++) {
-            Serial.printf_P(PSTR(" %7.4f"), gyro[i]);
+			Serial.printf_P(PSTR("g"));
+
+			for (int i = 0; i < 3; i++) {
+				Serial.printf_P(PSTR(" %7.4f"), gyro[i]);
 			}
 
-        Serial.printf_P(PSTR(" a"));
+			Serial.printf_P(PSTR(" a"));
 
-        for (int i = 0; i < 3; i++) {
-            Serial.printf_P(PSTR(" %7.4f"),accel[i]);
-        }
-        Serial.printf_P(PSTR(" t %7.4f \n"), temp);
-		delay(40);
-		if(Serial.available() > 0){
-			return (0);
-		} 
-	}
+			for (int i = 0; i < 3; i++) {
+				Serial.printf_P(PSTR(" %7.4f"),accel[i]);
+			}
+
+			Serial.printf_P(PSTR(" t %7.4f "), temp);
+			Serial.printf_P(PSTR(" | %7.4f \n"), test);
+
+			delay(40);
+			if(Serial.available() > 0){
+				return (0);
+			}
+		}
 	#endif
 }
 
@@ -466,6 +536,7 @@ test_ins(uint8_t argc, const Menu::arg *argv)
 /*
   test the IMU interface
  */
+/*
 static int8_t
 test_imu(uint8_t argc, const Menu::arg *argv)
 {
@@ -473,34 +544,115 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 		print_test_disabled();
 		return (0);
 	#else
-  Vector3f gyro;
-  Vector3f accel;
+		Vector3f gyro;
+		Vector3f accel;
 
 		imu.init(IMU::WARM_START, delay, flash_leds, &timer_scheduler);
 
-	report_imu();
+		report_imu();
 		imu.init_gyro(delay, flash_leds);
-	report_imu();
+		report_imu();
 
-	print_hit_enter();
-	delay(1000);
+		print_hit_enter();
+		delay(1000);
 
-	while(1){
-		delay(40);
+		while(1){
+			delay(40);
 
-        imu.update();
-        gyro = imu.get_gyro();
-        accel = imu.get_accel();
+			imu.update();
+			gyro = imu.get_gyro();
+			accel = imu.get_accel();
 
-        Serial.printf_P(PSTR("g %8.4f %8.4f %8.4f"), gyro.x, gyro.y, gyro.z);
-        Serial.printf_P(PSTR("  a %8.4f %8.4f %8.4f\n"), accel.x, accel.y, accel.z);
+			Serial.printf_P(PSTR("g %8.4f %8.4f %8.4f"), gyro.x, gyro.y, gyro.z);
+			Serial.printf_P(PSTR("  a %8.4f %8.4f %8.4f\n"), accel.x, accel.y, accel.z);
 
-		if(Serial.available() > 0){
-			return (0);
+			if(Serial.available() > 0){
+				return (0);
+			}
 		}
-    }
 	#endif
 }
+*/
+
+/*
+static int8_t
+test_imu(uint8_t argc, const Menu::arg *argv)
+{
+	print_hit_enter();
+	Serial.printf_P(PSTR("ADC\n"));
+	adc.Init(&timer_scheduler);
+
+	delay(1000);
+	Vector3f avg;
+	avg.x = adc.Ch(4);
+	avg.y = adc.Ch(5);
+	avg.z = adc.Ch(6);
+
+	//Serial.printf_P(PSTR("init %.2f, %.2f, %.2f\n"), avg.x, avg.y, avg.z);
+	Vector3f low = avg;
+	Vector3f high = avg;
+
+	while(1){
+		delay(100);
+		avg.x = avg.x * .95 + adc.Ch(4) * .05;
+		avg.y = avg.y * .95 + adc.Ch(5) * .05;
+		avg.z = avg.z * .95 + adc.Ch(6) * .05;
+
+		if(avg.x > high.x)
+			high.x = ceil(high.x *.9 + avg.x * .1);
+
+		if(avg.y > high.y)
+			high.y = ceil(high.y *.9 + avg.y * .1);
+
+		if(avg.z > high.z)
+			high.z = ceil(high.z *.9 + avg.z * .1);
+
+		//
+		if(avg.x < low.x)
+			low.x = floor(low.x *.9 + avg.x * .1);
+
+		if(avg.y < low.y)
+			low.y = floor(low.y *.9 + avg.y * .1);
+
+		if(avg.z < low.z)
+			low.z = floor(low.z *.9 + avg.z * .1);
+
+		Serial.printf_P(PSTR("%.2f, %.2f, %.2f \t| %.2f, %.2f, %.2f \t| %.2f, %.2f, %.2f\n"), avg.x, avg.y, avg.z, low.x, low.y, low.z, high.x, high.y, high.z);
+
+		//Serial.printf_P(PSTR("%.2f, %.2f, %.2f \t| %d, %d\n"), avg.x, avg.y, avg.z, _count[0], _sum[0]);
+
+		//Serial.println();
+		if(Serial.available() > 0){
+			Serial.printf_P(PSTR("Y to save\n"));
+			int c;
+			c = Serial.read();
+
+			do {
+				c = Serial.read();
+			} while (-1 == c);
+
+			if (('y' == c) || ('Y' == c)){
+				ins._x_high 	= high.x;
+				ins._x_low 		= low.x;
+				ins._y_high 	= high.y;
+				ins._y_low 		= low.y;
+				ins._z_high 	= high.z;
+				ins._z_low 		= low.z;
+				ins._x_high.save();
+				ins._x_low.save();
+				ins._y_high.save();
+				ins._y_low.save();
+				ins._z_high.save();
+				ins._z_low.save();
+				Serial.printf_P(PSTR("saved\n"));
+			}
+
+			return (0);
+		}
+	}
+}
+*/
+
 
 
 /*
@@ -515,7 +667,7 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 	//dcm.kp_yaw(0.02);
 	//dcm.ki_yaw(0);
 
-    imu.init(IMU::WARM_START, delay, flash_leds, &timer_scheduler);
+	imu.init(IMU::WARM_START, delay, flash_leds, &timer_scheduler);
 
 	report_imu();
 	imu.init_gyro(delay, flash_leds);
@@ -552,12 +704,10 @@ test_imu(uint8_t argc, const Menu::arg *argv)
 
 				if(g.compass_enabled){
 					compass.read();		 				// Read magnetometer
-                    Matrix3f m = dcm.get_dcm_matrix();
-					compass.calculate(m);
                     compass.null_offsets();
 				}
 			}
-            fast_loopTimer = millis();
+			fast_loopTimer = millis();
 		}
 		if(Serial.available() > 0){
 			return (0);
@@ -574,35 +724,35 @@ test_gps(uint8_t argc, const Menu::arg *argv)
 		print_test_disabled();
 		return (0);
 	#else
-	print_hit_enter();
-	delay(1000);
+		print_hit_enter();
+		delay(1000);
 
-	while(1){
-		delay(333);
+		while(1){
+			delay(333);
 
-		// Blink GPS LED if we don't have a fix
-		// ------------------------------------
-		update_GPS_light();
+			// Blink GPS LED if we don't have a fix
+			// ------------------------------------
+			update_GPS_light();
 
-		g_gps->update();
+			g_gps->update();
 
-		if (g_gps->new_data){
+			if (g_gps->new_data){
 				Serial.printf_P(PSTR("Lat: "));
 				print_latlon(&Serial, g_gps->latitude);
 				Serial.printf_P(PSTR(", Lon "));
 				print_latlon(&Serial, g_gps->longitude);
 				Serial.printf_P(PSTR(", Alt: %ldm, #sats: %d\n"),
-					g_gps->altitude/100,
-					g_gps->num_sats);
-			g_gps->new_data = false;
-		}else{
-			Serial.print(".");
+						g_gps->altitude/100,
+						g_gps->num_sats);
+				g_gps->new_data = false;
+			}else{
+				Serial.print(".");
+			}
+			if(Serial.available() > 0){
+				return (0);
+			}
 		}
-		if(Serial.available() > 0){
-			return (0);
-		}
-	}
-	return 0;
+		return 0;
 	#endif
 }
 
@@ -785,36 +935,36 @@ test_battery(uint8_t argc, const Menu::arg *argv)
 			delay(100);
 		}
 		Serial.flush();
-	print_hit_enter();
+		print_hit_enter();
 
 		// allow motors to spin
 		motors.enable();
 		motors.armed(true);
 
-	while(1){
-		delay(100);
-		read_radio();
-		read_battery();
-		if (g.battery_monitoring == 3){
-			Serial.printf_P(PSTR("V: %4.4f\n"),
-								battery_voltage1,
-								current_amps1,
-								current_total1);
-		} else {
-			Serial.printf_P(PSTR("V: %4.4f, A: %4.4f, Ah: %4.4f\n"),
-								battery_voltage1,
-								current_amps1,
-								current_total1);
-		}
+		while(1){
+			delay(100);
+			read_radio();
+			read_battery();
+			if (g.battery_monitoring == 3){
+				Serial.printf_P(PSTR("V: %4.4f\n"),
+									battery_voltage1,
+									current_amps1,
+									current_total1);
+			} else {
+				Serial.printf_P(PSTR("V: %4.4f, A: %4.4f, Ah: %4.4f\n"),
+									battery_voltage1,
+									current_amps1,
+									current_total1);
+			}
 			motors.throttle_pass_through();
 
-		if(Serial.available() > 0){
+			if(Serial.available() > 0){
 				motors.armed(false);
-			return (0);
+				return (0);
+			}
 		}
-	}
 		motors.armed(false);
-	return (0);
+		return (0);
 	#endif
 }
 
@@ -825,24 +975,24 @@ static int8_t test_relay(uint8_t argc, const Menu::arg *argv)
 		return (0);
 	#else
 
-	print_hit_enter();
-	delay(1000);
+		print_hit_enter();
+		delay(1000);
 
-	while(1){
-		Serial.printf_P(PSTR("Relay on\n"));
-		relay.on();
-		delay(3000);
-		if(Serial.available() > 0){
-			return (0);
-		}
+		while(1){
+			Serial.printf_P(PSTR("Relay on\n"));
+			relay.on();
+			delay(3000);
+			if(Serial.available() > 0){
+				return (0);
+			}
 
-		Serial.printf_P(PSTR("Relay off\n"));
-		relay.off();
-		delay(3000);
-		if(Serial.available() > 0){
-			return (0);
+			Serial.printf_P(PSTR("Relay off\n"));
+			relay.off();
+			delay(3000);
+			if(Serial.available() > 0){
+				return (0);
+			}
 		}
-	}
 	#endif
 }
 
@@ -861,7 +1011,7 @@ test_wp(uint8_t argc, const Menu::arg *argv)
 	}
 
 	Serial.printf_P(PSTR("%d wp\n"), (int)g.command_total);
-	Serial.printf_P(PSTR("Hit rad: %d\n"), (int)g.waypoint_radius);
+	Serial.printf_P(PSTR("Hit rad: %dm\n"), (int)g.waypoint_radius);
 	//Serial.printf_P(PSTR("Loiter radius: %d\n\n"), (int)g.loiter_radius);
 
 	report_wp();
@@ -869,25 +1019,27 @@ test_wp(uint8_t argc, const Menu::arg *argv)
 	return (0);
 }
 
-static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
-	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
-		print_test_disabled();
-		return (0);
-	#else
+//static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
+	/*
    print_hit_enter();
    delay(1000);
-    while(1){
-        if (Serial2.available()){
-					digitalWrite(C_LED_PIN, LED_ON); 		// Blink C LED if we are receiving data from GPS
-					Serial.write(Serial2.read());
-					digitalWrite(C_LED_PIN, LED_OFF);
-				}
-		if(Serial.available() > 0){
-			return (0);
-		}
+	while(1){
+		   if (Serial3.available()){
+				   digitalWrite(B_LED_PIN, LED_ON); // Blink Yellow LED if we are sending data to GPS
+				   Serial1.write(Serial3.read());
+				   digitalWrite(B_LED_PIN, LED_OFF);
+		   }
+		   if (Serial1.available()){
+				   digitalWrite(C_LED_PIN, LED_ON); // Blink Red LED if we are receiving data from GPS
+				   Serial3.write(Serial1.read());
+				   digitalWrite(C_LED_PIN, LED_OFF);
+		   }
+		   if(Serial.available() > 0){
+				   return (0);
+	 }
    }
-	#endif
-}
+   */
+ //}
 
 /*static int8_t
 //test_xbee(uint8_t argc, const Menu::arg *argv)
@@ -897,10 +1049,10 @@ static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
 	Serial.printf_P(PSTR("Begin XBee X-CTU Range and RSSI Test:\n"));
 
 	while(1){
-  	    if (Serial3.available())
+  		if (Serial3.available())
    			Serial3.write(Serial3.read());
 
-		if(Serial.available() > 0){ 
+		if(Serial.available() > 0){
 			return (0);
 		}
 	}
@@ -915,25 +1067,25 @@ test_baro(uint8_t argc, const Menu::arg *argv)
 		print_test_disabled();
 		return (0);
 	#else
-	print_hit_enter();
-	init_barometer();
+		print_hit_enter();
+		init_barometer();
 
-	while(1){
-		delay(100);
-		int32_t alt = read_barometer(); // calls barometer.read()
+		while(1){
+			delay(100);
+			int32_t alt = read_barometer(); // calls barometer.read()
 
-	        int32_t pres = barometer.get_pressure();
+			int32_t pres = barometer.get_pressure();
 			int16_t temp = barometer.get_temperature();
-	        int32_t raw_pres = barometer.get_raw_pressure();
-	        int32_t raw_temp = barometer.get_raw_temp();
+			int32_t raw_pres = barometer.get_raw_pressure();
+			int32_t raw_temp = barometer.get_raw_temp();
 			Serial.printf_P(PSTR("alt: %ldcm, pres: %ldmbar, temp: %d/100degC,"
-	                             " raw pres: %ld, raw temp: %ld\n"),
+								 " raw pres: %ld, raw temp: %ld\n"),
 								 alt, pres ,temp, raw_pres, raw_temp);
-		if(Serial.available() > 0){
-			return (0);
+			if(Serial.available() > 0){
+				return (0);
+			}
 		}
-	}
-	return 0;
+		return 0;
 	#endif
 }
 #endif
@@ -946,33 +1098,33 @@ test_mag(uint8_t argc, const Menu::arg *argv)
 		print_test_disabled();
 		return (0);
 	#else
-	if(g.compass_enabled) {
-		print_hit_enter();
+		if(g.compass_enabled) {
+			print_hit_enter();
 
-		while(1){
-			delay(100);
-			if (compass.read()) {
-			compass.calculate(ahrs.get_dcm_matrix());
-			Vector3f maggy = compass.get_offsets();
-			Serial.printf_P(PSTR("Heading: %ld, XYZ: %d, %d, %d\n"),
-						(wrap_360(ToDeg(compass.heading) * 100)) /100,
-						compass.mag_x,
-						compass.mag_y,
-						compass.mag_z);
-            } else {
-                Serial.println_P(PSTR("not healthy"));
-            }
+			while(1){
+				delay(100);
+				if (compass.read()) {
+					float heading = compass.calculate_heading(ahrs.get_dcm_matrix());
+					Vector3f maggy = compass.get_offsets();
+					Serial.printf_P(PSTR("Heading: %ld, XYZ: %d, %d, %d\n"),
+									(wrap_360(ToDeg(heading) * 100)) /100,
+									compass.mag_x,
+									compass.mag_y,
+									compass.mag_z);
+				} else {
+					Serial.println_P(PSTR("not healthy"));
+				}
 
-			if(Serial.available() > 0){
-				return (0);
+				if(Serial.available() > 0){
+					return (0);
+				}
 			}
+		} else {
+			Serial.printf_P(PSTR("Compass: "));
+			print_enabled(false);
+			return (0);
 		}
-	} else {
-		Serial.printf_P(PSTR("Compass: "));
-		print_enabled(false);
 		return (0);
-	}
-	return (0);
 	#endif
 }
 
@@ -1075,41 +1227,44 @@ test_optflow(uint8_t argc, const Menu::arg *argv)
 		Serial.printf_P(PSTR("OptFlow: "));
 		print_enabled(false);
 	}
-		return (0);
+	return (0);
 
 	#else
 		print_test_disabled();
 		return (0);
 	#endif
-	}
+}
 
 
 /*
   test the dataflash is working
  */
 
-static int8_t
+/*static int8_t
 test_logging(uint8_t argc, const Menu::arg *argv)
 {
-#if LOGGING_ENABLED == ENABLED
-	Serial.println_P(PSTR("Testing dataflash logging"));
-    if (!DataFlash.CardInserted()) {
-        Serial.println_P(PSTR("ERR: No dataflash inserted"));
-        return 0;
-    }
-    DataFlash.ReadManufacturerID();
-    Serial.printf_P(PSTR("Manufacturer: 0x%02x   Device: 0x%04x\n"),
-                    (unsigned)DataFlash.df_manufacturer,
-                    (unsigned)DataFlash.df_device);
-    Serial.printf_P(PSTR("NumPages: %u  PageSize: %u\n"),
-                    (unsigned)DataFlash.df_NumPages+1,
-                    (unsigned)DataFlash.df_PageSize);
-    DataFlash.StartRead(DataFlash.df_NumPages+1);
-    Serial.printf_P(PSTR("Format version: %lx  Expected format version: %lx\n"),
-                    (unsigned long)DataFlash.ReadLong(), (unsigned long)DF_LOGGING_FORMAT);
-    return 0;
-#endif
-}
+	#if defined( __AVR_ATmega1280__ )  // test disabled to save code size for 1280
+		print_test_disabled();
+		return (0);
+	#else
+		Serial.println_P(PSTR("Testing dataflash logging"));
+		if (!DataFlash.CardInserted()) {
+			Serial.println_P(PSTR("ERR: No dataflash inserted"));
+			return 0;
+		}
+		DataFlash.ReadManufacturerID();
+		Serial.printf_P(PSTR("Manufacturer: 0x%02x   Device: 0x%04x\n"),
+						(unsigned)DataFlash.df_manufacturer,
+						(unsigned)DataFlash.df_device);
+		Serial.printf_P(PSTR("NumPages: %u  PageSize: %u\n"),
+						(unsigned)DataFlash.df_NumPages+1,
+						(unsigned)DataFlash.df_PageSize);
+		DataFlash.StartRead(DataFlash.df_NumPages+1);
+		Serial.printf_P(PSTR("Format version: %lx  Expected format version: %lx\n"),
+						(unsigned long)DataFlash.ReadLong(), (unsigned long)DF_LOGGING_FORMAT);
+		return 0;
+	#endif
+}*/
 
 
 /*
@@ -1128,11 +1283,11 @@ static int8_t
 //}
 
 	// clear home
-	{Location t = {0,   	0,      0, 		0, 		0, 			0};
+	{Location t = {0,   	0,	  0, 		0, 		0, 			0};
 	set_cmd_with_index(t,0);}
 
 	// CMD										opt						pitch   	alt/cm
-	{Location t = {MAV_CMD_NAV_TAKEOFF,   		WP_OPTION_RELATIVE,      0, 		100, 		0, 			0};
+	{Location t = {MAV_CMD_NAV_TAKEOFF,   		WP_OPTION_RELATIVE,	  0, 		100, 		0, 			0};
 	set_cmd_with_index(t,1);}
 
 	if (!strcmp_P(argv[1].str, PSTR("wp"))) {
@@ -1141,25 +1296,25 @@ static int8_t
 		{Location t = {MAV_CMD_NAV_WAYPOINT,  			WP_OPTION_RELATIVE,		15, 0, 0, 0};
 		set_cmd_with_index(t,2);}
 		// CMD											opt
-		{Location t = {MAV_CMD_NAV_RETURN_TO_LAUNCH,   	WP_OPTION_YAW,      0, 		0, 		0,		0};
+		{Location t = {MAV_CMD_NAV_RETURN_TO_LAUNCH,   	WP_OPTION_YAW,	  0, 		0, 		0,		0};
 		set_cmd_with_index(t,3);}
 
 		// CMD											opt
-		{Location t = {MAV_CMD_NAV_LAND,				0,      0, 		0, 		0,		0};
+		{Location t = {MAV_CMD_NAV_LAND,				0,	  0, 		0, 		0,		0};
 		set_cmd_with_index(t,4);}
 
 	} else {
 		//2250 = 25 meteres
 		// CMD										opt		p1		//alt		//NS		//WE
-		{Location t = {MAV_CMD_NAV_LOITER_TIME,   	0,      10,  	0, 			0,			0}; // 19
+		{Location t = {MAV_CMD_NAV_LOITER_TIME,   	0,	  10,  	0, 			0,			0}; // 19
 		set_cmd_with_index(t,2);}
 
 		// CMD										opt		dir		angle/deg	deg/s	relative
-		{Location t = {MAV_CMD_CONDITION_YAW,		0,      1, 		360, 		60, 	1};
+		{Location t = {MAV_CMD_CONDITION_YAW,		0,	  1, 		360, 		60, 	1};
 		set_cmd_with_index(t,3);}
 
 		// CMD										opt
-		{Location t = {MAV_CMD_NAV_LAND,			0,      0, 		0, 			0, 		0};
+		{Location t = {MAV_CMD_NAV_LAND,			0,	  0, 		0, 			0, 		0};
 		set_cmd_with_index(t,4);}
 
 	}

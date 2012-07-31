@@ -17,11 +17,14 @@
 #define YAW_ACRO 			1
 #define YAW_AUTO 			2
 #define YAW_LOOK_AT_HOME 	3
+#define YAW_TOY 			4	// THOR This is the Yaw mode
+
 
 #define ROLL_PITCH_STABLE 	0
 #define ROLL_PITCH_ACRO 	1
 #define ROLL_PITCH_AUTO		2
 #define ROLL_PITCH_STABLE_OF	3
+#define ROLL_PITCH_TOY		4	// THOR This is the Roll and Pitch mode
 
 #define THROTTLE_MANUAL 	0
 #define THROTTLE_HOLD 		1
@@ -134,7 +137,7 @@
 #define POSITION 8			// AUTO control
 #define LAND 9				// AUTO control
 #define OF_LOITER 10			// Hold a single location using optical flow sensor
-#define APPROACH 11			// AUTO control
+#define TOY 11				// THOR Enum for Toy mode
 #define NUM_MODES 12
 
 #define SIMPLE_1 1
@@ -190,6 +193,7 @@
 #define CH6_LOITER_RATE_KD 23
 
 #define CH6_AHRS_YAW_KP 30
+#define CH6_AHRS_KP		31
 
 
 // nav byte mask
@@ -208,6 +212,7 @@
 #define WP_MODE 2
 #define CIRCLE_MODE 3
 #define NO_NAV_MODE 4
+#define TOY_MODE 5			// THOR This mode defines the Virtual WP following mode
 
 // Waypoint options
 #define MASK_OPTIONS_RELATIVE_ALT 		1
@@ -253,6 +258,7 @@ enum ap_message {
     MSG_NEXT_WAYPOINT,
     MSG_NEXT_PARAM,
     MSG_STATUSTEXT,
+    MSG_LIMITS_STATUS,
     MSG_AHRS,
     MSG_SIMSTATE,
     MSG_HWSTATUS,
@@ -376,7 +382,13 @@ enum gcs_severity {
 #define WP_SIZE 15
 
 #define ONBOARD_PARAM_NAME_LENGTH 15
-#define MAX_WAYPOINTS  ((EEPROM_MAX_ADDR - WP_START_BYTE) / WP_SIZE) - 1 // - 1 to be safe
+
+// fence points are stored at the end of the EEPROM
+#define MAX_FENCEPOINTS 20
+#define FENCE_WP_SIZE sizeof(Vector2l)
+#define FENCE_START_BYTE (EEPROM_MAX_ADDR-(MAX_FENCEPOINTS*FENCE_WP_SIZE))
+
+#define MAX_WAYPOINTS  ((FENCE_START_BYTE - WP_START_BYTE) / WP_SIZE) - 1 // - 1 to be safe
 
 // mark a function as not to be inlined
 #define NOINLINE __attribute__((noinline))

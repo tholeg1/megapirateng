@@ -53,6 +53,10 @@
 // PIRATES HARDWARE DEFAULTS
 //
 #if CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
+	#ifndef LED_SEQUENCER
+		#define LED_SEQUENCER DISABLED
+	#endif
+
 	#ifndef PIRATES_SENSOR_BOARD
 		#define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
 	#endif
@@ -92,7 +96,7 @@
 	#endif
 
 	#ifndef SERIAL_PPM
-		#define SERIAL_PPM	0
+		#define SERIAL_PPM	DISABLED
 	#endif
 
 	#ifndef TX_CHANNEL_SET
@@ -117,14 +121,6 @@
 #  define CONFIG_BARO     AP_BARO_MS5611
 # endif
 #endif
-
-//////////////////////////////////////////////////////////////////////////////
-// MAVLINK10
-//
-#ifndef MAVLINK10
-# define MAVLINK10	ENABLED
-#endif
-
 
 //////////////////////////////////////////////////////////////////////////////
 // FRAME_CONFIG
@@ -165,7 +161,7 @@
 // PWM control
 //
 #ifndef INSTANT_PWM
-# define INSTANT_PWM	ENABLED
+# define INSTANT_PWM	DISABLED
 #endif
 
 // default RC speed in Hz if INSTANT_PWM is not used
@@ -226,7 +222,7 @@
 //
 
 #ifndef COPTER_LEDS
-#define COPTER_LEDS ENABLED
+	#define COPTER_LEDS DISABLED
 #endif
 
 #define COPTER_LED_ON		HIGH
@@ -241,9 +237,6 @@
 #define COPTER_LED_6 AN9 	// Motor LED
 #define COPTER_LED_7 AN10 	// Motor LED
 #define COPTER_LED_8 AN11 	// Motor LED
-#ifndef COPTER_LEDS
-#define COPTER_LEDS ENABLED
-#endif
 #elif CONFIG_APM_HARDWARE == APM_HARDWARE_APM1
 #define COPTER_LED_1 AN8  	// Motor or Aux LED
 #define COPTER_LED_2 AN9  	// Motor LED
@@ -253,13 +246,7 @@
 #define COPTER_LED_6 AN13 	// Motor LED
 #define COPTER_LED_7 AN14 	// Motor LED
 #define COPTER_LED_8 AN15 	// Motor LED
-#ifndef COPTER_LEDS
-#define COPTER_LEDS ENABLED
-#endif
 #elif CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
-#ifndef COPTER_LEDS
-#define COPTER_LEDS DISABLED
-#endif
 #define COPTER_LED_1 55  	// Motor or Aux LED
 #define COPTER_LED_2 56  	// Motor LED
 #define COPTER_LED_3 57 	// Motor or GPS LED
@@ -442,16 +429,6 @@
 
 
 //////////////////////////////////////////////////////////////////////////////
-//  CAMERA GAINS
-#ifndef CAM_ROLL_GAIN
-# define CAM_ROLL_GAIN			1.0
-#endif
-#ifndef CAM_PITCH_GAIN
-# define CAM_PITCH_GAIN			1.0
-#endif
-
-
-//////////////////////////////////////////////////////////////////////////////
 //  OPTICAL_FLOW
 #if defined( __AVR_ATmega2560__ )  // determines if optical flow code is included
   //#define OPTFLOW_ENABLED
@@ -537,14 +514,14 @@
 # define THROTTLE_FAILSAFE_ACTION	2
 #endif
 #ifndef MINIMUM_THROTTLE
-# define MINIMUM_THROTTLE	200
+# define MINIMUM_THROTTLE	130
 #endif
 #ifndef MAXIMUM_THROTTLE
 # define MAXIMUM_THROTTLE	1000
 #endif
 
 #ifndef AUTO_LAND_TIME
-# define AUTO_LAND_TIME	20
+# define AUTO_LAND_TIME	5
 #endif
 
 
@@ -574,6 +551,28 @@
 
 #ifndef TOP_BOTTOM_RATIO
 # define TOP_BOTTOM_RATIO	1.00
+#endif
+
+
+//////////////////////////////////////////////////////////////////////////////
+// CAMERA TRIGGER AND CONTROL
+//
+#ifndef CAMERA
+# define CAMERA		ENABLED
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// MOUNT (ANTENNA OR CAMERA)
+//
+#ifndef MOUNT
+# define MOUNT		ENABLED
+#endif
+
+#if defined( __AVR_ATmega1280__ ) && MOUNT == ENABLED
+// The small ATmega1280 chip does not have enough memory for camera support
+// so disable CLI, this will allow camera support and other improvements to fit.
+// This should almost have no side effects, because the APM planner can now do a complete board setup.
+#define CLI_ENABLED DISABLED
 #endif
 
 
@@ -651,14 +650,17 @@
 # define SUPER_SIMPLE		DISABLED
 #endif
 
-// RTL Mode
-#ifndef RTL_AUTO_LAND
-# define RTL_AUTO_LAND 		ENABLED
+#ifndef SUPER_SIMPLE_RADIUS
+# define SUPER_SIMPLE_RADIUS	1000
 #endif
 
-// RTL Approach Delay in seconds
-#ifndef RTL_APPROACH_DELAY
-# define RTL_APPROACH_DELAY	20
+// RTL Mode
+#ifndef RTL_APPROACH_ALT
+# define RTL_APPROACH_ALT 	200 // cm!!!
+#endif
+
+#ifndef RTL_HOLD_ALT
+# define RTL_HOLD_ALT 1500		// height to return to Home in CM, 0 = Maintain current altitude
 #endif
 
 
@@ -684,19 +686,19 @@
 #ifdef MOTORS_JD880
 # define STABILIZE_ROLL_P 		3.7
 # define STABILIZE_ROLL_I 		0.0
-# define STABILIZE_ROLL_IMAX 	40.0		// degrees
+# define STABILIZE_ROLL_IMAX	8.0		// degrees
 # define STABILIZE_PITCH_P		3.7
 # define STABILIZE_PITCH_I		0.0
-# define STABILIZE_PITCH_IMAX	40.0		// degrees
+# define STABILIZE_PITCH_IMAX	8.0		// degrees
 #endif
 
 #ifdef MOTORS_JD850
 # define STABILIZE_ROLL_P 		4.2
 # define STABILIZE_ROLL_I 		0.0
-# define STABILIZE_ROLL_IMAX 	        40.0		// degrees
+# define STABILIZE_ROLL_IMAX 	8.0		// degrees
 # define STABILIZE_PITCH_P		4.2
 # define STABILIZE_PITCH_I		0.0
-# define STABILIZE_PITCH_IMAX	        40.0		// degrees
+# define STABILIZE_PITCH_IMAX	8.0		// degrees
 #endif
 
 
@@ -719,30 +721,30 @@
 # define STABILIZE_ROLL_P 		4.5
 #endif
 #ifndef STABILIZE_ROLL_I
-# define STABILIZE_ROLL_I 		0.1
+# define STABILIZE_ROLL_I 		0.01
 #endif
 #ifndef STABILIZE_ROLL_IMAX
-# define STABILIZE_ROLL_IMAX 	40		// degrees
+# define STABILIZE_ROLL_IMAX 	8.0		// degrees
 #endif
 
 #ifndef STABILIZE_PITCH_P
 # define STABILIZE_PITCH_P		4.5
 #endif
 #ifndef STABILIZE_PITCH_I
-# define STABILIZE_PITCH_I		0.1
+# define STABILIZE_PITCH_I		0.01
 #endif
 #ifndef STABILIZE_PITCH_IMAX
-# define STABILIZE_PITCH_IMAX	40		// degrees
+# define STABILIZE_PITCH_IMAX	8.0		// degrees
 #endif
 
 #ifndef  STABILIZE_YAW_P
 # define STABILIZE_YAW_P		7.0		// increase for more aggressive Yaw Hold, decrease if it's bouncy
 #endif
 #ifndef  STABILIZE_YAW_I
-# define STABILIZE_YAW_I		0.01
+# define STABILIZE_YAW_I		0.02
 #endif
 #ifndef  STABILIZE_YAW_IMAX
-# define STABILIZE_YAW_IMAX		8		// degrees * 100
+# define STABILIZE_YAW_IMAX		8.0		// degrees * 100
 #endif
 
 
@@ -750,42 +752,42 @@
 // Stabilize Rate Control
 //
 #ifndef RATE_ROLL_P
-# define RATE_ROLL_P        0.1
+# define RATE_ROLL_P        0.18
 #endif
 #ifndef RATE_ROLL_I
 # define RATE_ROLL_I         0.0
 #endif
 #ifndef RATE_ROLL_D
-# define RATE_ROLL_D        0.004
+# define RATE_ROLL_D        0.005
 #endif
 #ifndef RATE_ROLL_IMAX
-# define RATE_ROLL_IMAX	 	5			// degrees
+# define RATE_ROLL_IMAX	 	5.0			// degrees
 #endif
 
 #ifndef RATE_PITCH_P
-# define RATE_PITCH_P       0.1
+# define RATE_PITCH_P       0.18
 #endif
 #ifndef RATE_PITCH_I
 # define RATE_PITCH_I		0.0
 #endif
 #ifndef RATE_PITCH_D
-# define RATE_PITCH_D       0.004
+# define RATE_PITCH_D       0.005
 #endif
 #ifndef RATE_PITCH_IMAX
-# define RATE_PITCH_IMAX   	5			// degrees
+# define RATE_PITCH_IMAX   	5.0			// degrees
 #endif
 
 #ifndef RATE_YAW_P
 # define RATE_YAW_P    		 .13
 #endif
 #ifndef RATE_YAW_I
-# define RATE_YAW_I     0.0
+# define RATE_YAW_I    		 0.02
 #endif
 #ifndef RATE_YAW_D
 # define RATE_YAW_D    		 0.000
 #endif
 #ifndef RATE_YAW_IMAX
-# define RATE_YAW_IMAX 		  50		// degrees
+# define RATE_YAW_IMAX 		  8.0		// degrees
 #endif
 
 
@@ -830,16 +832,16 @@
 // WP Navigation control gains
 //
 #ifndef NAV_P
-# define NAV_P				3.0			//
+# define NAV_P				2.4			//
 #endif
 #ifndef NAV_I
-# define NAV_I				0.20		// Wind control
+# define NAV_I				0.17		// Wind control
 #endif
 #ifndef NAV_D
-# define NAV_D				0.00		//
+# define NAV_D				0.00		// .95
 #endif
 #ifndef NAV_IMAX
-# define NAV_IMAX			30			// degrees
+# define NAV_IMAX			18			// degrees
 #endif
 
 #ifndef AUTO_SLEW_RATE
@@ -848,7 +850,7 @@
 
 
 #ifndef WAYPOINT_SPEED_MAX
-# define WAYPOINT_SPEED_MAX		600			// 6m/s error = 13mph
+# define WAYPOINT_SPEED_MAX		500			// 6m/s error = 13mph
 #endif
 
 #ifndef WAYPOINT_SPEED_MIN
@@ -868,10 +870,10 @@
 #endif
 
 #ifndef ALT_HOLD_P
-# define ALT_HOLD_P			0.5		//
+# define ALT_HOLD_P			0.3		// .5
 #endif
 #ifndef ALT_HOLD_I
-# define ALT_HOLD_I			0.007
+# define ALT_HOLD_I			0.038
 #endif
 #ifndef ALT_HOLD_IMAX
 # define ALT_HOLD_IMAX		300
@@ -879,13 +881,13 @@
 
 // RATE control
 #ifndef THROTTLE_P
-# define THROTTLE_P			0.25	//
+# define THROTTLE_P			0.3	// .25
 #endif
 #ifndef THROTTLE_I
-# define THROTTLE_I			0.0		// Don't edit
+# define THROTTLE_I			0.03
 #endif
 #ifndef THROTTLE_D
-# define THROTTLE_D			0.02	//
+# define THROTTLE_D			0.0	//
 #endif
 #ifndef THROTTLE_IMAX
 # define THROTTLE_IMAX	300
@@ -896,7 +898,7 @@
 // Crosstrack compensation
 //
 #ifndef CROSSTRACK_GAIN
-# define CROSSTRACK_GAIN		1
+# define CROSSTRACK_GAIN		.2
 #endif
 
 
@@ -1029,15 +1031,11 @@
 // Navigation defaults
 //
 #ifndef WP_RADIUS_DEFAULT
-# define WP_RADIUS_DEFAULT	1
+# define WP_RADIUS_DEFAULT	2
 #endif
 
 #ifndef LOITER_RADIUS
 # define LOITER_RADIUS 10		// meters for circle mode
-#endif
-
-#ifndef ALT_HOLD_HOME
-# define ALT_HOLD_HOME 0		// height to return to Home, 0 = Maintain current altitude
 #endif
 
 #ifndef USE_CURRENT_ALT
@@ -1054,6 +1052,44 @@
 #ifndef ALLOW_RC_OVERRIDE
 # define ALLOW_RC_OVERRIDE DISABLED
 #endif
+
+//////////////////////////////////////////////////////////////////////////////
+// AP_Limits Defaults
+//
+
+
+// Enable/disable AP_Limits
+#ifndef AP_LIMITS
+ #define AP_LIMITS ENABLED
+#endif
+
+// Use PIN for displaying LIMITS status. 0 is disabled.
+#ifndef LIMITS_TRIGGERED_PIN
+ #define LIMITS_TRIGGERED_PIN 0
+#endif
+
+// PWM of "on" state for LIM_CHANNEL
+#ifndef LIMITS_ENABLE_PWM
+ #define LIMITS_ENABLE_PWM 1800
+#endif
+
+#ifndef LIM_ENABLED
+ #define LIM_ENABLED 0
+#endif
+
+#ifndef LIM_ALT_ON
+ #define LIM_ALT_ON 0
+#endif
+
+#ifndef LIM_FNC_ON
+ #define LIM_FNC_ON 0
+#endif
+
+#ifndef LIM_GPSLCK_ON
+ #define LIM_GPSLCK_ON 0
+#endif
+
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Developer Items
@@ -1080,9 +1116,9 @@
 # define QUATERNION_ENABLE DISABLED
 #endif
 
-
-#ifndef RETRO_LOITER_MODE
-# define RETRO_LOITER_MODE DISABLED
+// experimental mpu6000 DMP code
+#ifndef DMP_ENABLED
+# define DMP_ENABLED DISABLED
 #endif
 
 #ifndef ALTERNATIVE_YAW_MODE

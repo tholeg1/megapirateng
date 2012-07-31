@@ -12,7 +12,7 @@ static void arm_motors()
 	static int arming_counter;
 
 	// don't allow arming/disarming in anything but manual
-	if ((g.rc_3.control_in > 0) || (control_mode >= ALT_HOLD) || (arming_counter > LEVEL_DELAY)){
+	if ((g.rc_3.control_in > 0) || (control_mode >= ALT_HOLD) || (control_mode == TOY) || (arming_counter > LEVEL_DELAY)){
 		arming_counter = 0;
 		return;
 	}
@@ -28,7 +28,32 @@ static void arm_motors()
 		}else if (arming_counter == ARM_DELAY){
 			if(motors.armed() == false){
 				// arm the motors and configure for flight
+
+////////////////////////////////////////////////////////////////////////////////
+// Experimental AP_Limits library - set constraints, limits, fences, minima, maxima on various parameters
+////////////////////////////////////////////////////////////////////////////////
+#ifdef AP_LIMITS
+ 					if (limits.enabled() && limits.required()) {
+ 						gcs_send_text_P(SEVERITY_LOW, PSTR("Limits - Running pre-arm checks"));
+
+ 						 // check only pre-arm required modules
+ 						if (limits.check_required()) {
+ 							gcs_send_text_P(SEVERITY_LOW, PSTR("ARMING PREVENTED - Limit Breached"));
+ 							limits.set_state(LIMITS_TRIGGERED);
+ 							gcs_send_message(MSG_LIMITS_STATUS);
+
+ 							arming_counter++; // restart timer by cycling
+ 						}else{
+ 	 						init_arm_motors();
+ 	 					}
+					}else{
 				init_arm_motors();
+			}
+
+#else  // without AP_LIMITS, just arm motors
+					init_arm_motors();
+#endif //AP_LIMITS_ENABLED
+
 			}
 			// keep going up
 			arming_counter++;
@@ -111,10 +136,6 @@ static void init_arm_motors()
 						did_ground_start = true;
 						startup_ground();
 					}
-
-	#if INERTIAL_NAV == ENABLED
-	calibrate_accels();
-	#endif
 
 					#if HIL_MODE != HIL_MODE_ATTITUDE
 						// read Baro pressure at ground -
