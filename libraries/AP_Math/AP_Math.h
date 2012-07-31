@@ -6,6 +6,7 @@
 // Assorted useful math operations for ArduPilot(Mega)
 
 #include <AP_Common.h>
+#include <math.h>
 #include <stdint.h>
 #include "rotations.h"
 #include "vector2.h"
@@ -29,4 +30,23 @@ float safe_sqrt(float v);
 // rotation to an existing rotation of a sensor such as the compass
 enum Rotation rotation_combination(enum Rotation r1, enum Rotation r2, bool *found = NULL);
 
-#endif
+// return distance in meters between two locations
+float get_distance(const struct Location *loc1, const struct Location *loc2);
+
+// return distance in centimeters between two locations
+int32_t get_distance_cm(const struct Location *loc1, const struct Location *loc2);
+
+// return bearing in centi-degrees between two locations
+int32_t get_bearing(const struct Location *loc1, const struct Location *loc2);
+
+// see if location is past a line perpendicular to 
+// the line between point1 and point2. If point1 is 
+// our previous waypoint and point2 is our target waypoint
+// then this function returns true if we have flown past
+// the target waypoint
+bool location_passed_point(struct Location &location, 
+						   struct Location &point1, 			   
+						   struct Location &point2);
+
+#endif // AP_MATH_H
+

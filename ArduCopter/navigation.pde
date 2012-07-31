@@ -7,17 +7,13 @@ static void navigate()
 {
 	// waypoint distance from plane in cm
 	// ---------------------------------------
-	wp_distance 	= get_distance(&current_loc, &next_WP);
-	home_distance 	= get_distance(&current_loc, &home);
+	wp_distance 	= get_distance_cm(&current_loc, &next_WP);
+	home_distance 	= get_distance_cm(&current_loc, &home);
 
 	// target_bearing is where we should be heading
 	// --------------------------------------------
 	target_bearing 			= get_bearing(&current_loc, &next_WP);
 	home_to_copter_bearing 	= get_bearing(&home, &current_loc);
-
-	// nav_bearing will includes xtrac correction
-	// ------------------------------------------
-	nav_bearing = target_bearing;
 }
 
 static bool check_missed_wp()
@@ -30,16 +26,12 @@ static bool check_missed_wp()
 
 // ------------------------------
 static void calc_XY_velocity(){
-	// called after GPS read
-	// offset calculation of GPS speed:
-	// used for estimations below 1.5m/s
-	// our GPS is about 1m per
 	static int32_t last_longitude = 0;
 	static int32_t last_latitude  = 0;
 
-	static int16_t x_speed_old = 0;
-	static int16_t y_speed_old = 0;
-
+	// called after GPS read
+	// offset calculation of GPS speed:
+	// used for estimations below 1.5m/s
 	// y_GPS_speed positve = Up
 	// x_GPS_speed positve = Right
 
@@ -55,25 +47,25 @@ static void calc_XY_velocity(){
 	x_actual_speed 	= (float)(g_gps->longitude - last_longitude)  * scaleLongDown * tmp;
 	y_actual_speed	= (float)(g_gps->latitude  - last_latitude)  * tmp;
 
-	x_actual_speed	= (x_actual_speed + x_speed_old ) / 2;
-	y_actual_speed	= (y_actual_speed + y_speed_old ) / 2;
-
-	x_speed_old 	= x_actual_speed;
-	y_speed_old 	= y_actual_speed;
-
 	last_longitude 	= g_gps->longitude;
 	last_latitude 	= g_gps->latitude;
-
-	#if INERTIAL_NAV == ENABLED
-	// inertial_nav
-	xy_error_correction();
-	#endif
 
 	/*if(g_gps->ground_speed > 150){
 		float temp = radians((float)g_gps->ground_course/100.0);
 		x_actual_speed = (float)g_gps->ground_speed * sin(temp);
 		y_actual_speed = (float)g_gps->ground_speed * cos(temp);
 	}*/
+
+
+	#if INERTIAL_NAV == ENABLED
+	// inertial_nav
+	xy_error_correction();
+	current_loc.lng = xLeadFilter.get_position(g_gps->longitude, accels_velocity.x);
+	current_loc.lat = yLeadFilter.get_position(g_gps->latitude,  accels_velocity.y);
+	#else
+	current_loc.lng = xLeadFilter.get_position(g_gps->longitude, x_actual_speed);
+	current_loc.lat = yLeadFilter.get_position(g_gps->latitude,  y_actual_speed);
+	#endif
 }
 
 static void calc_location_error(struct Location *next_loc)
@@ -132,7 +124,7 @@ static void calc_loiter(int x_error, int y_error)
 	}
 
 	output			= p + i + d;
-	nav_lon			= constrain(output, -3000, 3000); 			// 30°
+	nav_lon			= constrain(output, -3200, 3200);
 
 #if LOGGING_ENABLED == ENABLED
 	// log output if PID logging is on and we are tuning the yaw
@@ -169,7 +161,7 @@ static void calc_loiter(int x_error, int y_error)
 	}
 
 	output			= p + i + d;
-	nav_lat			= constrain(output, -3000, 3000); // 30°
+	nav_lat			= constrain(output, -3200, 3200);
 
 #if LOGGING_ENABLED == ENABLED
 	// log output if PID logging is on and we are tuning the yaw
@@ -183,31 +175,65 @@ static void calc_loiter(int x_error, int y_error)
 	g.pid_nav_lat.set_integrator(g.pid_loiter_rate_lat.get_integrator());
 }
 
-static void calc_nav_rate(int max_speed)
+static void calc_nav_rate(int16_t max_speed)
 {
+	float temp, temp_x, temp_y;
+
 	// push us towards the original track
 	update_crosstrack();
 
-	// nav_bearing includes crosstrack
-	float temp 		= (9000l - nav_bearing) * RADX100;
+	int16_t cross_speed = crosstrack_error * -g.crosstrack_gain; // scale down crosstrack_error in cm
+	// XXX replace above with crosstrack gain.
+
+	cross_speed	= constrain(cross_speed, -200, 200);
+
+	// rotate by 90 to deal with trig functions
+	temp 			= (9000l - target_bearing) * RADX100;
+	temp_x 			= cos(temp);
+	temp_y 			= sin(temp);
+
+	// rotate desired spped vector:
+	int32_t x_target_speed = max_speed   * temp_x - cross_speed * temp_y;
+	int32_t y_target_speed = cross_speed * temp_x + max_speed   * temp_y;
 
 	// East / West
-	x_rate_error 	= (cos(temp) * max_speed) - x_actual_speed; // 413
+	// calculate rate error
+	#if INERTIAL_NAV == ENABLED
+	x_rate_error	= x_target_speed - accels_velocity.x;
+	#else
+	x_rate_error 	= x_target_speed - x_actual_speed;
+	#endif
+
 	x_rate_error 	= constrain(x_rate_error, -1000, 1000);
 	nav_lon			= g.pid_nav_lon.get_pid(x_rate_error, dTnav);
-	nav_lon			= constrain(nav_lon, -3000, 3000);
+	int32_t tilt	= (x_target_speed * x_target_speed * (int32_t)g.tilt_comp) / 10000;
+
+	if(x_target_speed < 0) tilt = -tilt;
+	nav_lon			+= tilt;
+	nav_lon			= constrain(nav_lon, -3200, 3200);
+
 
 	// North / South
-	y_rate_error 	= (sin(temp) * max_speed) - y_actual_speed; // 413
+	// calculate rate error
+	#if INERTIAL_NAV == ENABLED
+	y_rate_error	= y_target_speed - accels_velocity.y;
+	#else
+	y_rate_error 	= y_target_speed - y_actual_speed;
+	#endif
+
 	y_rate_error 	= constrain(y_rate_error, -1000, 1000);	// added a rate error limit to keep pitching down to a minimum
 	nav_lat			= g.pid_nav_lat.get_pid(y_rate_error, dTnav);
-	nav_lat			= constrain(nav_lat, -3000, 3000);
+	tilt			= (y_target_speed * y_target_speed * (int32_t)g.tilt_comp) / 10000;
+
+	if(y_target_speed < 0)	tilt = -tilt;
+	nav_lat			+= tilt;
+	nav_lat			= constrain(nav_lat, -3200, 3200);
 
 	// copy over I term to Loiter_Rate
 	g.pid_loiter_rate_lon.set_integrator(g.pid_nav_lon.get_integrator());
 	g.pid_loiter_rate_lat.set_integrator(g.pid_nav_lat.get_integrator());
-
 }
+
 
 // this calculation rotates our World frame of reference to the copter's frame of reference
 // We use the DCM's matrix to precalculate these trig values at 50hz
@@ -222,7 +248,7 @@ static void calc_loiter_pitch_roll()
 	auto_pitch = -auto_pitch;
 }
 
-static int16_t calc_desired_speed(int16_t max_speed, bool _slow)
+static int16_t get_desired_speed(int16_t max_speed, bool _slow)
 {
 	/*
 	|< WP Radius
@@ -235,10 +261,10 @@ static int16_t calc_desired_speed(int16_t max_speed, bool _slow)
 
 	// max_speed is default 600 or 6m/s
 	if(_slow){
-		max_speed 		= min(max_speed, wp_distance / 2);
-		max_speed 		= max(max_speed, 0);
+		max_speed 		= min(max_speed, wp_distance / 4);
+		max_speed 		= max(max_speed, 100);
 	}else{
-		max_speed 		= min(max_speed, wp_distance);
+		max_speed 		= min(max_speed, wp_distance / 2);
 		max_speed 		= max(max_speed, WAYPOINT_SPEED_MIN);	// go at least 100cm/s
 	}
 
@@ -252,19 +278,26 @@ static int16_t calc_desired_speed(int16_t max_speed, bool _slow)
 	return max_speed;
 }
 
+static int16_t get_desired_climb_rate()
+{
+	if(alt_change_flag == ASCENDING){
+		return constrain(altitude_error / 4, 100, 180); // 180cm /s up, minimum is 100cm/s
+
+	}else if(alt_change_flag == DESCENDING){
+		return constrain(altitude_error / 6, -100, -10); // -100cm /s down, max is -10cms
+
+	}else{
+		return 0;
+	}
+}
 
 static void update_crosstrack(void)
 {
 	// Crosstrack Error
 	// ----------------
-	if (abs(wrap_180(target_bearing - original_target_bearing)) < 4500) {	 // If we are too far off or too close we don't do track following
-		float temp = (target_bearing - original_target_bearing) * RADX100;
-		crosstrack_error = sin(temp) * (wp_distance * g.crosstrack_gain);	 // Meters we are off track line
-		nav_bearing = target_bearing + constrain(crosstrack_error, -3000, 3000);
-		nav_bearing = wrap_360(nav_bearing);
-	}else{
-		nav_bearing = target_bearing;
-	}
+	// If we are too far off or too close we don't do track following
+	float temp = (target_bearing - original_target_bearing) * RADX100;
+	crosstrack_error = sin(temp) * wp_distance;	 // Meters we are off track line
 }
 
 static int32_t get_altitude_error()
@@ -272,7 +305,8 @@ static int32_t get_altitude_error()
 	// Next_WP alt is our target alt
 	// It changes based on climb rate
 	// until it reaches the target_altitude
-	return next_WP.alt - current_loc.alt;
+	//return next_WP.alt - current_loc.alt;
+	return target_altitude - current_loc.alt;
 }
 
 static void clear_new_altitude()
@@ -332,7 +366,7 @@ static int32_t get_new_altitude()
 
 	if(alt_change_flag == ASCENDING){
 		// we are below, going up
-		if(current_loc.alt >=  target_altitude){
+		if(current_loc.alt >  target_altitude){
 			alt_change_flag = REACHED_ALT;
 		}
 
@@ -409,36 +443,3 @@ static int32_t wrap_180(int32_t error)
 	return error;
 }
 
-/*
-//static int32_t get_altitude_above_home(void)
-{
-	// This is the altitude above the home location
-	// The GPS gives us altitude at Sea Level
-	// if you slope soar, you should see a negative number sometimes
-	// -------------------------------------------------------------
-	return current_loc.alt - home.alt;
-}
-*/
-
-// distance is returned in cm
-static int32_t get_distance(struct Location *loc1, struct Location *loc2)
-{
-	float dlat 		= (float)(loc2->lat - loc1->lat);
-	float dlong		= ((float)(loc2->lng - loc1->lng)) * scaleLongDown;
-	dlong			= sqrt(sq(dlat) + sq(dlong)) * 1.113195;
-	return			dlong;
-}
-/*
-//static int32_t get_alt_distance(struct Location *loc1, struct Location *loc2)
-{
-	return abs(loc1->alt - loc2->alt);
-}
-*/
-static int32_t get_bearing(struct Location *loc1, struct Location *loc2)
-{
-	int32_t off_x = loc2->lng - loc1->lng;
-	int32_t off_y = (loc2->lat - loc1->lat) * scaleLongUp;
-	int32_t bearing =	9000 + atan2(-off_y, off_x) * 5729.57795;
-	if (bearing < 0) bearing += 36000;
-	return bearing;
-}

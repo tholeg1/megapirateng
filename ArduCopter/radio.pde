@@ -26,7 +26,7 @@ static void init_rc_in()
 		// we do not want to limit the movment of the heli's swash plate
 		g.rc_3.set_range(0, 1000);
 	#else
-		g.rc_3.set_range(MINIMUM_THROTTLE, MAXIMUM_THROTTLE);
+		g.rc_3.set_range(g.throttle_min, g.throttle_max);
 	#endif
 	g.rc_4.set_angle(4500);
 
@@ -42,6 +42,10 @@ static void init_rc_in()
 	g.rc_6.set_range(0,1000);
 	g.rc_7.set_range(0,1000);
 	g.rc_8.set_range(0,1000);
+
+	#if MOUNT == ENABLED
+	update_aux_servo_function(&g.rc_camera_roll, &g.rc_camera_pitch, &g.rc_camera_yaw);
+	#endif
 }
 
 static void init_rc_out()
@@ -54,12 +58,8 @@ static void init_rc_out()
 	#endif
 	motors.set_frame_orientation(g.frame_orientation);
 	motors.Init();						// motor initialisation
-	motors.set_min_throttle(MINIMUM_THROTTLE);
-	motors.set_max_throttle(MAXIMUM_THROTTLE);
-
-	// this is the camera pitch5 and roll6
-	APM_RC.OutputCh(CH_CAM_PITCH, 1500);
-	APM_RC.OutputCh(CH_CAM_ROLL, 1500);
+	motors.set_min_throttle(g.throttle_min);
+	motors.set_max_throttle(g.throttle_max);
 
 	for(byte i = 0; i < 5; i++){
 		delay(20);
@@ -68,8 +68,6 @@ static void init_rc_out()
 
 	// we want the input to be scaled correctly
 	g.rc_3.set_range_out(0,1000);
-
-
 
     // sanity check - prevent unconfigured radios from outputting
     if(g.rc_3.radio_min >= 1300){
@@ -108,6 +106,7 @@ static void init_rc_out()
 
 void output_min()
 {
+	// enable motors
 	motors.enable();
 	motors.output_min();
 }
@@ -124,7 +123,6 @@ static void read_radio()
 		g.rc_7.set_pwm(APM_RC.InputCh(CH_7));
 		g.rc_8.set_pwm(APM_RC.InputCh(CH_8));
 	
-
 		#if FRAME_CONFIG != HELI_FRAME
 			// limit our input to 800 so we can still pitch and roll
 			g.rc_3.control_in = min(g.rc_3.control_in, MAXIMUM_THROTTLE);
@@ -185,8 +183,6 @@ static void throttle_failsafe()
 		}
 	}
 }
-
-
 
 static void trim_radio()
 {

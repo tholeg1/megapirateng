@@ -123,23 +123,17 @@ public:
 	}
 
 	// dot product
-	T operator *(const Vector3<T> &v) const
-	{	return x*v.x + y*v.y + z*v.z;	}
+	T operator *(const Vector3<T> &v) const;
 
 	// cross product
-	Vector3<T> operator %(const Vector3<T> &v) const
-	{
-		Vector3<T> temp(y*v.z - z*v.y, z*v.x - x*v.z, x*v.y - y*v.x);
-		return temp;
-	}
+	Vector3<T> operator %(const Vector3<T> &v) const;
 
 	// gets the length of this vector squared
 	T length_squared() const
 	{	return (T)(*this * *this);   }
 
 	// gets the length of this vector
-	float length() const
-	{	return (T)sqrt(*this * *this);   }
+	float length(void) const;
 
 	// normalizes this vector
 	void normalize()
@@ -171,11 +165,15 @@ public:
 
 	// computes the angle between 2 arbitrary vectors
 	T angle(const Vector3<T> &v1, const Vector3<T> &v2)
-	{   return (T)acosf((v1*v2) / (v1.length()*v2.length()));  }
+	{   return (T)acos((v1*v2) / (v1.length()*v2.length()));  }
+
+	// computes the angle between this vector and another vector
+	T angle(const Vector3<T> &v2)
+		{   return (T)acos(((*this)*v2) / (this->length()*v2.length()));  }
 
 	// computes the angle between 2 arbitrary normalized vectors
 	T angle_normalized(const Vector3<T> &v1, const Vector3<T> &v2)
-	{   return (T)acosf(v1*v2);  }
+	{   return (T)acos(v1*v2);  }
 
 	// check if any elements are NAN
 	bool is_nan(void)

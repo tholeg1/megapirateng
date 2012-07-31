@@ -11,10 +11,9 @@ class AP_Baro_BMP085_Pirates: public AP_Baro
   /* AP_Baro public interface: */
   bool init(AP_PeriodicProcess *scheduler);
   uint8_t read();
-  int32_t get_pressure();     // in mbar*100 units
-  int16_t get_temperature();  // in celsius degrees * 100 units
-  float get_altitude();        // in meter units
-
+  float get_pressure();     // in mbar*100 units
+  float get_temperature();  // in celsius degrees * 100 units
+  
   int32_t get_raw_pressure();
   int32_t get_raw_temp(); 
   

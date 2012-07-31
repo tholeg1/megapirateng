@@ -50,14 +50,23 @@ public:
 	//
 	k_param_format_version = 0,
 	k_param_software_type,
+	k_param_ins,
 
+    // simulation
+    k_param_sitl = 10,
 
 	// Misc
 	//
 	k_param_log_bitmask = 20,
     k_param_log_last_filenumber,		// *** Deprecated - remove with next eeprom number change
+	k_param_toy_yaw_rate,				// THOR The memory location for the Yaw Rate 1 = fast, 2 = med, 3 = slow
 
-	#if FRAME_CONFIG ==	HELI_FRAME
+	// 65: AP_Limits Library
+	k_param_limits = 65,
+	k_param_gpslock_limit,
+	k_param_geofence_limit,
+	k_param_altitude_limit,
+
 	//
 	// 80: Heli
 	//
@@ -65,7 +74,6 @@ public:
 	k_param_heli_servo_2,
 	k_param_heli_servo_3,
 	k_param_heli_servo_4,
-	#endif
 
 	//
 	// 90: Motors
@@ -99,7 +107,7 @@ public:
 	k_param_auto_slew_rate,
 	k_param_sonar_type,
 	k_param_super_simple,
-	k_param_rtl_land_enabled,
+	k_param_rtl_land_enabled,	// Depricated!!
 	k_param_axis_enabled,
 	k_param_copter_leds_mode, //158
     k_param_ahrs,  // AHRS group
@@ -111,8 +119,14 @@ public:
 	k_param_crosstrack_gain,
 	k_param_auto_land_timeout,
 	k_param_rtl_approach_alt,
-	k_param_retro_loiter,
+	k_param_tilt_comp, //164
 
+
+	//
+	// Camera and mount parameters
+	//
+	k_param_camera = 165,
+	k_param_camera_mount,
 
 	//
 	// 170: Radio settings
@@ -125,8 +139,8 @@ public:
 	k_param_rc_6,
 	k_param_rc_7,
 	k_param_rc_8,
-	k_param_rc_camera_pitch,// rc_9
-	k_param_rc_camera_roll, // rc_10
+	k_param_rc_camera_pitch,
+	k_param_rc_camera_roll,
 	k_param_throttle_min,
 	k_param_throttle_max,
 	k_param_throttle_fs_enabled,
@@ -137,9 +151,8 @@ public:
 	k_param_radio_tuning,
 	k_param_radio_tuning_high,
 	k_param_radio_tuning_low,
-	k_param_camera_pitch_gain,
-	k_param_camera_roll_gain,
-    k_param_rc_speed,
+    k_param_rc_speed = 192,
+	k_param_rc_camera_yaw = 193,
 
     //
     // 200: flight modes
@@ -202,7 +215,9 @@ public:
 
 	AP_Int16	RTL_altitude;
 	AP_Int8		sonar_enabled;
-	AP_Int8		sonar_type;   // 0 = XL, 1 = LV, 2 = XLL (XL with 10m range)
+	AP_Int8		sonar_type;   // 0 = XL, 1 = LV,
+				      // 2 = XLL (XL with 10m range)
+				      // 3 = HRLV
     AP_Int8		battery_monitoring;	// 0=disabled, 3=voltage only, 4=voltage and current
     AP_Float	volt_div_ratio;
     AP_Float	curr_amp_per_volt;
@@ -213,8 +228,8 @@ public:
 	AP_Float	low_voltage;
 	AP_Int8		super_simple;
 	AP_Int8		rtl_land_enabled;
-	AP_Float	rtl_approach_alt;
-	AP_Int8		retro_loiter;
+	AP_Int16	rtl_approach_alt;
+	AP_Int8		tilt_comp;
 	AP_Int8		axis_enabled;
 	AP_Int8		copter_leds_mode;	// Operating mode of LED lighting system
 
@@ -256,7 +271,7 @@ public:
 	//
 	AP_Int16	log_bitmask;
     AP_Int16	log_last_filenumber;		// *** Deprecated - remove with next eeprom number change
-
+	AP_Int8 	toy_yaw_rate;				// THOR The Yaw Rate 1 = fast, 2 = med, 3 = slow
 	AP_Int8		esc_calibrate;
 	AP_Int8		radio_tuning;
 	AP_Int16	radio_tuning_high;
@@ -270,6 +285,11 @@ public:
 	RC_Channel	heli_servo_1, heli_servo_2, heli_servo_3, heli_servo_4;	// servos for swash plate and tail
 	#endif
 
+	// Camera
+#if CAMERA == ENABLED
+    AP_Camera		camera;
+#endif
+
 	// RC channels
 	RC_Channel	rc_1;
 	RC_Channel	rc_2;
@@ -279,12 +299,14 @@ public:
 	RC_Channel	rc_6;
 	RC_Channel	rc_7;
 	RC_Channel	rc_8;
-	RC_Channel	rc_camera_pitch;
-	RC_Channel	rc_camera_roll;
+
+#if MOUNT == ENABLED
+	RC_Channel_aux	rc_camera_roll;
+	RC_Channel_aux	rc_camera_pitch;
+	RC_Channel_aux	rc_camera_yaw;
+#endif
     AP_Int16    rc_speed; // speed of fast RC Channels in Hz
 
-	AP_Float	camera_pitch_gain;
-	AP_Float	camera_roll_gain;
 	AP_Float	stabilize_d;
 	AP_Float	stabilize_d_schedule;
 
@@ -322,7 +344,7 @@ public:
 	sysid_my_gcs			(255),
     serial3_baud			(SERIAL3_BAUD/1000),
 
-	RTL_altitude			(ALT_HOLD_HOME * 100),
+	RTL_altitude			(RTL_HOLD_ALT),
 	sonar_enabled			(DISABLED),
 	sonar_type				(0),
     battery_monitoring 		(DISABLED),
@@ -334,9 +356,9 @@ public:
 	optflow_enabled			(OPTFLOW),
 	low_voltage				(LOW_VOLTAGE),
 	super_simple			(SUPER_SIMPLE),
-	rtl_land_enabled		(RTL_AUTO_LAND),
-	rtl_approach_alt		(0.0),
-	retro_loiter			(RETRO_LOITER_MODE),
+	rtl_land_enabled		(0),
+	rtl_approach_alt		(RTL_APPROACH_ALT),
+	tilt_comp				(54),
 	axis_enabled			(AXIS_LOCK_ENABLED),
 	copter_leds_mode		(9),
 
@@ -344,14 +366,14 @@ public:
 	command_total			(0),
 	command_index			(0),
 	command_nav_index		(0),
-	waypoint_radius			(WP_RADIUS_DEFAULT * 100),
+	waypoint_radius			(WP_RADIUS_DEFAULT),
 	loiter_radius			(LOITER_RADIUS),
 	waypoint_speed_max		(WAYPOINT_SPEED_MAX),
 	crosstrack_gain			(CROSSTRACK_GAIN),
 	auto_land_timeout		(AUTO_LAND_TIME * 1000),
 
-	throttle_min			(0),
-	throttle_max			(1000),
+	throttle_min			(MINIMUM_THROTTLE),
+	throttle_max			(MAXIMUM_THROTTLE),
 	throttle_fs_enabled		(THROTTLE_FAILSAFE),
 	throttle_fs_action		(THROTTLE_FAILSAFE_ACTION),
 	throttle_fs_value 		(THROTTLE_FS_VALUE),
@@ -367,6 +389,8 @@ public:
 
 	log_bitmask				(DEFAULT_LOG_BITMASK),
     log_last_filenumber     (0),
+    toy_yaw_rate			(1), // THOR The default Yaw Rate 1 = fast, 2 = med, 3 = slow
+
 	esc_calibrate 			(0),
 	radio_tuning 			(0),
 	radio_tuning_high 		(1000),
@@ -377,8 +401,6 @@ public:
 
     rc_speed(RC_FAST_SPEED),
 
-	camera_pitch_gain 		(CAM_PITCH_GAIN),
-	camera_roll_gain 		(CAM_ROLL_GAIN),
 	stabilize_d 			(STABILIZE_D),
 	stabilize_d_schedule	(STABILIZE_D_SCHEDULE),
 	acro_p					(ACRO_P),

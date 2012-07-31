@@ -8,8 +8,6 @@ static void read_control_switch()
 
 	if (oldSwitchPosition != switchPosition){
 		if(switch_debouncer){
-			// remember the prev location for GS
-			prev_WP 			= current_loc;
 			oldSwitchPosition 	= switchPosition;
 			switch_debouncer 	= false;
 
@@ -49,11 +47,7 @@ static void reset_control_switch()
 // set this to your trainer switch
 static void read_trim_switch()
 {
-	#if CH7_OPTION == CH7_FLIP
-		if (g.rc_7.radio_in > CH_7_PWM_TRIGGER && g.rc_3.control_in != 0){
-			init_flip();
-		}
-	#elif CH7_OPTION == CH7_SET_HOVER
+	#if CH7_OPTION == CH7_SET_HOVER
 		// switch is engaged
 		if (g.rc_7.radio_in > CH_7_PWM_TRIGGER){
 			trim_flag = true;
@@ -77,6 +71,24 @@ static void read_trim_switch()
 
 	if(g.ch7_option == CH7_SIMPLE_MODE){
 		do_simple = (g.rc_7.radio_in > CH_7_PWM_TRIGGER);
+
+	}else if (g.ch7_option == CH7_FLIP){
+		if (trim_flag == false && g.rc_7.radio_in > CH_7_PWM_TRIGGER){
+			trim_flag = true;
+
+			// don't flip if we accidentally engaged flip, but didn't notice and tried to takeoff
+			if(g.rc_3.control_in != 0 && takeoff_complete){
+				init_flip();
+			}
+		}
+		if (trim_flag == true && g.rc_7.control_in < 800){
+			trim_flag = false;
+		}
+
+		//if (g.rc_7.radio_in > CH_7_PWM_TRIGGER && takeoff_complete && g.rc_3.control_in != 0){
+		//	if(do_flip == false)
+		//		init_flip();
+		//}
 
 	}else if (g.ch7_option == CH7_RTL){
 		if (trim_flag == false && g.rc_7.radio_in > CH_7_PWM_TRIGGER){
@@ -112,14 +124,16 @@ static void read_trim_switch()
 					// increment index to WP index of 1 (home is stored at 0)
 					CH7_wp_index = 1;
 
+					Location temp	= home;
 					// set our location ID to 16, MAV_CMD_NAV_WAYPOINT
-					current_loc.id = MAV_CMD_NAV_TAKEOFF;
+					temp.id = MAV_CMD_NAV_TAKEOFF;
+					temp.alt = current_loc.alt;
 
 					// save command:
 					// we use the current altitude to be the target for takeoff.
 					// only altitude will matter to the AP mission script for takeoff.
 					// If we are above the altitude, we will skip the command.
-					set_cmd_with_index(current_loc, CH7_wp_index);
+					set_cmd_with_index(temp, CH7_wp_index);
 				}
 
 				// increment index
@@ -141,7 +155,7 @@ static void read_trim_switch()
 				set_cmd_with_index(current_loc, CH7_wp_index);
 
 				copter_leds_nav_blink = 10;	// Cause the CopterLEDs to blink twice to indicate saved waypoint
-				
+
 				// 0 = home
 				// 1 = takeoff
 				// 2 = WP 2

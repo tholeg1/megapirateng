@@ -5,34 +5,39 @@
 
 const AP_Param::GroupInfo RC_Channel_aux::var_info[] PROGMEM = {
 	AP_NESTEDGROUPINFO(RC_Channel, 0),
+
 	// @Param: FUNCTION
-	// @DisplayName: Function assigned to this APM servo output
+	// @DisplayName: Servo out function
 	// @Description: Setting this to Disabled(0) will disable this output, any other value will enable the corresponding function
-	// @Values: 0:Disabled,1:Manual,2:Flap,3:Flap_auto,4:Aileron,5:flaperon,6:mount_pan,7:mount_tilt,8:mount_roll,9:mount_open,10:camera_trigger,11:release
+	// @Values: 0:Disabled,1:Manual,2:Flap,3:Flap_auto,4:Aileron,5:flaperon,6:mount_pan,7:mount_pitch,8:mount_roll,9:mount_open,10:camera_trigger,11:release
 	// @User: Standard
 	AP_GROUPINFO("FUNCTION",       1, RC_Channel_aux, function),
+
 	// @Param: ANGLE_MIN
-	// @DisplayName: Minimum physical angular position of the object that this servo output controls
-	// @Description: Minimum physical angular position of the object that this servo output controls, this could be for example a camera pan angle, an aileron angle, etc
-	// @Units: Degrees
-	// @Range: -180 180
-	// @Increment: .01
+	// @DisplayName: Minimum object position
+	// @Description: Minimum physical angular position of the object that this servo output controls. For example a camera pan angle, an aileron angle, etc
+	// @Units: centi-Degrees
+	// @Range: -18000 17999
+	// @Increment: 1
 	// @User: Standard
 	AP_GROUPINFO("ANGLE_MIN",      2, RC_Channel_aux, angle_min),
+
 	// @Param: ANGLE_MAX
-	// @DisplayName: Maximum physical angular position of the object that this servo output controls
-	// @Description: Maximum physical angular position of the object that this servo output controls, this could be for example a camera pan angle, an aileron angle, etc
-	// @Units: Degrees
-	// @Range: -180 180
-	// @Increment: .01
+	// @DisplayName: Maximum object position
+	// @Description: Maximum physical angular position of the object that this servo output controls. For example a camera pan angle, an aileron angle, etc
+	// @Units: centi-Degrees
+	// @Range: -18000 17999
+	// @Increment: 1
 	// @User: Standard
 	AP_GROUPINFO("ANGLE_MAX",      3, RC_Channel_aux, angle_max),
 	AP_GROUPEND
 };
 
-// Global pointer array, indexed by a "RC function enum" and points to the RC channel output assigned to that function/operation
+/// Global pointer array, indexed by a "RC function enum" and points to the RC channel output assigned to that function/operation
 RC_Channel_aux* g_rc_function[RC_Channel_aux::k_nr_aux_servo_functions];
 
+/// saturate to the closest angle limit if outside of [min max] angle interval
+/// input angle is in degrees * 10
 int16_t
 RC_Channel_aux::closest_limit(int16_t angle)
 {
@@ -63,14 +68,14 @@ RC_Channel_aux::closest_limit(int16_t angle)
 	}
 
 	servo_out = angle;
-	// convert angle to PWM using a linear transformation (ignores trimming because the camera limits might not be symmetric)
+	// convert angle to PWM using a linear transformation (ignores trimming because the servo limits might not be symmetric)
 	calc_pwm();
 
 	return angle;
 }
 
-// Gets the RC and integrates and then compares with the servo out angles to limit control input to servo travel.
-// That way the user doesn't get lost. Rotationally.
+/// Gets the RC and integrates and then compares with the servo out angles to limit control input to servo travel.
+/// That way the user doesn't get lost. Rotationally.
 void
 RC_Channel_aux::rc_input(float *control_angle, int16_t angle)
 {
@@ -79,22 +84,31 @@ RC_Channel_aux::rc_input(float *control_angle, int16_t angle)
 	}
 }
 
-// Takes the desired servo angle(deg) and converts to microSeconds for PWM
-// Like this: 45 deg = 2000 us ; -45 deg/1000 us. 1000us/(90*100 deg) = 0.1111111111111
-void
-RC_Channel_aux::angle_out(int16_t angle)
+/// returns the angle (degrees*100) that the RC_Channel input is receiving
+int32_t
+RC_Channel_aux::angle_input()
 {
-	if(angle >= angle_max){
-		angle = angle_max;
-	}
-	if(angle <= angle_min){
-		angle = angle_min;
-	}
-	// Convert the angle*100 to pwm microseconds. 45 deg = 500 us.
-	radio_out = (/*_reverse * */ angle * 0.1111111) + 1500;
+	return (get_reverse()?-1:1) * (radio_in - radio_min) * (int32_t)(angle_max - angle_min) / (radio_max - radio_min) + (get_reverse()?angle_max:angle_min);
 }
 
-// map a function to a servo channel and output it
+/// returns the angle (radians) that the RC_Channel input is receiving
+float
+RC_Channel_aux::angle_input_rad()
+{
+	return radians(angle_input()*0.01);
+	}
+
+/// enable_out_ch - enable the channel through APM_RC
+void
+RC_Channel_aux::enable_out_ch(unsigned char ch_nr)
+{
+	// enable_out this channel if it assigned to a function
+	if( function != k_none ) {
+		_apm_rc->enable_out(ch_nr);
+	}
+}
+
+/// map a function to a servo channel and output it
 void
 RC_Channel_aux::output_ch(unsigned char ch_nr)
 {
@@ -108,24 +122,33 @@ RC_Channel_aux::output_ch(unsigned char ch_nr)
 		radio_out = radio_in;
 		break;
 	}
-
 	_apm_rc->OutputCh(ch_nr, radio_out);
 }
 
-// Update the g_rc_function array of pointers to rc_x channels
-// This is to be done before rc_init so that the channels get correctly initialized.
-// It also should be called periodically because the user might change the configuration and
-// expects the changes to take effect instantly
-void update_aux_servo_function(RC_Channel_aux* rc_5, RC_Channel_aux* rc_6, RC_Channel_aux* rc_7, RC_Channel_aux* rc_8)
+/// Update the g_rc_function array of pointers to rc_x channels
+/// This is to be done before rc_init so that the channels get correctly initialized.
+/// It also should be called periodically because the user might change the configuration and
+/// expects the changes to take effect instantly
+/// Supports up to seven aux servo outputs (typically CH5 ... CH11)
+/// All servos must be configured with a single call to this function
+void update_aux_servo_function(	RC_Channel_aux* rc_a,
+								RC_Channel_aux* rc_b,
+								RC_Channel_aux* rc_c,
+								RC_Channel_aux* rc_d,
+								RC_Channel_aux* rc_e,
+								RC_Channel_aux* rc_f,
+								RC_Channel_aux* rc_g)
 {
-	// positions 0..3 of this array never get used, but this is a stack array, so the entire array gets freed at the end of the function
-	RC_Channel_aux::Aux_servo_function_t aux_servo_function[4];
-	aux_servo_function[0] = (RC_Channel_aux::Aux_servo_function_t)rc_5->function.get();
-	aux_servo_function[1] = (RC_Channel_aux::Aux_servo_function_t)rc_6->function.get();
-	aux_servo_function[2] = (RC_Channel_aux::Aux_servo_function_t)rc_7->function.get();
-	aux_servo_function[3] = (RC_Channel_aux::Aux_servo_function_t)rc_8->function.get();
+	RC_Channel_aux::Aux_servo_function_t aux_servo_function[7];
+	aux_servo_function[0] = (rc_a == NULL)?RC_Channel_aux::k_none:(RC_Channel_aux::Aux_servo_function_t)rc_a->function.get();
+	aux_servo_function[1] = (rc_b == NULL)?RC_Channel_aux::k_none:(RC_Channel_aux::Aux_servo_function_t)rc_b->function.get();
+	aux_servo_function[2] = (rc_c == NULL)?RC_Channel_aux::k_none:(RC_Channel_aux::Aux_servo_function_t)rc_c->function.get();
+	aux_servo_function[3] = (rc_d == NULL)?RC_Channel_aux::k_none:(RC_Channel_aux::Aux_servo_function_t)rc_d->function.get();
+	aux_servo_function[4] = (rc_e == NULL)?RC_Channel_aux::k_none:(RC_Channel_aux::Aux_servo_function_t)rc_e->function.get();
+	aux_servo_function[5] = (rc_f == NULL)?RC_Channel_aux::k_none:(RC_Channel_aux::Aux_servo_function_t)rc_f->function.get();
+	aux_servo_function[6] = (rc_g == NULL)?RC_Channel_aux::k_none:(RC_Channel_aux::Aux_servo_function_t)rc_g->function.get();
 
-	for (uint8_t i = 0; i < 4; i++) {
+	for (uint8_t i = 0; i < 7; i++) {
 		if (aux_servo_function[i] >= RC_Channel_aux::k_nr_aux_servo_functions) {
 			// invalid setting
 			aux_servo_function[i] = RC_Channel_aux::k_none;
@@ -139,10 +162,13 @@ void update_aux_servo_function(RC_Channel_aux* rc_5, RC_Channel_aux* rc_6, RC_Ch
 	}
 
 	// assign the RC channel to each function
-	g_rc_function[aux_servo_function[0]] = rc_5;
-	g_rc_function[aux_servo_function[1]] = rc_6;
-	g_rc_function[aux_servo_function[2]] = rc_7;
-	g_rc_function[aux_servo_function[3]] = rc_8;
+	if( rc_a != NULL ) { g_rc_function[aux_servo_function[0]] = rc_a; }
+	if( rc_b != NULL ) { g_rc_function[aux_servo_function[1]] = rc_b; }
+	if( rc_c != NULL ) { g_rc_function[aux_servo_function[2]] = rc_c; }
+	if( rc_d != NULL ) { g_rc_function[aux_servo_function[3]] = rc_d; }
+	if( rc_e != NULL ) { g_rc_function[aux_servo_function[3]] = rc_e; }
+	if( rc_f != NULL ) { g_rc_function[aux_servo_function[3]] = rc_f; }
+	if( rc_g != NULL ) { g_rc_function[aux_servo_function[3]] = rc_g; }
 
 	//set auxiliary ranges
 	G_RC_AUX(k_flap)->set_range(0,100);

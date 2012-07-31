@@ -79,7 +79,7 @@ get_stabilize_yaw(int32_t target_angle)
 #if FRAME_CONFIG == HELI_FRAME
 	angle_error 		= constrain(angle_error, -4500, 4500);
 #else
-	angle_error 		= constrain(angle_error, -2000, 2000);
+	angle_error 		= constrain(angle_error, -4000, 4000);
 #endif
 
 	// convert angle error to desired Rate:
@@ -132,6 +132,78 @@ get_acro_yaw(int32_t target_rate)
 {
 	target_rate = g.pi_stabilize_yaw.get_p(target_rate);
 	return get_rate_yaw(target_rate);
+}
+
+static int16_t
+get_acro_yaw2(int32_t target_rate)
+{
+	int32_t p,i,d;									// used to capture pid values for logging
+	int32_t	rate_error;								// current yaw rate error
+	int32_t	current_rate;							// current real yaw rate
+	int32_t decel_boost;							// gain scheduling if we are overshooting
+	int32_t output;									// output to rate controller
+
+	target_rate = g.pi_stabilize_yaw.get_p(target_rate);
+	current_rate = omega.z * DEGX100;
+	rate_error = target_rate - current_rate;
+
+	//Gain Scheduling:
+	//If the yaw input is to the right, but stick is moving to the middle
+	//and actual rate is greater than the target rate then we are
+	//going to overshoot the yaw target to the left side, so we should
+	//strengthen the yaw output to slow down the yaw!
+
+#if (FRAME_CONFIG == HELI_FRAME	|| FRAME_CONFIG == TRI_FRAME)
+	static int32_t last_target_rate = 0;			// last iteration's target rate
+	if ( target_rate > 0 && last_target_rate > target_rate && rate_error < 0 ){
+		decel_boost = 1;
+	} else if (target_rate < 0 && last_target_rate < target_rate && rate_error > 0 ){
+		decel_boost = 1;
+	} else if (target_rate == 0 && abs(current_rate) > 1000){
+		decel_boost = 1;
+	} else {
+		decel_boost = 0;
+	}
+
+	last_target_rate = target_rate;
+
+#else
+
+	decel_boost = 0;
+
+#endif
+
+	// separately calculate p, i, d values for logging
+	// we will use d=0, and hold i at it's last value
+	// since manual inputs are never steady state
+
+	p = g.pid_rate_yaw.get_p(rate_error);
+	i = g.pid_rate_yaw.get_integrator();
+	d = 0;
+
+	if (decel_boost){
+		p *= 2;
+	}
+
+	output 	= p+i+d;
+
+	// output control:
+	// constrain output
+	output = constrain(output, -4500, 4500);
+
+#if LOGGING_ENABLED == ENABLED
+	static int8_t log_counter = 0;					// used to slow down logging of PID values to dataflash
+	// log output if PID loggins is on and we are tuning the yaw
+	if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_YAW_KP || g.radio_tuning == CH6_YAW_RATE_KP) ) {
+		log_counter++;
+		if( log_counter >= 10 ) {	// (update rate / desired output rate) = (100hz / 10hz) = 10
+			log_counter = 0;
+			Log_Write_PID(CH6_YAW_RATE_KP, rate_error, p, i, d, output, tuning_value);
+		}
+	}
+#endif
+
+	return output;
 }
 
 static int16_t
@@ -252,16 +324,7 @@ get_rate_yaw(int32_t target_rate)
 	d = g.pid_rate_yaw.get_d(rate_error, G_Dt);
 
 	output 	= p+i+d;
-
-	// output control:
-	#if FRAME_CONFIG == HELI_FRAME
-	int16_t yaw_limit = 4500;
-	#else
-	int16_t yaw_limit = 1400 + abs(g.rc_4.control_in);
-	#endif
-	
-	// constrain output
-	output = constrain(output, -yaw_limit, yaw_limit);
+	output = constrain(output, -4500, 4500);
 
 #if LOGGING_ENABLED == ENABLED
 	static int8_t log_counter = 0;					// used to slow down logging of PID values to dataflash
@@ -282,9 +345,7 @@ get_rate_yaw(int32_t target_rate)
 static int16_t
 get_nav_throttle(int32_t z_error)
 {
-	int16_t z_rate_error = 0;
-	int16_t z_target_speed = 0;
-	int16_t output = 0;
+	int16_t z_target_speed;
 
 	// convert to desired Rate:
 	z_target_speed 		= g.pi_alt_hold.get_p(z_error);
@@ -296,6 +357,16 @@ get_nav_throttle(int32_t z_error)
 	// compensates throttle setpoint error for hovering
 	int16_t i_hold 	= g.pi_alt_hold.get_i(z_error, .02);
 
+	// output control:
+	return get_throttle_rate(z_target_speed) + i_hold; //+ boost_p;
+}
+
+
+static int16_t
+get_throttle_rate(int16_t z_target_speed)
+{
+	int16_t z_rate_error, output;
+
 	// calculate rate error
 	#if INERTIAL_NAV == ENABLED
 	z_rate_error	= z_target_speed - accels_velocity.z;			// calc the speed error
@@ -303,11 +374,16 @@ get_nav_throttle(int32_t z_error)
 	z_rate_error	= z_target_speed - climb_rate;		// calc the speed error
 	#endif
 
-	// limit the rate
-	output =  constrain(g.pid_throttle.get_pid(z_rate_error, .02), -80, 120);
+	int32_t tmp	= (z_target_speed * z_target_speed * (int32_t)g.throttle_cruise) / 200000;
 
-	// output control:
-	return output + i_hold;
+	if(z_target_speed < 0) tmp = -tmp;
+
+	output			= constrain(tmp, -3200, 3200);
+
+	// limit the rate
+	output +=  constrain(g.pid_throttle.get_pid(z_rate_error, .02), -80, 120);
+
+	return output;
 }
 
 // Keeps old data out of our calculation / logs
@@ -336,6 +412,9 @@ static void reset_nav_params(void)
 
 	// We want to by default pass WPs
 	slow_wp = false;
+
+	// make sure we stick to Nav yaw on takeoff
+	auto_yaw = nav_yaw;
 }
 
 /*
@@ -403,8 +482,10 @@ static void reset_stability_I(void)
 throttle control
 ****************************************************************/
 
+/* Depricated
+
 static long
-get_nav_yaw_offset(int yaw_input, int reset)
+//get_nav_yaw_offset(int yaw_input, int reset)
 {
 	int32_t _yaw;
 
@@ -413,36 +494,25 @@ get_nav_yaw_offset(int yaw_input, int reset)
 		return ahrs.yaw_sensor;
 
 	}else{
-#if ALTERNATIVE_YAW_MODE == ENABLED
-		_yaw = nav_yaw + (yaw_input / 50);
-		return wrap_360(_yaw);
-#else
 		// re-define nav_yaw if we have stick input
 		if(yaw_input != 0){
 			// set nav_yaw + or - the current location
 			_yaw = yaw_input + ahrs.yaw_sensor;
 			// we need to wrap our value so we can be 0 to 360 (*100)
 			return wrap_360(_yaw);
-
 		}else{
 			// no stick input, lets not change nav_yaw
 			return nav_yaw;
 		}
-#endif
-		}
+	}
 }
+*/
 
 static int16_t get_angle_boost(int16_t value)
 {
-//	float temp = cos_pitch_x * cos_roll_x;
-//	temp = 1.0 - constrain(temp, .5, 1.0);
-//	int16_t output = temp * value;
-//	return constrain(output, 0, 200);
-//	return (int)(temp * value);
-
 	float temp = cos_pitch_x * cos_roll_x;
 	temp = constrain(temp, .5, 1.0);
-	return ((float)g.throttle_cruise / temp) - g.throttle_cruise;
+	return ((float)(g.throttle_cruise + 80) / temp) - (g.throttle_cruise + 80);
 }
 
 #if FRAME_CONFIG == HELI_FRAME
@@ -702,4 +772,129 @@ get_of_pitch(int32_t control_pitch)
 #else
     return control_pitch;
 #endif
+}
+
+
+// THOR
+// The function call for managing the flight mode Toy
+void roll_pitch_toy()
+{
+	bool manual_control = false;
+
+	if(g.rc_2.control_in != 0){
+		// If we pitch forward or back, resume manually control
+		manual_control  = true;
+	}
+
+	// Yaw control - Yaw is always available, and will NOT exit the
+	// user from Loiter mode
+	int16_t yaw_rate = g.rc_1.control_in / g.toy_yaw_rate;
+
+	if(g.rc_1.control_in != 0){ // roll
+		g.rc_4.servo_out = get_acro_yaw(yaw_rate/2);
+		yaw_stopped = false;
+		yaw_timer = 150;
+
+	}else if (!yaw_stopped){
+		g.rc_4.servo_out = get_acro_yaw(0);
+		yaw_timer--;
+
+		if((yaw_timer == 0) || (fabs(omega.z) < .17)){
+			yaw_stopped = true;
+			nav_yaw = ahrs.yaw_sensor;
+		}
+	}else{
+		if(motors.armed() == false)
+			nav_yaw = ahrs.yaw_sensor;
+		g.rc_4.servo_out = get_stabilize_yaw(nav_yaw);
+	}
+
+	if(manual_control){
+		// user is in control: reset count-up timer
+		toy_input_timer = 0;
+
+		// roll_rate is the outcome of the linear equation or lookup table
+		// based on speed and Yaw rate
+		int16_t roll_rate = 0;
+
+		// We manually set out modes based on the state of Toy mode:
+		// Handle throttle manually
+		throttle_mode 	= THROTTLE_MANUAL;
+
+		// Dont try to navigate or integrate a nav error
+		wp_control 		= NO_NAV_MODE;
+
+	#if TOY_LOOKUP == 1
+		uint8_t xx, yy;
+		// Lookup value
+		xx	= g_gps->ground_speed / 200;
+		yy	= abs(yaw_rate / 500);
+
+		// constrain to lookup Array range
+		xx = constrain(xx, 0, 3);
+		yy = constrain(yy, 0, 8);
+
+		roll_rate = toy_lookup[yy * 4 + xx];
+
+		if(yaw_rate == 0)
+			roll_rate = 0;
+		else if(yaw_rate < 0)
+			roll_rate = -roll_rate;
+
+		int16_t roll_limit = 4500 / g.toy_yaw_rate;
+		roll_rate = constrain(roll_rate, -roll_limit, roll_limit);
+	#else
+		// yaw_rate = roll angle
+		// Linear equation for Yaw:Speed to Roll
+		// default is 1000, lower for more roll action
+		//roll_rate = ((float)g_gps->ground_speed / 600) * (float)yaw_rate;
+		roll_rate = ((int32_t)g.rc_2.control_in * (yaw_rate/100)) /40;
+		//Serial.printf("roll_rate: %d\n",roll_rate);
+
+		// limit roll rate to 15, 30, or 45 deg per second.
+		//int16_t roll_limit = 4500 / g.toy_yaw_rate;
+		//roll_rate = constrain(roll_rate, -roll_limit, roll_limit);
+
+		roll_rate = constrain(roll_rate, -2500, 2500);
+
+		//Serial.printf("yaw_rate %d, roll_rate %d, lim %d\n",yaw_rate, roll_rate, roll_limit);
+	#endif
+
+		// Output the attitude
+		g.rc_1.servo_out = get_stabilize_roll(roll_rate);
+		g.rc_2.servo_out = get_stabilize_pitch(g.rc_2.control_in);
+
+	}else{
+		//no user input
+		// Count-up to decision tp Loiter
+		toy_input_timer++;
+
+		//if (toy_input_timer == TOY_DELAY){
+		if((wp_control != LOITER_MODE) && ((g_gps->ground_speed < 150) || (toy_input_timer == TOY_DELAY))){
+
+			// clear our I terms for Nav or we will carry over old values
+			reset_wind_I();
+			// loiter
+			wp_control = LOITER_MODE;
+
+			// we are in an alt hold throttle with manual override
+			throttle_mode 	= THROTTLE_HOLD;
+
+			set_next_WP(&current_loc);
+		}
+
+		if (wp_control == LOITER_MODE){
+			// prevent timer overflow
+			toy_input_timer = TOY_DELAY;
+
+			// outputs the needed nav_control to maintain speed and direction
+			g.rc_1.servo_out 	= get_stabilize_roll(auto_roll);
+			g.rc_2.servo_out 	= get_stabilize_pitch(auto_pitch);
+
+		}else{
+			// Coast
+			g.rc_1.servo_out 	= get_stabilize_roll(0);
+			g.rc_2.servo_out 	= get_stabilize_pitch(0);
+		}
+	}
 }

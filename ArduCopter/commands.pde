@@ -105,15 +105,15 @@ static void set_cmd_with_index(struct Location temp, int i)
 		g.command_total.set_and_save(i+1);
 }
 
-static int32_t read_alt_to_hold()
+static int32_t get_RTL_alt()
 {
-	return current_loc.alt;
-	/*
-	if(g.RTL_altitude <= 0)
+	if(g.RTL_altitude <= 0){
 		return current_loc.alt;
-	else
-		return g.RTL_altitude;// + home.alt;
-	*/
+	}else if (g.RTL_altitude < current_loc.alt){
+		return current_loc.alt;
+	}else{
+		return g.RTL_altitude;
+	}
 }
 
 
@@ -137,7 +137,7 @@ static void set_next_WP(struct Location *wp)
 	if (next_WP.lat == 0 || command_nav_index <= 1){
 		prev_WP = current_loc;
 	}else{
-		if (get_distance(&current_loc, &next_WP) < 10)
+		if (get_distance_cm(&current_loc, &next_WP) < 500)
 			prev_WP = next_WP;
 		else
 			prev_WP = current_loc;
@@ -165,9 +165,8 @@ static void set_next_WP(struct Location *wp)
 
 	// this is handy for the groundstation
 	// -----------------------------------
-	wp_distance 		= get_distance(&current_loc, &next_WP);
+	wp_distance 		= get_distance_cm(&current_loc, &next_WP);
 	target_bearing 		= get_bearing(&prev_WP, &next_WP);
-	nav_bearing 		= target_bearing;
 
 	// calc the location error:
 	calc_location_error(&next_WP);
@@ -199,7 +198,10 @@ static void init_home()
 	// -------------------
 	// no need to save this to EPROM
 	set_cmd_with_index(home, 0);
-	print_wp(&home, 0);
+	//print_wp(&home, 0);
+
+	if (g.log_bitmask & MASK_LOG_CMD)
+		Log_Write_Cmd(0, &home);
 
 	// Save prev loc this makes the calcs look better before commands are loaded
 	prev_WP = home;
