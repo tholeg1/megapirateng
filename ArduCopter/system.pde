@@ -205,6 +205,9 @@ static void init_ardupilot()
 
 	timer_scheduler.init( &isr_registry );
 	
+    // initialise the analog port reader
+    AP_AnalogSource_Arduino::init_timer(&timer_scheduler);
+
 	#if HIL_MODE != HIL_MODE_ATTITUDE
 		#if CONFIG_ADC == ENABLED
 			// begin filtering the ADC Gyros

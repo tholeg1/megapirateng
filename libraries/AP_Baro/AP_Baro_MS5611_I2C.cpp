@@ -184,6 +184,7 @@ void AP_Baro_MS5611_I2C::_update(uint32_t tnow)
           _d1_count = 64;
       }
 	    _updated = true;					                // New pressure reading
+	    _state++;
       if (_state == 5) {
 				if (I2c.write(MS5611_ADDRESS, CMD_CONVERT_D2_OSR4096) != 0) {
 					healthy = false;

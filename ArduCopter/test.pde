@@ -85,7 +85,7 @@ const struct Menu::command test_menu_commands[] PROGMEM = {
 	//{"xbee",		test_xbee},
 	{"eedump",		test_eedump},
 //"logging",		test_logging},
-//	{"rawgps",		test_rawgps},
+	{"rawgps",		test_rawgps},
 //	{"mission",		test_mission},
 	//{"reverse",		test_reverse},
 	//{"wp",			test_wp_nav},
@@ -1019,27 +1019,25 @@ test_wp(uint8_t argc, const Menu::arg *argv)
 	return (0);
 }
 
-//static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
-	/*
+static int8_t test_rawgps(uint8_t argc, const Menu::arg *argv) {
+	#if defined( __AVR_ATmega1280__ )  // determines if optical flow code is included
+		print_test_disabled();
+		return (0);
+	#else
    print_hit_enter();
    delay(1000);
 	while(1){
-		   if (Serial3.available()){
-				   digitalWrite(B_LED_PIN, LED_ON); // Blink Yellow LED if we are sending data to GPS
-				   Serial1.write(Serial3.read());
-				   digitalWrite(B_LED_PIN, LED_OFF);
-		   }
-		   if (Serial1.available()){
-				   digitalWrite(C_LED_PIN, LED_ON); // Blink Red LED if we are receiving data from GPS
-				   Serial3.write(Serial1.read());
+        if (Serial2.available()){
+					digitalWrite(C_LED_PIN, LED_ON); 		// Blink C LED if we are receiving data from GPS
+					Serial.write(Serial2.read());
 				   digitalWrite(C_LED_PIN, LED_OFF);
 		   }
 		   if(Serial.available() > 0){
 				   return (0);
 	 }
    }
-   */
- //}
+	#endif
+}
 
 /*static int8_t
 //test_xbee(uint8_t argc, const Menu::arg *argv)

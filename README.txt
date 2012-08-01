@@ -1,4 +1,4 @@
-Release Notes for MegaPirateNG 2.7 R1 (ArduCopter 2.7.1)
+Release Notes for MegaPirateNG 2.7 R2 (ArduCopter 2.7.1)
 
 === How to compile MegaPirateNG ===
 
