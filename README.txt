@@ -1,4 +1,4 @@
-Release Notes for MegaPirateNG 2.7 R2 (ArduCopter 2.7.1)
+Release Notes for MegaPirateNG 2.7 R3 (ArduCopter 2.7.1)
 
 === How to compile MegaPirateNG ===
 
@@ -53,6 +53,7 @@ Version is compatible with Arduino IDE 1.0!
 === Arduino board pin mapping ===
 
 *** RC channels (can be changed in APM_RC_PIRATES.cpp) ***
+* PPM SUM signal must be connected to A8 pin
 * Default is TX_mwi - MultiWii set
 A8	- ROLL
 A9	- THROTTLE

@@ -97,12 +97,14 @@ void AP_Baro_BMP085_Pirates::_update(uint32_t tnow)
 
 uint8_t AP_Baro_BMP085_Pirates::read()
 {
-	if (_baro_updated) {
+	if (healthy && _baro_updated) {
 		_baro_updated = false;
 		Calculate();
+		_last_update = millis();
+		return 1;
 	} else {
+		return 0;
 	}
-	return healthy;
 }
 
 float AP_Baro_BMP085_Pirates::get_pressure() {
@@ -146,7 +148,7 @@ void AP_Baro_BMP085_Pirates::ReadPress()
 
 	healthy = true;
 	
-	RawPress = (((long)buf[0] << 16) | ((long)buf[1] << 8) | ((long)buf[2])) >> (8 - oss);
+	RawPress = (((uint32_t)buf[0] << 16) | ((uint32_t)buf[1] << 8) | ((uint32_t)buf[2])) >> (8 - oss);
 }
 
 // Send Command to Read Temperature
