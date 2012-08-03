@@ -7,7 +7,9 @@
 class AP_Baro_BMP085_Pirates: public AP_Baro
 {
   public:
-	AP_Baro_BMP085_Pirates() {};  // Constructor
+	AP_Baro_BMP085_Pirates() {
+             _pressure_samples = 1;
+	};  // Constructor
   /* AP_Baro public interface: */
   bool init(AP_PeriodicProcess *scheduler);
   uint8_t read();
