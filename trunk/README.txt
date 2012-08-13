@@ -99,17 +99,19 @@ motor mapping (maximize your text viewer or disable word wrapping to avoid line 
 ======================================================
 Pin     D2    D3    D5    D6    D7    D8    D11   D12   - Arduino pins
 CH      3     4     1     2     7     8     10    11    - MegaPirate output channel
+MOT_*   3     4     1     2     5     6     7     8     - Arducopter motor mixer mapping
 ======================================================
-TRI     S     BC    RC    LC    -     -     -     -
+TRI     -     BC    RC    LC    S     -     -     -
 QuadX   LFW   RBW   RFC   LBC   -     -     -     -
 Quad+   FW    BW    RC    LC    -     -     -     -
 Hexa+   BLW   FRC   FW    BC    FLC   BRW   -     -
 HexaX   FLW   BRC   RW    LC    FRC   BLW   -     -
-Y6      LDW   BDW   RDW   LUC   RUC   BUC   -     -
-Octo+   FRC   BRC   FW    BW    FLC   BLC   LW    LW    - Mapping changed since 2.0.39 version!!!
-OctoX   RRFC  BBRC  FFRW  BBLW  FFLC  LLBC  LLFW  RRBW  - Mapping changed since 2.0.39 version!!!
-Quad8X  BLUC  BLDW  BRUC  BRDW  FLUC  FLDW  FRUC  FRDW  - Support added in 2.0.36
-Quad8+  BUC   BDW   RUC   RDW   LUC   LDW   FUC   FDW   - Support added in 2.0.36
+Y6      LDC   BDW   RDC   LUW   RUW   BUC  
+Octo+   FRC   BRC   FW    BW    FLC   BLC   LW    RW
+OctoX   RRFC  BBRC  FFRW  BBLW  FFLC  LLBC  LLFW  RRBW
+OctoV   BLC   BBRC  FL    BR    FFLC  FRC   FFR   BBL
+Quad8X  BLUC  FLUW  FRUC  BRUW  BRDC  FRDW  FLDC  BLDW
+Quad8+  LUC   FUW   RUC   BUW   BDC   RDW   FDC   LDW
 ======================================================
 
 Motors description:

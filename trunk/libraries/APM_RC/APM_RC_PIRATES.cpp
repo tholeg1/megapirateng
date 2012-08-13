@@ -340,8 +340,8 @@ void APM_RC_PIRATES::enable_out(uint8_t ch)
     	// 4,5
     case 6: TCCR4A |= (1<<COM4B1); break; // CH_7
     case 7: TCCR4A |= (1<<COM4C1); break; // CH_8
-    case 9: TCCR1A |= (1<<COM1A1); break; // CH_9
-    case 10: TCCR1A |= (1<<COM1B1); break; // CH_10
+    case 9: TCCR1A |= (1<<COM1A1); break; // CH_10
+    case 10: TCCR1A |= (1<<COM1B1); break; // CH_11
   }
 }
 
@@ -355,8 +355,8 @@ void APM_RC_PIRATES::disable_out(uint8_t ch)
     	// 4,5
     case 6: TCCR4A &= ~(1<<COM4B1); break; // CH_7
     case 7: TCCR4A &= ~(1<<COM4C1); break; // CH_8
-    case 9: TCCR1A &= ~(1<<COM1A1); break; // CH_9
-    case 10: TCCR1A &= ~(1<<COM1B1); break; // CH_10
+    case 9: TCCR1A &= ~(1<<COM1A1); break; // CH_10
+    case 10: TCCR1A &= ~(1<<COM1B1); break; // CH_11
   }
 }
  
