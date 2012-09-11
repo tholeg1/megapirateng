@@ -1,6 +1,6 @@
 #summary Copter_Tweaks .
 #labels ардукоптер, мегапират, настройка пидов, настройка PID, описание PID
-
+<g:plusone size="medium"></g:plusone>
 = Настройка PID параметров ардукоптера =
 Настройки Pid и что означают PId для Arducopter (перевод из wiki arducopter)
 
