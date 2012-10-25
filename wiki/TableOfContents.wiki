@@ -11,6 +11,7 @@
  * [FreeIMU FreeIMU 0.4.1 IMU]
  * [BlackVortex]
  * [dypme007 DYP-ME007 Sonar]
+ * [CalibratinESC ESC Calibration Калибровка регуляторов]
  * ----
  * *Software*
  * [configcode Configuring firmware]
