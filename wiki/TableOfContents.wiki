@@ -8,6 +8,7 @@
  * [confighw Configuring hardware]
  * [AllInOne AllInOne IMU]
  * [AllInOne2 AllInOne2 IMU]
+ * [Crius All In One Pro v1.1 FC]
  * [FreeIMU FreeIMU 0.4.1 IMU]
  * [BlackVortex]
  * [dypme007 DYP-ME007 Sonar]
