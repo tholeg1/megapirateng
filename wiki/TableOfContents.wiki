@@ -9,8 +9,8 @@
  * [AllInOne AllInOne IMU]
  * [AllInOne2 AllInOne2 IMU]
  * [Crius Crius All In One Pro v1.1 FC]
-   *[CriusPinout Board Pinout]
-   *[CriusAPMcfg APM_Config.h]
+   * [CriusPinout Board Pinout]
+   * [CriusAPMcfg APM_Config.h]
 
  * [FreeIMU FreeIMU 0.4.1 IMU]
  * [BlackVortex]
