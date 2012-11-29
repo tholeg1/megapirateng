@@ -51,7 +51,7 @@ void osd_heartbeat_50Hz() // send each packet via
 					dcmp=ahrs.pitch_sensor*0.01;
 					if(dcmp<-31) dcmp=-31;
 					if(dcmp>31) dcmp=31;
-					hom=get_bearing(&current_loc,&home);
+					hom=get_bearing_cd(&current_loc,&home);
 					// 270 = 0
 					// 0 = 31
 					// 90 = 63

@@ -1,11 +1,11 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
-	APM_Baro.cpp - barometer driver
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public License
-    as published by the Free Software Foundation; either version 2.1
-    of the License, or (at your option) any later version.
+ *       APM_Baro.cpp - barometer driver
+ *
+ *   This library is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public License
+ *   as published by the Free Software Foundation; either version 2.1
+ *   of the License, or (at your option) any later version.
 */
 
 #include <FastSerial.h>
@@ -21,13 +21,13 @@ const AP_Param::GroupInfo AP_Baro::var_info[] PROGMEM = {
 	// @DisplayName: Absolute Pressure
 	// @Description: calibrated ground pressure
 	// @Increment: 1
-    AP_GROUPINFO("ABS_PRESS", 2, AP_Baro, _ground_pressure),
+    AP_GROUPINFO("ABS_PRESS", 2, AP_Baro, _ground_pressure, 0),
 
 	// @Param: ABS_PRESS
 	// @DisplayName: ground temperature
 	// @Description: calibrated ground temperature
 	// @Increment: 1
-    AP_GROUPINFO("TEMP", 3, AP_Baro, _ground_temperature),
+    AP_GROUPINFO("TEMP", 3, AP_Baro, _ground_temperature, 0),
     AP_GROUPEND
 };
 
@@ -103,15 +103,8 @@ float AP_Baro::get_altitude(void)
 // note that this relies on read() being called regularly to get new data
 float AP_Baro::get_climb_rate(void)
 {
-    if (_last_climb_rate_t == _last_altitude_t) {
-        // no new information
-        return _climb_rate;
-    }
-    _last_climb_rate_t = _last_altitude_t;
-
     // we use a 7 point derivative filter on the climb rate. This seems
     // to produce somewhat reasonable results on real hardware
-    _climb_rate = _climb_rate_filter.slope() * 1.0e3;
-
-	return _climb_rate;
+    return _climb_rate_filter.slope() * 1.0e3;
 }
+

@@ -19,7 +19,7 @@ static int8_t	setup_range				(uint8_t argc, const Menu::arg *argv);
 //static int8_t	setup_mag_offset		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_declination		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_optflow			(uint8_t argc, const Menu::arg *argv);
-static int8_t	setup_show				(uint8_t argc, const Menu::arg *argv);
+
 
 #if FRAME_CONFIG == HELI_FRAME
 	static int8_t	setup_heli				(uint8_t argc, const Menu::arg *argv);
@@ -116,7 +116,7 @@ setup_show(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_factory(uint8_t argc, const Menu::arg *argv)
 {
-	int c;
+    int16_t c;
 
 	Serial.printf_P(PSTR("\n'Y' = factory reset, any other key to abort:\n"));
 
@@ -144,7 +144,7 @@ setup_factory(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_radio(uint8_t argc, const Menu::arg *argv)
 {
- 	Serial.println("\n\nRadio Setup:");
+    Serial.println_P(PSTR("\n\nRadio Setup:"));
 	uint8_t i;
 
 	for(i = 0; i < 100;i++){
@@ -525,10 +525,10 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 {
 
 	uint8_t active_servo = 0;
-	int value = 0;
-	int temp;
-	int state = 0;   // 0 = set rev+pos, 1 = capture min/max
-	int max_roll=0, max_pitch=0, min_collective=0, max_collective=0, min_tail=0, max_tail=0;
+    int16_t value = 0;
+    int16_t temp;
+    int16_t state = 0;       // 0 = set rev+pos, 1 = capture min/max
+    int16_t max_roll=0, max_pitch=0, min_collective=0, max_collective=0, min_tail=0, max_tail=0;
 
 	// initialise swash plate
 	motors.init_swash();
@@ -772,70 +772,6 @@ static void clear_offsets()
 	compass.save_offsets();
 }
 
-/*static int8_t
-setup_mag_offset(uint8_t argc, const Menu::arg *argv)
-{
-	Vector3f _offsets;
-
-	if (!strcmp_P(argv[1].str, PSTR("c"))) {
-		clear_offsets();
-		report_compass();
-		return (0);
-	}
-
-	print_hit_enter();
-	init_compass();
-
-	int _min[3] = {0,0,0};
-	int _max[3] = {0,0,0};
-
-	compass.read();
-
-	while(1){
-		delay(50);
-        float heading;
-
-		compass.read();
-		heading = compass.calculate_heading(0,0);	// roll = 0, pitch = 0
-
-		if(compass.mag_x < _min[0])	_min[0] = compass.mag_x;
-		if(compass.mag_y < _min[1])	_min[1] = compass.mag_y;
-		if(compass.mag_z < _min[2])	_min[2] = compass.mag_z;
-
-		// capture max
-		if(compass.mag_x > _max[0])	_max[0] = compass.mag_x;
-		if(compass.mag_y > _max[1])	_max[1] = compass.mag_y;
-		if(compass.mag_z > _max[2])	_max[2] = compass.mag_z;
-
-		// calculate offsets
-		_offsets.x = (float)(_max[0] + _min[0]) / -2;
-		_offsets.y = (float)(_max[1] + _min[1]) / -2;
-		_offsets.z = (float)(_max[2] + _min[2]) / -2;
-
-		// display all to user
-		Serial.printf_P(PSTR("Heading: %u, \t (%d, %d, %d), (%4.4f, %4.4f, %4.4f)\n"),
-
-				(uint16_t)(wrap_360(ToDeg(heading) * 100)) /100,
-
-				compass.mag_x,
-				compass.mag_y,
-				compass.mag_z,
-
-				_offsets.x,
-				_offsets.y,
-				_offsets.z);
-
-		if(Serial.available() > 1){
-			compass.set_offsets(_offsets);
-			//compass.set_offsets(mag_offset_x, mag_offset_y, mag_offset_z);
-			report_compass();
-			return 0;
-		}
-	}
-	return 0;
-}
-*/
-
 static int8_t
 setup_optflow(uint8_t argc, const Menu::arg *argv)
 {
@@ -890,8 +826,6 @@ static void report_wp(byte index = 255)
 
 static void report_sonar()
 {
-	g.sonar_enabled.load();
-	g.sonar_type.load();
 	Serial.printf_P(PSTR("Sonar\n"));
 	print_divider();
 	print_enabled(g.sonar_enabled.get());
@@ -975,7 +909,7 @@ static void report_flight_modes()
 	Serial.printf_P(PSTR("Flight modes\n"));
 	print_divider();
 
-	for(int i = 0; i < 6; i++ ){
+    for(int16_t i = 0; i < 6; i++ ) {
 		print_switch(i, flight_modes[i], (g.simple_modes & (1<<i)));
 	}
 	print_blanks(2);
@@ -1040,13 +974,13 @@ static void report_gyro()
 /***************************************************************************/
 
 /*static void
-print_PID(PI * pid)
-{
-	Serial.printf_P(PSTR("P: %4.2f, I:%4.2f, IMAX:%ld\n"),
-						pid->kP(),
-						pid->kI(),
-						(long)pid->imax());
-}
+ *  print_PID(PI * pid)
+ *  {
+ *       Serial.printf_P(PSTR("P: %4.2f, I:%4.2f, IMAX:%ld\n"),
+ *                                               pid->kP(),
+ *                                               pid->kI(),
+ *                                               (long)pid->imax());
+ *  }
 */
 
 static void
@@ -1066,7 +1000,7 @@ static void
 print_switch(byte p, byte m, bool b)
 {
 	Serial.printf_P(PSTR("Pos %d:\t"),p);
-	Serial.print(flight_mode_strings[m]);
+    print_flight_mode(m);
 	Serial.printf_P(PSTR(",\t\tSimple: "));
 	if(b)
 		Serial.printf_P(PSTR("ON\n"));
@@ -1087,7 +1021,7 @@ static void zero_eeprom(void)
 
 	Serial.printf_P(PSTR("\nErasing EEPROM\n"));
 
-	for (int i = 0; i < EEPROM_MAX_ADDR; i++) {
+    for (int16_t i = 0; i < EEPROM_MAX_ADDR; i++) {
 		eeprom_write_byte((uint8_t *) i, b);
 	}
 
@@ -1115,7 +1049,7 @@ print_gyro_offsets(void)
 #if FRAME_CONFIG == HELI_FRAME
 
 static RC_Channel *
-heli_get_servo(int servo_num){
+heli_get_servo(int16_t servo_num){
 	if( servo_num == CH_1 )
 	    return motors._servo_1;
 	if( servo_num == CH_2 )
@@ -1128,7 +1062,7 @@ heli_get_servo(int servo_num){
 }
 
 // Used to read integer values from the serial port
-static int read_num_from_serial() {
+static int16_t read_num_from_serial() {
 	byte index = 0;
 	byte timeout = 0;
 	char data[5] = "";
@@ -1151,7 +1085,7 @@ static int read_num_from_serial() {
 #endif // CLI_ENABLED
 
 static void
-print_blanks(int num)
+print_blanks(int16_t num)
 {
 	while(num > 0){
 		num--;
@@ -1181,18 +1115,18 @@ static void
 print_divider(void)
 {
 	for (int i = 0; i < 40; i++) {
-		Serial.print("-");
+        Serial.print_P(PSTR("-"));
 	}
-	Serial.println("");
+    Serial.println();
 }
 
 static void print_enabled(boolean b)
 {
 	if(b)
-		Serial.printf_P(PSTR("en"));
+        Serial.print_P(PSTR("en"));
 	else
-		Serial.printf_P(PSTR("dis"));
-	Serial.printf_P(PSTR("abled\n"));
+        Serial.print_P(PSTR("dis"));
+    Serial.print_P(PSTR("abled\n"));
 }
 
 
@@ -1211,9 +1145,19 @@ init_esc()
 
 static void print_wp(struct Location *cmd, byte index)
 {
-	float t1 = (float)cmd->lat / t7;
-	float t2 = (float)cmd->lng / t7;
+   	//float t1 = (float)cmd->lat / t7;
+    //float t2 = (float)cmd->lng / t7;
 
+    Serial.printf_P(PSTR("cmd#: %d | %d, %d, %d, %ld, %ld, %ld\n"),
+                    index,
+                    cmd->id,
+                    cmd->options,
+                    cmd->p1,
+                    cmd->alt,
+                    cmd->lat,
+                    cmd->lng);
+
+	/*
 	Serial.printf_P(PSTR("cmd#: %d id:%d op:%d p1:%d p2:%ld p3:%4.7f p4:%4.7f \n"),
 		(int)index,
 		(int)cmd->id,
@@ -1222,22 +1166,12 @@ static void print_wp(struct Location *cmd, byte index)
 		(long)cmd->alt,
 		t1,
 		t2);
-}
-
-static void report_gps()
-{
-	Serial.printf_P(PSTR("\nGPS\n"));
-	print_divider();
-	print_enabled(GPS_enabled);
-	print_blanks(2);
+	*/
 }
 
 static void report_version()
 {
-	Serial.printf_P(PSTR("FW Ver: %d\n"),(int)g.format_version.get());
-#if QUATERNION_ENABLE == ENABLED
-    Serial.printf_P(PSTR("Quaternion test\n"));
-#endif
+    Serial.printf_P(PSTR("FW Ver: %d\n"),(int)g.k_format_version);
 	print_divider();
 	print_blanks(2);
 }

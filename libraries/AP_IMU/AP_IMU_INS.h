@@ -55,22 +55,48 @@ public:
 	virtual bool		update(void);
 	virtual bool		new_data_available(void);
 
+    /// Get number of samples read from the sensors
+    virtual uint16_t        num_samples_available(void);
+
 	// for jason
-	virtual float		gx()				{ return _sensor_cal[0]; }
-	virtual float		gy()				{ return _sensor_cal[1]; }
-	virtual float		gz()				{ return _sensor_cal[2]; }
-	virtual float		ax()				{ return _sensor_cal[3]; }
-	virtual float		ay()				{ return _sensor_cal[4]; }
-	virtual float		az()				{ return _sensor_cal[5]; }
+    virtual float           gx()                            {
+        return _sensor_cal[0];
+    }
+    virtual float           gy()                            {
+        return _sensor_cal[1];
+    }
+    virtual float           gz()                            {
+        return _sensor_cal[2];
+    }
+    virtual float           ax()                            {
+        return _sensor_cal[3];
+    }
+    virtual float           ay()                            {
+        return _sensor_cal[4];
+    }
+    virtual float           az()                            {
+        return _sensor_cal[5];
+    }
 
-	virtual void		gx(const float v)		{ _sensor_cal[0] = v; }
-	virtual void		gy(const float v)		{ _sensor_cal[1] = v; }
-	virtual void		gz(const float v)		{ _sensor_cal[2] = v; }
-	virtual void		ax(const float v)		{ _sensor_cal[3] = v; }
-	virtual void		ay(const float v)		{ _sensor_cal[4] = v; }
-	virtual void		az(const float v)		{ _sensor_cal[5] = v; }
+    virtual void            gx(const float v)               {
+        _sensor_cal[0] = v;
+    }
+    virtual void            gy(const float v)               {
+        _sensor_cal[1] = v;
+    }
+    virtual void            gz(const float v)               {
+        _sensor_cal[2] = v;
+    }
+    virtual void            ax(const float v)               {
+        _sensor_cal[3] = v;
+    }
+    virtual void            ay(const float v)               {
+        _sensor_cal[4] = v;
+    }
+    virtual void            az(const float v)               {
+        _sensor_cal[5] = v;
+    }
     virtual float       get_gyro_drift_rate(void);
-
 
 private:
     AP_InertialSensor   *_ins;          ///< INS provides an axis and unit correct sensor source.

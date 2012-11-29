@@ -1,9 +1,9 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*****************************************************************************
-The init_ardupilot function processes everything we need for an in - air restart
-	We will determine later if we are actually on the ground and process a
-	ground start in that case.
-
+*   The init_ardupilot function processes everything we need for an in - air restart
+*        We will determine later if we are actually on the ground and process a
+*        ground start in that case.
+*
 *****************************************************************************/
 
 #if CLI_ENABLED == ENABLED
@@ -97,19 +97,20 @@ static void init_ardupilot()
 	I2c.begin();
 	I2c.timeOut(5);
 	// initially set a fast I2c speed, and drop it on first failures
-	I2c.setSpeed(true); // set fast I2C
-//	I2c.pullup(true);
+	I2c.setSpeed(true);
 #endif
 
-    //SPI.begin();
-    //SPI.setClockDivider(SPI_CLOCK_DIV16); // 1MHZ SPI rate
+#if PIRATES_SENSOR_BOARD == PIRATES_CRIUS_AIO_PRO_V2 
+    SPI.begin();
+    SPI.setClockDivider(SPI_CLOCK_DIV16); // 1MHZ SPI rate
+#endif
 	//
 	// Initialize the isr_registry.
 	//
     isr_registry.init();
 
 	//
-	// Check the EEPROM format version before loading any parameters from EEPROM.
+    // Report firmware version code expect on console (check of actual EEPROM format version is done in load_parameters function)
 	//
 	report_version();
 
@@ -125,7 +126,6 @@ static void init_ardupilot()
 
 #if SLIDE_SWITCH_PIN > 0
   pinMode(SLIDE_SWITCH_PIN, INPUT);		// To enter interactive mode
-	digitalWrite(SLIDE_SWITCH_PIN, HIGH);           // Pull-UP the switch port 
 #endif
 #if CONFIG_PUSHBUTTON == ENABLED
 	pinMode(PUSHBUTTON_PIN, INPUT);			// unused
@@ -205,6 +205,12 @@ static void init_ardupilot()
 
 	timer_scheduler.init( &isr_registry );
 	
+    /*
+     *  setup the 'main loop is dead' check. Note that this relies on
+     *  the RC library being initialised.
+     */
+    timer_scheduler.set_failsafe(failsafe_check);
+
     // initialise the analog port reader
     AP_AnalogSource_Arduino::init_timer(&timer_scheduler);
 
@@ -291,39 +297,13 @@ static void init_ardupilot()
 		sq_led_init();
 	#endif
 
-	GPS_enabled = false;
-
-#if HIL_MODE == HIL_MODE_DISABLED
 	// Do GPS init
 	g_gps = &g_gps_driver;
 	g_gps->init(GPS::GPS_ENGINE_AIRBORNE_1G);			// GPS Initialization
-	g_gps->callback = mavlink_delay;
 
-	// Read in the GPS
-	for (byte counter = 0; ; counter++) {
-		g_gps->update();
-		if (g_gps->status() != 0){
-			GPS_enabled = true;
-			break;
-		}
-		
-		if (counter >= 2) {
-			GPS_enabled = false;
-			break;
-	  }
-	  mavlink_delay(500);
-	}
-#else
-		GPS_enabled = true;
+#if PIRATES_SENSOR_BOARD == PIRATES_CRIUS_AIO_PRO_V2 
+    SPI.setClockDivider(SPI_CLOCK_DIV8); // 2MHZ SPI rate
 #endif
-
-	// lengthen the idle timeout for gps Auto_detect
-	// ---------------------------------------------
-	g_gps->idleTimeout = 20000;
-
-	// print the GPS status
-	// --------------------
-	report_gps();
 
 #if LOGGING_ENABLED == ENABLED
 	Log_Write_Startup();
@@ -383,7 +363,7 @@ static void init_ardupilot()
 
 #endif
 
-	SendDebug("\nReady to FLY ");
+    Serial.print_P(PSTR("\nReady to FLY "));
 }
 
 
@@ -394,15 +374,23 @@ static void startup_ground(void)
 {
 	gcs_send_text_P(SEVERITY_LOW,PSTR("GROUND START"));
 
-	#if HIL_MODE != HIL_MODE_ATTITUDE
 		// Warm up and read Gyro offsets
 		// -----------------------------
         imu.init(IMU::COLD_START, mavlink_delay, flash_leds, &timer_scheduler);
 		#if CLI_ENABLED == ENABLED
 		report_imu();
 	#endif
+
 		// initialise ahrs (may push imu calibration into the mpu6000 if using that device).
-		ahrs.init();
+    ahrs.init(&timer_scheduler);
+
+    // setup fast AHRS gains to get right attitude
+    ahrs.set_fast_gains(true);
+
+#if SECONDARY_DMP_ENABLED == ENABLED
+    ahrs2.init(&timer_scheduler);
+    ahrs2.set_as_secondary(true);
+    ahrs2.set_fast_gains(true);
 	#endif
 
 	// reset the leds
@@ -414,29 +402,13 @@ static void startup_ground(void)
     reset_I_all();
 }
 
-/*
-#define YAW_HOLD 			0
-#define YAW_ACRO 			1
-#define YAW_AUTO 			2
-#define YAW_LOOK_AT_HOME 	3
-
-#define ROLL_PITCH_STABLE 	0
-#define ROLL_PITCH_ACRO 	1
-#define ROLL_PITCH_AUTO		2
-
-#define THROTTLE_MANUAL 	0
-#define THROTTLE_HOLD 		1
-#define THROTTLE_AUTO		2
-
-*/
-
 static void set_mode(byte mode)
 {
 	// if we don't have GPS lock
 	if(home_is_set == false){
 		// THOR
 		// We don't care about Home if we don't have lock yet in Toy mode
-		if(mode == TOY || mode == OF_LOITER){
+        if(mode == TOY_A || mode == TOY_M || mode == OF_LOITER) {
 			// nothing
 		}else if (mode > ALT_HOLD){
 			mode = STABILIZE;
@@ -444,7 +416,7 @@ static void set_mode(byte mode)
 	}
 
 	// nothing but OF_LOITER for OptFlow only
-	if (g.optflow_enabled && GPS_enabled == false){
+    if (g.optflow_enabled && g_gps->status() != GPS::GPS_OK) {
 		if (mode > ALT_HOLD && mode != OF_LOITER)
 			mode = STABILIZE;
 	}
@@ -461,9 +433,6 @@ static void set_mode(byte mode)
 
 	// clearing value used to force the copter down in landing mode
 	landing_boost = 0;
-
-	// do we want to come to a stop or pass a WP?
-	slow_wp = false;
 
 	// do not auto_land if we are leaving RTL
 	loiter_timer = 0;
@@ -482,9 +451,15 @@ static void set_mode(byte mode)
 	switch(control_mode)
 	{
 		case ACRO:
-			yaw_mode 		= YAW_HOLD;
+        yaw_mode                = YAW_ACRO;
 			roll_pitch_mode = ROLL_PITCH_ACRO;
 			throttle_mode 	= THROTTLE_MANUAL;
+        // reset acro axis targets to current attitude
+        if( g.axis_enabled ) {
+            roll_axis = ahrs.roll_sensor;
+            pitch_axis = ahrs.pitch_sensor;
+            nav_yaw = ahrs.yaw_sensor;
+        }
 			break;
 
 		case STABILIZE:
@@ -567,11 +542,24 @@ static void set_mode(byte mode)
 		// THOR
 		// These are the flight modes for Toy mode
 		// See the defines for the enumerated values
-		case TOY:
+    case TOY_A:
 			yaw_mode 		= YAW_TOY;
 			roll_pitch_mode = ROLL_PITCH_TOY;
+        throttle_mode   = THROTTLE_AUTO;
+        wp_control              = NO_NAV_MODE;
+
+        // save throttle for fast exit of Alt hold
+        saved_toy_throttle = g.rc_3.control_in;
+
+        // hold the current altitude
+        set_new_altitude(current_loc.alt);
+        break;
+
+    case TOY_M:
+			yaw_mode 		= YAW_TOY;
+			roll_pitch_mode = ROLL_PITCH_TOY;
+        wp_control              = NO_NAV_MODE;
 			throttle_mode 	= THROTTLE_MANUAL;
-			wp_control 		= NO_NAV_MODE;
 			break;
 
 		default:
@@ -585,9 +573,6 @@ static void set_mode(byte mode)
 		// Receiver will be outputting low throttle
 		motors.auto_armed(true);
 	}
-
-	// called to calculate gain for alt hold
-		update_throttle_cruise();
 
 	if(roll_pitch_mode <= ROLL_PITCH_ACRO){
 		// We are under manual attitude control
@@ -631,9 +616,8 @@ init_simple_bearing()
 	initial_simple_bearing = ahrs.yaw_sensor;
 }
 
-static void update_throttle_cruise()
+static void update_throttle_cruise(int16_t tmp)
 {
-	int16_t tmp = g.pi_alt_hold.get_integrator();
 	if(tmp != 0){
 		g.throttle_cruise += tmp;
 		reset_throttle_I();
@@ -653,7 +637,7 @@ check_startup_for_CLI()
 #endif // CLI_ENABLED
 
 /*
-  map from a 8 bit EEPROM baud rate to a real baud rate
+ *  map from a 8 bit EEPROM baud rate to a real baud rate
  */
 static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
 {
@@ -691,8 +675,8 @@ static void check_usb_mux(void)
 #endif
 
 /*
-  called by gyro/accel init to flash LEDs so user
-  has some mesmerising lights to watch while waiting
+ *  called by gyro/accel init to flash LEDs so user
+ *  has some mesmerising lights to watch while waiting
  */
 void flash_leds(bool on)
 {
@@ -710,3 +694,55 @@ uint16_t board_voltage(void)
     return vcc.read_vcc();
 }
 #endif
+
+//
+// print_flight_mode - prints flight mode to serial port.
+//
+static void
+print_flight_mode(uint8_t mode)
+{
+    switch (mode) {
+    case STABILIZE:
+        Serial.print_P(PSTR("STABILIZE"));
+        break;
+    case ACRO:
+        Serial.print_P(PSTR("ACRO"));
+        break;
+    case ALT_HOLD:
+        Serial.print_P(PSTR("ALT_HOLD"));
+        break;
+    case AUTO:
+        Serial.print_P(PSTR("AUTO"));
+        break;
+    case GUIDED:
+        Serial.print_P(PSTR("GUIDED"));
+        break;
+    case LOITER:
+        Serial.print_P(PSTR("LOITER"));
+        break;
+    case RTL:
+        Serial.print_P(PSTR("RTL"));
+        break;
+    case CIRCLE:
+        Serial.print_P(PSTR("CIRCLE"));
+        break;
+    case POSITION:
+        Serial.print_P(PSTR("POSITION"));
+        break;
+    case LAND:
+        Serial.print_P(PSTR("LAND"));
+        break;
+    case OF_LOITER:
+        Serial.print_P(PSTR("OF_LOITER"));
+        break;
+    case TOY_M:
+        Serial.print_P(PSTR("TOY_M"));
+        break;
+    case TOY_A:
+        Serial.print_P(PSTR("TOY_A"));
+        break;
+    default:
+        Serial.print_P(PSTR("---"));
+        break;
+    }
+}

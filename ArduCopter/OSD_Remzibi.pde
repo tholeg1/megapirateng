@@ -82,7 +82,7 @@ void osd_heartbeat_10Hz(void)
 	SendSer(",");
 	SendSer(g_gps->ground_speed/100,DEC); //Ground Speed
 	SendSer(",");
-  SendSer(get_bearing(&current_loc,&home)/100,DEC);
+  SendSer(get_bearing_cd(&current_loc,&home)/100,DEC);
 	SendSer(",");
 	SendSer(",");
 	//SendSer(pitch_sensor/100,DEC); //Pitch

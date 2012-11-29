@@ -32,15 +32,21 @@ class AP_Baro
 
     // return how many pressure samples were used to obtain
     // the last pressure reading
-    uint8_t get_pressure_samples(void) { return _pressure_samples; }
+    uint8_t        get_pressure_samples(void) {
+        return _pressure_samples;
+    }
 
     // get current climb rate in meters/s. A positive number means
     // going up
     float get_climb_rate(void);
 
     // the ground values are only valid after calibration
-    float get_ground_temperature(void) { return _ground_temperature.get(); }
-    float get_ground_pressure(void) { return _ground_pressure.get(); }
+    float           get_ground_temperature(void) {
+        return _ground_temperature.get();
+    }
+    float           get_ground_pressure(void) {
+        return _ground_pressure.get();
+    }
 
 	static const struct AP_Param::GroupInfo var_info[];
 
@@ -52,8 +58,6 @@ private:
     AP_Float    _ground_temperature;
     AP_Float    _ground_pressure;
     float       _altitude;
-    float       _climb_rate;
-    uint32_t    _last_climb_rate_t;
     uint32_t    _last_altitude_t;
     DerivativeFilterFloat_Size7 _climb_rate_filter;
 };

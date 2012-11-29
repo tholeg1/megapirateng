@@ -3,7 +3,8 @@
 // Sensors are not available in HIL_MODE_ATTITUDE
 #if HIL_MODE != HIL_MODE_ATTITUDE
 
-static void ReadSCP1000(void) {}
+static void ReadSCP1000(void) {
+}
 
 #if CONFIG_SONAR == ENABLED
 static void init_sonar(void)
@@ -48,21 +49,28 @@ static void init_compass()
 	    }
 	#endif
 	ahrs.set_compass(&compass);
+#if SECONDARY_DMP_ENABLED == ENABLED
+    ahrs2.set_compass(&compass);
+#endif
 }
 
 static void init_optflow()
 {
 #ifdef OPTFLOW_ENABLED
-	if( optflow.init(false) == false ) {
+    if( optflow.init(false, &timer_scheduler, &spi_semaphore, &spi3_semaphore) == false ) {
 	    g.optflow_enabled = false;
-	    SendDebug("\nFailed to Init OptFlow ");
+        Serial.print_P(PSTR("\nFailed to Init OptFlow "));
 	}
+    // suspend timer while we set-up SPI communication
+    timer_scheduler.suspend_timer();
+
 	optflow.set_orientation(OPTFLOW_ORIENTATION);			// set optical flow sensor's orientation on aircraft
 	optflow.set_frame_rate(2000);							// set minimum update rate (which should lead to maximum low light performance
 	optflow.set_resolution(OPTFLOW_RESOLUTION);				// set optical flow sensor's resolution
 	optflow.set_field_of_view(OPTFLOW_FOV);					// set optical flow sensor's field of view
-	// setup timed read of sensor
-	//timer_scheduler.register_process(&AP_OpticalFlow::read);
+
+    // resume timer
+    timer_scheduler.resume_timer();
 #endif
 }
 
@@ -75,12 +83,14 @@ static void read_battery(void)
 	}
 
     if(g.battery_monitoring == 3 || g.battery_monitoring == 4) {
-        static AP_AnalogSource_Arduino bat_pin(BATTERY_PIN_1);
-	battery_voltage1 = BATTERY_VOLTAGE(bat_pin.read_average());
+        static AP_AnalogSource_Arduino batt_volt_pin(g.battery_volt_pin);
+        batt_volt_pin.set_pin(g.battery_volt_pin);
+        battery_voltage1 = BATTERY_VOLTAGE(batt_volt_pin.read_average());
     }
 	if(g.battery_monitoring == 4) {
-        static AP_AnalogSource_Arduino current_pin(CURRENT_PIN_1);
-		current_amps1	 = CURRENT_AMPS(current_pin.read_average());
+        static AP_AnalogSource_Arduino batt_curr_pin(g.battery_curr_pin);
+        batt_curr_pin.set_pin(g.battery_curr_pin);
+        current_amps1    = CURRENT_AMPS(batt_curr_pin.read_average());
 		current_total1	 += current_amps1 * 0.02778;	// called at 100ms on average, .0002778 is 1/3600 (conversion to hours)
 	}
 
