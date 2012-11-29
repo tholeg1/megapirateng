@@ -14,12 +14,13 @@
 #include "GPS.h"
 
 /*
-  try to put a UBlox into binary mode. This is in two parts. First we
-  send a PUBX asking the UBlox to receive NMEA and UBX, and send UBX,
-  with a baudrate of 38400. Then we send a UBX message setting rate 1
-  for the NAV_SOL message. The setup of NAV_SOL is to cope with
-  configurations where all UBX binary message types are disabled.
+ *  try to put a UBlox into binary mode. This is in two parts. First we
+ *  send a PUBX asking the UBlox to receive NMEA and UBX, and send UBX,
+ *  with a baudrate of 38400. Then we send a UBX message setting rate 1
+ *  for the NAV_SOL message. The setup of NAV_SOL is to cope with
+ *  configurations where all UBX binary message types are disabled.
  */
+
 #define UBLOX_SET_BINARY "$PUBX,41,1,0003,0001,38400,0*26\r\n\265\142\006\001\003\000\001\006\001\022\117"
 
 class AP_GPS_UBLOX : public GPS
@@ -29,9 +30,12 @@ public:
     AP_GPS_UBLOX(Stream *s);
     virtual void	init(enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
     virtual bool	read();
+    static bool _detect(uint8_t );
 
     static const prog_char _ublox_set_binary[];
 	static const uint8_t _ublox_set_binary_size;
+
+    float       get_lag() { return 0.5; }   // ublox lag is lower than the default 1second
 
 private:
     // u-blox UBX protocol essentials

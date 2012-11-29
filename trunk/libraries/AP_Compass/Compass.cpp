@@ -3,11 +3,11 @@
 
 const AP_Param::GroupInfo Compass::var_info[] PROGMEM = {
     // index 0 was used for the old orientation matrix
-    AP_GROUPINFO("OFS",    1, Compass, _offset),
-    AP_GROUPINFO("DEC",    2, Compass, _declination),
-    AP_GROUPINFO("LEARN",  3, Compass, _learn), // true if learning calibration
-    AP_GROUPINFO("USE",    4, Compass, _use_for_yaw), // true if used for DCM yaw
-    AP_GROUPINFO("AUTODEC",5, Compass, _auto_declination),
+    AP_GROUPINFO("OFS",    1, Compass, _offset, 0),
+    AP_GROUPINFO("DEC",    2, Compass, _declination, 0),
+    AP_GROUPINFO("LEARN",  3, Compass, _learn, 1), // true if learning calibration
+    AP_GROUPINFO("USE",    4, Compass, _use_for_yaw, 1), // true if used for DCM yaw
+    AP_GROUPINFO("AUTODEC",5, Compass, _auto_declination, 1),
     AP_GROUPEND
 };
 
@@ -19,10 +19,6 @@ bool Compass::healthy = false;        ///< true if last read OKint Compass::prod
 int Compass::product_id = AP_COMPASS_TYPE_UNKNOWN;
 Compass::Compass(void) :
     _orientation(ROTATION_NONE),
-    _declination		(0.0),
-    _learn(1),
-    _use_for_yaw(1),
-    _auto_declination(1),
     _null_init_done(false)
 {
 }
@@ -60,7 +56,7 @@ Compass::get_offsets()
 }
 
 void
-Compass::set_initial_location(long latitude, long longitude)
+Compass::set_initial_location(int32_t latitude, int32_t longitude)
 {
     // if automatic declination is configured, then compute
     // the declination based on the initial GPS fix
@@ -164,24 +160,24 @@ Compass::calculate_heading(const Matrix3f &dcm_matrix)
 
 
 /*
-  this offset nulling algorithm is inspired by this paper from Bill Premerlani
-
-  http://gentlenav.googlecode.com/files/MagnetometerOffsetNullingRevisited.pdf
-
-  The base algorithm works well, but is quite sensitive to
-  noise. After long discussions with Bill, the following changes were
-  made:
-
-    1) we keep a history buffer that effectively divides the mag
-       vectors into a set of N streams. The algorithm is run on the
-       streams separately
-
-    2) within each stream we only calculate a change when the mag
-       vector has changed by a significant amount.
-
-  This gives us the property that we learn quickly if there is no
-  noise, but still learn correctly (and slowly) in the face of lots of
-  noise.
+ *  this offset nulling algorithm is inspired by this paper from Bill Premerlani
+ *
+ *  http://gentlenav.googlecode.com/files/MagnetometerOffsetNullingRevisited.pdf
+ *
+ *  The base algorithm works well, but is quite sensitive to
+ *  noise. After long discussions with Bill, the following changes were
+ *  made:
+ *
+ *   1) we keep a history buffer that effectively divides the mag
+ *      vectors into a set of N streams. The algorithm is run on the
+ *      streams separately
+ *
+ *   2) within each stream we only calculate a change when the mag
+ *      vector has changed by a significant amount.
+ *
+ *  This gives us the property that we learn quickly if there is no
+ *  noise, but still learn correctly (and slowly) in the face of lots of
+ *  noise.
  */
 void
 Compass::null_offsets(void)

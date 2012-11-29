@@ -3,12 +3,8 @@
 #define __ARDUCOPTER_APMCONFIG_H__ 
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
-// Fast PWM 490Hz enabled by default (490 Hz can be changed in the APM Planner)
-// In order to use an old PWM generator (for slow ESC), uncomment this line
-//#define INSTANT_PWM	ENABLED
-
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_BLACKVORTEX
+#define PIRATES_SENSOR_BOARD PIRATES_CRIUS_AIO_PRO_V1
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -17,13 +13,14 @@
 	PIRATES_FREEIMU_4 					// New FreeIMU 0.4.1 with MPU6000, MS5611 and 5883L
 	PIRATES_DROTEK_10DOF_MPU 		// MPU6000, MS5611 and 5883L
 	PIRATES_CRIUS_AIO_PRO_V1    // Crius AllInOne Pro v1
+	PIRATES_CRIUS_AIO_PRO_V2    // Crius AllInOne Pro v2
 */
 
 // RC configuration
 // Uncomment if you uses PPM Sum signal from receiver
-//#define SERIAL_PPM ENABLED
+#define SERIAL_PPM ENABLED
 
-#define TX_CHANNEL_SET	TX_mwi
+#define TX_CHANNEL_SET	TX_standard
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
@@ -32,14 +29,14 @@
 */
 
 // Select your baro sensor
-#define CONFIG_BARO AP_BARO_BMP085_PIRATES
+#define CONFIG_BARO AP_BARO_MS5611_I2C
 /*
 	AP_BARO_BMP085_PIRATES
 	AP_BARO_MS5611_I2C
 */
 
 // Warning: COPTER_LEDS is not compatible with LED_SEQUENCER, so enable only one option
-#define COPTER_LEDS ENABLED     // New feature coming from ArduCopter
+//#define COPTER_LEDS ENABLED     // New feature coming from ArduCopter
 //#define LED_SEQUENCER ENABLED   // Old Oleg's LED Sequencer, see leds.pde for more info
 
 #define MAX_SONAR_RANGE 400
@@ -52,7 +49,7 @@
 */
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will be selected automatically
-#define GPS_PROTOCOL GPS_PROTOCOL_UBLOX
+#define GPS_PROTOCOL GPS_PROTOCOL_AUTO
 /*
 	GPS_PROTOCOL_NONE 	without GPS
 	GPS_PROTOCOL_NMEA
@@ -101,7 +98,11 @@
 	CH7_AUTO_TRIM
 	CH7_ADC_FILTER (experimental)
 	CH7_SAVE_WP
-*/
+ 	CH7_MULTI_MODE
+ */
+
+//#define TOY_EDF	ENABLED
+//#define TOY_MIXER TOY_LOOKUP_TABLE
 
 //#define RATE_ROLL_I 	0.18
 //#define RATE_PITCH_I	0.18
@@ -125,9 +126,13 @@
 
 // to enable, set to 1
 // to disable, set to 0
-#define AUTO_THROTTLE_HOLD 1
+//#define AUTO_THROTTLE_HOLD 1
 
-#define LOGGING_ENABLED		DISABLED
+#if PIRATES_SENSOR_BOARD == PIRATES_CRIUS_AIO_PRO_V2
+	#define LOGGING_ENABLED		ENABLED
+#else
+	#define LOGGING_ENABLED		DISABLED
+#endif
 
 // Custom channel config - Expert Use Only.
 // this for defining your own MOT_n to CH_n mapping.
@@ -136,7 +141,7 @@
 // MOT_1 through MOT_m where m is the number of motors on your frame.
 // CH_n variables are used for RC output. These can be CH_1 through CH_8,
 // and CH_10 or CH_12. 
-// Sample channel config. Must define all MOT_ chanels used by
+// Sample channel config. Must define all MOT_ channels used by
 // your FRAME_TYPE.
 // #define CONFIG_CHANNELS CHANNEL_CONFIG_CUSTOM
 // #define MOT_1 CH_6
@@ -175,9 +180,6 @@
 
 // Enabling this will use the GPS lat/long coordinate to get the compass declination
 //#define AUTOMATIC_DECLINATION ENABLED
-
-// Enable Jeb Madgwick sensor fusion algo
-//#define QUATERNION_ENABLE ENABLED
 
 //#define CLI_ENABLED DISABLED
 

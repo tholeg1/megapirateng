@@ -38,6 +38,10 @@ public:
 	///
 	virtual bool read(void) = 0;
 
+    /// use spare CPU cycles to accumulate values from the compass if
+    /// possible
+    virtual void accumulate(void) = 0;
+
 	/// Calculate the tilt-compensated heading_ variables.
 	///
 	/// @param  roll                The current airframe roll angle.
@@ -87,7 +91,7 @@ public:
 	/// @param  latitude             GPS Latitude.
 	/// @param  longitude            GPS Longitude.
 	///
-	void set_initial_location(long latitude, long longitude);
+    void set_initial_location(int32_t latitude, int32_t longitude);
 
 	/// Program new offset values.
 	///
@@ -95,14 +99,18 @@ public:
 	/// @param  y                   Offset to the raw mag_y value.
 	/// @param  z                   Offset to the raw mag_z value.
 	///
-	void set_offsets(int x, int y, int z) { set_offsets(Vector3f(x, y, z)); }
+    void set_offsets(int x, int y, int z) {
+        set_offsets(Vector3f(x, y, z));
+    }
 
 	/// Perform automatic offset updates
 	///
 	void null_offsets(void);
 
     /// return true if the compass should be used for yaw calculations
-    bool use_for_yaw(void) { return healthy && _use_for_yaw; }
+    bool use_for_yaw(void) {
+        return healthy && _use_for_yaw;
+    }
 
 	/// Sets the local magnetic field declination.
 	///

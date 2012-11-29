@@ -1,4 +1,4 @@
-Release Notes for MegaPirateNG 2.7 R3 (ArduCopter 2.7.1)
+Release Notes for MegaPirateNG 2.8 R1 (ArduCopter 2.8.1a)
 
 === How to compile MegaPirateNG ===
 
@@ -7,48 +7,6 @@ Release Notes for MegaPirateNG 2.7 R3 (ArduCopter 2.7.1)
 3. Delete original libraries folder in Arduino IDE folder
 4. Copy libraries folder from MegaPirateNG distributive into Arduino IDE folder
 5. Select your Frame, Sensor, Tranmitter type in the APM_config.h (Quad X, ALLINONE by default)
-
-
-=== MPNG History ===
---- 2.6 R6
-Added support for CRIUS All In One PRO v1 board
-
---- 2.6 R4
-Improved I2c_spy.pde to catch 6050 I2c slave devices and also 5611 baro
-Fixed bug in compass initialization for boards with MPU6050
-Fixed bug in AP_GPS_NMEA
-
---- 2.6 R3
-Fixed GPS initialization for BlackVortext boards
-
---- 2.6 R2
-Added support for Drotek 10DOF IMU
-
---- 2.5.1 R3
-Fixed compass initialization for MPU6050+HMC5883L
-MT3329 initialization fixed in case of Cold start
-
---- 2.5.1 R2
-Fixed compilation bug in BMP085 library
-
---- 2.5 R2
-Fixed compass error
-Fixed define redeclaration in APM_Config.h
-
---- 2.4.1 R2
-Restored FastPWM, 400Hz by default, can be changed in APM Planner, RC_SPEED value
-GPS Initialization fixed, at least my MTK16 protocol now work fine
-Stability fix for InstantPWM
-
---- 2.4.1
-Fixed bug in FFIMU sensor board, thanks to Thomas(thnilsen)
-Fixed LED Sequencer initialization code, thanks to Thomas(thnilsen)
-
---- 2.3 rc1
-TX configuration moved from APM_RC_PIRATES.cpp to common configuration file APM_config.h
-
---- 2.3
-Version is compatible with Arduino IDE 1.0!
 
 === Arduino board pin mapping ===
 
@@ -126,3 +84,48 @@ C- counter clockwise rotation (normal propeller)
 S- servo (for tri)
 
 Example: FLDW - front-left lower motor with clockwise rotation (Y6 or Y4)
+
+
+=== MPNG History ===
+--- 2.7.1 R5
+Added support for CRIUS AIOP v2
+
+--- 2.6 R6
+Added support for CRIUS All In One PRO v1 board
+
+--- 2.6 R4
+Improved I2c_spy.pde to catch 6050 I2c slave devices and also 5611 baro
+Fixed bug in compass initialization for boards with MPU6050
+Fixed bug in AP_GPS_NMEA
+
+--- 2.6 R3
+Fixed GPS initialization for BlackVortext boards
+
+--- 2.6 R2
+Added support for Drotek 10DOF IMU
+
+--- 2.5.1 R3
+Fixed compass initialization for MPU6050+HMC5883L
+MT3329 initialization fixed in case of Cold start
+
+--- 2.5.1 R2
+Fixed compilation bug in BMP085 library
+
+--- 2.5 R2
+Fixed compass error
+Fixed define redeclaration in APM_Config.h
+
+--- 2.4.1 R2
+Restored FastPWM, 400Hz by default, can be changed in APM Planner, RC_SPEED value
+GPS Initialization fixed, at least my MTK16 protocol now work fine
+Stability fix for InstantPWM
+
+--- 2.4.1
+Fixed bug in FFIMU sensor board, thanks to Thomas(thnilsen)
+Fixed LED Sequencer initialization code, thanks to Thomas(thnilsen)
+
+--- 2.3 rc1
+TX configuration moved from APM_RC_PIRATES.cpp to common configuration file APM_config.h
+
+--- 2.3
+Version is compatible with Arduino IDE 1.0!

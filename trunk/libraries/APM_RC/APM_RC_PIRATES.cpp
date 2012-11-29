@@ -1,16 +1,16 @@
 /*
-	APM_RC.cpp - Radio Control Library for ArduPirates Arduino Mega with IPWM
-	
-	Total rewritten by Syberian
-	
-	Methods:
-		Init() : Initialization of interrupts an Timers
-		OutpuCh(ch,pwm) : Output value to servos (range : 900-2100us) ch=0..10
-		InputCh(ch) : Read a channel input value.  ch=0..7
-		GetState() : Returns the state of the input. 1 => New radio frame to process
-		             Automatically resets when we call InputCh to read channels
-		
-*/
+ *	APM_RC.cpp - Radio Control Library for ArduPirates Arduino Mega with IPWM
+ *	
+ *	Total rewritten by Syberian
+ *	
+ *	Methods:
+ *		Init() : Initialization of interrupts an Timers
+ *		OutpuCh(ch,pwm) : Output value to servos (range : 900-2100us) ch=0..10
+ *		InputCh(ch) : Read a channel input value.  ch=0..7
+ *		GetState() : Returns the state of the input. 1 => New radio frame to process
+ *		             Automatically resets when we call InputCh to read channels
+ *		
+ */
 
 #include "APM_RC_PIRATES.h"
 
@@ -41,20 +41,6 @@ volatile uint8_t failsafeCnt=0;
 // ******************
 volatile uint16_t rcPinValue[NUM_CHANNELS]; // Default RC values
 
-// Configure each rc pin for PCINT
-void configureReceiver() {
-	// PCINT activated only for specific pin inside [A8-A15]
-	DDRK = 0;  // defined PORTK as a digital port ([A8-A15] are consired as digital PINs and not analogical)
-	PORTK   = (1<<0) | (1<<1) | (1<<2) | (1<<3) | (1<<4) | (1<<5) | (1<<6) | (1<<7); //enable internal pull ups on the PINs of PORTK
-	#ifdef SERIAL_SUM
-		PCMSK2=1;	// Enable int for pin A8
-	#else
-		PCMSK2 = 255; // 
-	#endif
-	PCMSK0 = B00010000; // sonar port B4 - d10 echo
-	PCICR = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
-}
-
 ISR(PCINT2_vect) { //this ISR is common to every receiver channel, it is call everytime a change state occurs on a digital pin [D2-D7]
 static  uint8_t mask;
 static  uint8_t pin;
@@ -81,8 +67,13 @@ static uint8_t PCintLast;
 				rcPinValue[pps_num] = dTime>>1;
 				pps_num++;
 				pps_num&=7; // upto 8 packets in slot
-			} else 
+			} else {
+				if (pps_num > 3) {
+					// If we read at least 4 channel - reset failsafe counter
+        	failsafeCnt = 0;
+        }
 				pps_num=0; 
+			}
 		 	pps_etime = cTime; // Save edge time
 		 }
 	} else {
@@ -175,12 +166,14 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
   pinMode(9,OUTPUT);
   pinMode(11,OUTPUT);
   pinMode(12,OUTPUT);
+  
   if (bv_mode) {
-		pinMode(32,OUTPUT);//cam roll L5
-		pinMode(33,OUTPUT);// cam pitch L4
+  	// BlackVortex Mapping
+		pinMode(32,OUTPUT);	// cam roll PC5 (Digital Pin 32)
+		pinMode(33,OUTPUT);	// cam pitch PC4 (Digital Pin 33)
 	} else {
-		pinMode(44,OUTPUT);//cam roll L5
-		pinMode(45,OUTPUT);// cam pitch L4
+		pinMode(44,OUTPUT);	// cam roll PL5 (Digital Pin 44)
+		pinMode(45,OUTPUT);	// cam pitch PL4 (Digital Pin 45)
 	}
   
   //general servo
@@ -214,7 +207,17 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
   TCCR4B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
   TIMSK4 = 1;
   
-  configureReceiver();
+	// PCINT activated only for specific pin inside [A8-A15]
+	DDRK = 0;  // defined PORTK as a digital port ([A8-A15] are consired as digital PINs and not analogical)
+	if (use_ppm) {
+		PORTK   = (1<<0); //enable internal pull up on the SERIAL SUM pin A8
+		PCMSK2	= 1;	// Enable int for pin A8
+	} else {
+		PORTK   = (1<<0) | (1<<1) | (1<<2) | (1<<3) | (1<<4) | (1<<5) | (1<<6) | (1<<7); //enable internal pull ups on the PINs of PORTK
+		PCMSK2 = 255; // 
+	}
+	PCMSK0 = B00010000; // sonar port B4 - d10 echo
+	PCICR = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
 }
 
 
@@ -249,7 +252,7 @@ ISR(TIMER5_COMPB_vect)
 		switch (OCRstate>>1)
 		{
 			case 0: if(OCRstate&1)PORTC&=(1<<5)^255; else PORTC|=(1<<5);break;	//d32, cam roll
-			case 1: if(OCRstate&1)PORTC&=(1<<4)^255; else PORTC|=(1<<4);break;	//d33, cam pitch	
+			case 1: if(OCRstate&1)PORTC&=(1<<4)^255; else PORTC|=(1<<4);break;	//d33, cam pitch
 		}
 	} else {
 		switch (OCRstate>>1)
@@ -323,9 +326,8 @@ uint16_t APM_RC_PIRATES::OutputCh_current(uint8_t ch)
 	case 5:  pwm=OCRxx1[0]; break;  //ch6
 	case 6:  pwm=OCR4B; break;  //ch7
 	case 7:  pwm=OCR4C; break;  //ch8
-//	case 8:  pwm=OCR5A; break;  //ch9
-	case 9:  pwm=OCR1A; break;  //ch9
-	case 10: pwm=OCR1B; break;  //ch10
+	case 9:  pwm=OCR1A; break;  //ch10
+	case 10: pwm=OCR1B; break;  //ch111
 	}
 	return pwm>>1;
 }

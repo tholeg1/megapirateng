@@ -63,11 +63,11 @@ bool
 AP_GPS_UBLOX::read(void)
 {
     uint8_t		data;
-    int 		numc;
+    int16_t numc;
     bool		parsed = false;
 
     numc = _port->available();
-    for (int i = 0; i < numc; i++) {	// Process bytes received
+    for (int16_t i = 0; i < numc; i++) {        // Process bytes received
 
         // read the next byte
         data = _port->read();
@@ -242,6 +242,10 @@ AP_GPS_UBLOX::_parse_gps(void)
         speed_3d	= _buffer.velned.speed_3d;				// cm/s
         ground_speed = _buffer.velned.speed_2d;				// cm/s
         ground_course = _buffer.velned.heading_2d / 1000;	// Heading 2D deg * 100000 rescaled to deg * 100
+        _have_raw_velocity = true;
+        _vel_north  = _buffer.velned.ned_north;
+        _vel_east   = _buffer.velned.ned_east;
+        _vel_down   = _buffer.velned.ned_down;
 		_new_speed = true;
         break;
     default:
@@ -266,7 +270,7 @@ AP_GPS_UBLOX::_parse_gps(void)
 // UBlox auto configuration
 
 /*
-  update checksum for a set of bytes
+ *  update checksum for a set of bytes
  */
 void
 AP_GPS_UBLOX::_update_checksum(uint8_t *data, uint8_t len, uint8_t &ck_a, uint8_t &ck_b)
@@ -280,7 +284,7 @@ AP_GPS_UBLOX::_update_checksum(uint8_t *data, uint8_t len, uint8_t &ck_a, uint8_
 
 
 /*
-  send a ublox message
+ *  send a ublox message
  */
 void
 AP_GPS_UBLOX::_send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint8_t size)
@@ -304,8 +308,8 @@ AP_GPS_UBLOX::_send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint8_
 
 
 /*
-  configure a UBlox GPS for the given message rate for a specific
-  message class and msg_id
+ *  configure a UBlox GPS for the given message rate for a specific
+ *  message class and msg_id
  */
 void
 AP_GPS_UBLOX::_configure_message_rate(uint8_t msg_class, uint8_t msg_id, uint8_t rate)
@@ -324,7 +328,7 @@ void
 AP_GPS_UBLOX::_configure_gps(void)
 {
 	struct ubx_cfg_nav_rate msg;
-	const unsigned baudrates[4] = {9600U, 19200U, 38400U, 57600U};
+	const long baudrates[4] = {9600U, 38400U, 57600U, 115200U};
 	FastSerial *_fs = (FastSerial *)_port;
 
 	// the GPS may be setup for a different baud rate. This ensures
@@ -350,4 +354,66 @@ AP_GPS_UBLOX::_configure_gps(void)
 
 	// ask for the current navigation settings
 	_send_message(CLASS_CFG, MSG_CFG_NAV_SETTINGS, NULL, 0);	
+}
+
+
+/*
+  detect a Ublox GPS. Adds one byte, and returns true if the stream
+  matches a UBlox
+ */
+bool
+AP_GPS_UBLOX::_detect(uint8_t data)
+{
+	static uint8_t payload_length, payload_counter;
+	static uint8_t step;
+	static uint8_t ck_a, ck_b;
+
+	switch (step) {
+        case 1:
+            if (PREAMBLE2 == data) {
+                step++;
+                break;
+            }
+            step = 0;
+        case 0:
+            if (PREAMBLE1 == data)
+                step++;
+            break;
+        case 2:
+            step++;
+            ck_b = ck_a = data;
+            break;
+        case 3:
+            step++;
+            ck_b += (ck_a += data);
+            break;
+        case 4:
+            step++;
+            ck_b += (ck_a += data);
+            payload_length = data;
+            break;
+        case 5:
+            step++;
+            ck_b += (ck_a += data);
+            payload_counter = 0;
+            break;
+        case 6:
+            ck_b += (ck_a += data);
+            if (++payload_counter == payload_length)
+                step++;
+            break;
+        case 7:
+            step++;
+            if (ck_a != data) {
+                step = 0;
+            }
+            break;
+        case 8:
+            step = 0;
+			if (ck_b == data) {
+				// a valid UBlox packet
+				return true;
+			}
+    }
+    return false;
 }
