@@ -1009,38 +1009,30 @@ void setup() {
 void loop()
 {
 	uint32_t timer 			= micros();
-    static bool run_50hz_loop = false;
-    uint16_t num_samples;
 
 	// We want this to execute fast
 	// ----------------------------
-    num_samples = imu.num_samples_available();
-    if (num_samples >= NUM_IMU_SAMPLES_FOR_100HZ) {
-
-		#if DEBUG_FAST_LOOP == ENABLED
+	if ((timer - fast_loopTimer) >= 10000 && imu.new_data_available()) {
         Log_Write_Data(50, (int32_t)(timer - fast_loopTimer));
-        #endif
 
 		//PORTK |= B00010000;
 		G_Dt 				= (float)(timer - fast_loopTimer) / 1000000.f;		// used by PI Loops
 		fast_loopTimer 		= timer;
 
-        // for mainloop failure monitoring
-        mainLoop_count++;
-
 		// Execute the fast loop
 		// ---------------------
-        fast_loop();////
-
-        // run the 50hz loop 1/2 the time
-        run_50hz_loop = !run_50hz_loop;
-
-        if( run_50hz_loop ) {
-
-            #if DEBUG_MED_LOOP == ENABLED
-            Log_Write_Data(51, (int32_t)(timer - fiftyhz_loopTimer));
+		fast_loop();
+	} else {
+	#ifdef DESKTOP_BUILD
+		usleep(1000);
 	#endif
+	}
 
+	// port manipulation for external timing of main loops
+	//PORTK &= B11101111;
+
+	if ((timer - fiftyhz_loopTimer) >= 20000) {
+            Log_Write_Data(51, (int32_t)(timer - fiftyhz_loopTimer));
 		// store the micros for the 50 hz timer
 		fiftyhz_loopTimer		= timer;
 
@@ -1084,26 +1076,6 @@ void loop()
             }
 		//PORTK &= B10111111;
 	}
-    } else {
-#ifdef DESKTOP_BUILD
-        usleep(1000);
-#endif
-        if (num_samples < NUM_IMU_SAMPLES_FOR_100HZ-1) {
-            // we have some spare cycles available
-            // less than 20ms has passed. We have at least one millisecond
-            // of free time. The most useful thing to do with that time is
-            // to accumulate some sensor readings, specifically the
-            // compass, which is often very noisy but is not interrupt
-            // driven, so it can't accumulate readings by itself
-            if (g.compass_enabled) {
-                compass.accumulate();
-            }
-        }
-    }
-
-    // port manipulation for external timing of main loops
-    //PORTK &= B11101111;
-
 }
 //  PORTK |= B01000000;
 //	PORTK &= B10111111;
@@ -1114,13 +1086,6 @@ static void fast_loop()
     // try to send any deferred messages if the serial port now has
     // some space available
     gcs_send_message(MSG_RETRY_DEFERRED);
-
-    // run low level rate controllers that only require IMU data
-    run_rate_controllers();
-
-    // write out the servo PWM values
-    // ------------------------------
-    set_servos_4();
 
 	// Read radio
 	// ----------
