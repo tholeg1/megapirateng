@@ -1019,6 +1019,9 @@ void loop()
 		G_Dt 				= (float)(timer - fast_loopTimer) / 1000000.f;		// used by PI Loops
 		fast_loopTimer 		= timer;
 
+        // for mainloop failure monitoring
+        mainLoop_count++;
+
 		// Execute the fast loop
 		// ---------------------
 		fast_loop();
@@ -1086,6 +1089,13 @@ static void fast_loop()
     // try to send any deferred messages if the serial port now has
     // some space available
     gcs_send_message(MSG_RETRY_DEFERRED);
+
+    // run low level rate controllers that only require IMU data
+    run_rate_controllers();
+
+    // write out the servo PWM values
+    // ------------------------------
+    set_servos_4();
 
 	// Read radio
 	// ----------
