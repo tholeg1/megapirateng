@@ -1,4 +1,4 @@
-Release Notes for MegaPirateNG 2.8 R1 (ArduCopter 2.8.1a)
+Release Notes for MegaPirateNG 2.8 R2 (ArduCopter 2.8.1a)
 
 === How to compile MegaPirateNG ===
 
@@ -29,16 +29,10 @@ For BlackVortex:
 d44 - Camera stabilisation Roll servo
 d45 - Camera stabilisation Pitch servo
 
-*** GPS ***
-RX2 - TX on GPS
-TX2 - RX on GPS
-
-*** Telemetry (XBee, APC220, Bluetooth)
-RX3 - TX on XBee
-TX3 - RX on XBee
-
-*** CLI switch ***
-a5 - Enter CLI switch (tie to ground to enter CLI) 
+Serial ports:
+OSD - Serial2 (RX2,TX2)
+Telemetry (3DR, Xbee, Bluetooth) - Serial3 (RX3,TX3)
+OSD (Remzibi, E-OSD, FrSky) - Serial1 (RX1,TX1)
 
 *** Sonar ***
 d9 - Sonar Tx 
@@ -66,10 +60,10 @@ Hexa+   BLW   FRC   FW    BC    FLC   BRW   -     -
 HexaX   FLW   BRC   RW    LC    FRC   BLW   -     -
 Y6      LDC   BDW   RDC   LUW   RUW   BUC  
 Octo+   FRC   BRC   FW    BW    FLC   BLC   LW    RW
-OctoX   RRFC  BBRC  FFRW  BBLW  FFLC  LLBC  LLFW  RRBW
-OctoV   BLC   BBRC  FL    BR    FFLC  FRC   FFR   BBL
-Quad8X  BLUC  FLUW  FRUC  BRUW  BRDC  FRDW  FLDC  BLDW
-Quad8+  LUC   FUW   RUC   BUW   BDC   RDW   FDC   LDW
+OctoX   RFC   BRC   FRW   BLW   FLC   LBC   LFW   RBW
+OctoV   BLC   BBRC  FLW   BRW   FFLC  FRC   FFRW  BBLW
+Quad8X  BLUC  BRUW  FRUC  FLUW  FLDC  FRDW  BRDC  BLDW
+Quad8+  BUC   RUW   FUC   LUW   LDC   FDW   RDC   BDW     <<< Not verified
 ======================================================
 
 Motors description:
@@ -87,6 +81,10 @@ Example: FLDW - front-left lower motor with clockwise rotation (Y6 or Y4)
 
 
 === MPNG History ===
+--- 2.8 R2
+Added support for FrSky telemetry
+updated motor mapping table in the README.txt
+
 --- 2.7.1 R5
 Added support for CRIUS AIOP v2
 
