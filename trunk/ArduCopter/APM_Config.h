@@ -18,9 +18,9 @@
 
 // RC configuration
 // Uncomment if you uses PPM Sum signal from receiver
-#define SERIAL_PPM ENABLED
+//#define SERIAL_PPM ENABLED
 
-#define TX_CHANNEL_SET	TX_standard
+#define TX_CHANNEL_SET	TX_mwi
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
@@ -41,15 +41,17 @@
 
 #define MAX_SONAR_RANGE 400
 
+// This OSD works on the Serial1 port
 #define OSD_PROTOCOL OSD_PROTOCOL_NONE
 /*
 	OSD_PROTOCOL_NONE
 	OSD_PROTOCOL_SYBERIAN
 	OSD_PROTOCOL_REMZIBI  // Read more at: http://www.rcgroups.com/forums/showthread.php?t=921467
+	OSD_PROTOCOL_FRSKY		// FrSky Telemetry protocol
 */
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will be selected automatically
-#define GPS_PROTOCOL GPS_PROTOCOL_AUTO
+#define GPS_PROTOCOL GPS_PROTOCOL_NONE
 /*
 	GPS_PROTOCOL_NONE 	without GPS
 	GPS_PROTOCOL_NMEA
