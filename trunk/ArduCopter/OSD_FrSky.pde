@@ -75,7 +75,7 @@
          {     
             // Datas sent every 500ms
             send_Altitude();
-            send_Course();
+//            send_Course();
             send_GPS_speed();
             sendDataTail();   
 
@@ -266,7 +266,7 @@
    }
 
    // Course
-   void send_Course(void)
+/*   void send_Course(void)
    {
       uint16_t Datas_Course_bp;
       uint16_t Datas_Course_ap;
@@ -278,7 +278,7 @@
       write_FrSky16(Datas_Course_bp);
       sendDataHead(ID_Course_ap);
       write_FrSky16(Datas_Course_ap);
-   }
+   }*/
 
    // Time
    void send_Time(void)
