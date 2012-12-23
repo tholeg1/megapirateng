@@ -30,7 +30,7 @@ d44 - Camera stabilisation Roll servo
 d45 - Camera stabilisation Pitch servo
 
 Serial ports:
-OSD - Serial2 (RX2,TX2)
+GPS - Serial2 (RX2,TX2)
 Telemetry (3DR, Xbee, Bluetooth) - Serial3 (RX3,TX3)
 OSD (Remzibi, E-OSD, FrSky) - Serial1 (RX1,TX1)
 
