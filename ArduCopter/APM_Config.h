@@ -12,13 +12,19 @@
 	PIRATES_BLACKVORTEX
 	PIRATES_FREEIMU_4 					// New FreeIMU 0.4.1 with MPU6000, MS5611 and 5883L
 	PIRATES_DROTEK_10DOF_MPU 		// MPU6000, MS5611 and 5883L
-	PIRATES_CRIUS_AIO_PRO_V1    // Crius AllInOne Pro v1
+	PIRATES_CRIUS_AIO_PRO_V1    // Crius AllInOne Pro v1(1.1)
 	PIRATES_CRIUS_AIO_PRO_V2    // Crius AllInOne Pro v2
 */
 
 // RC configuration
-// Uncomment if you uses PPM Sum signal from receiver
-//#define SERIAL_PPM ENABLED
+
+// PPM_SUM(CPPM) Signal processing
+#define SERIAL_PPM SERIAL_PPM_DISABLED
+/*
+	SERIAL_PPM_DISABLED
+	SERIAL_PPM_ENABLED				// For all boards, PPM_SUM pin is A8
+	SERIAL_PPM_ENABLED_PL1   // Use for CRIUS AIOP Pro v2,
+*/
 
 #define TX_CHANNEL_SET	TX_mwi
 /*

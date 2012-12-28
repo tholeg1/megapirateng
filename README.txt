@@ -1,4 +1,4 @@
-Release Notes for MegaPirateNG 2.8 R2 (ArduCopter 2.8.1a)
+Release Notes for MegaPirateNG 2.8 R3 (ArduCopter 2.8.1a)
 
 === How to compile MegaPirateNG ===
 
@@ -81,6 +81,9 @@ Example: FLDW - front-left lower motor with clockwise rotation (Y6 or Y4)
 
 
 === MPNG History ===
+--- 2.8 R3
+Added support for PPM_SUM on PL1 pin (for CRIUS AIOP v2)
+
 --- 2.8 R2
 Added support for FrSky telemetry
 updated motor mapping table in the README.txt

@@ -29,7 +29,7 @@
 
 // Variable definition for Input Capture interrupt
 volatile uint8_t radio_status=0;
-volatile bool use_ppm = 0;
+volatile uint8_t use_ppm = 0; // 0-Do not use PPM, 1 - Use PPM on A8 pin, 2- Use PPM on PL1 (CRIUS v2) 
 volatile bool bv_mode;
 uint8_t *pinRcChannel;
 
@@ -40,6 +40,43 @@ volatile uint8_t failsafeCnt=0;
 // rc functions split channels
 // ******************
 volatile uint16_t rcPinValue[NUM_CHANNELS]; // Default RC values
+
+// Serial PPM support on PL1(ICP5) pin
+void APM_RC_PIRATES::_timer5_capt_cb(void)
+{
+    static uint16_t ICR5_old;
+    static uint8_t PPM_Counter=0;
+
+    uint16_t Pulse;
+    uint16_t Pulse_Width;
+
+    Pulse=ICR5;
+    if (Pulse<ICR5_old) { 
+        Pulse_Width=(0xFFFF - ICR5_old)+Pulse; // Calculating pulse
+    }
+    else {
+        Pulse_Width=Pulse-ICR5_old;           // Calculating pulse
+    }
+
+    if (Pulse_Width < 4400) {                   // SYNC pulse?
+        if (PPM_Counter < NUM_CHANNELS) {     // Valid pulse channel?
+        		Pulse_Width = Pulse_Width >> 1;
+        		// just small filtering
+        		if (abs(rcPinValue[PPM_Counter]-Pulse_Width) > 2) {
+            	rcPinValue[PPM_Counter++] = Pulse_Width;   // Saving pulse.
+            } else {
+            	PPM_Counter++;
+            }
+        }
+    }
+    else {
+            if (PPM_Counter > 3) {
+                failsafeCnt = 0;
+            }
+        PPM_Counter=0;
+    }
+    ICR5_old = Pulse;
+}
 
 ISR(PCINT2_vect) { //this ISR is common to every receiver channel, it is call everytime a change state occurs on a digital pin [D2-D7]
 static  uint8_t mask;
@@ -54,7 +91,7 @@ static uint8_t PCintLast;
   sei();                    // re enable other interrupts at this point, the rest of this interrupt is not so time critical and can be interrupted safely
   PCintLast = pin;          // we memorize the current state of all PINs [D0-D7]
 
-	if (use_ppm) {
+	if (use_ppm==1) {
 		static uint8_t pps_num=0;
 		static uint16_t pps_etime=0;
 	
@@ -209,15 +246,29 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
   
 	// PCINT activated only for specific pin inside [A8-A15]
 	DDRK = 0;  // defined PORTK as a digital port ([A8-A15] are consired as digital PINs and not analogical)
-	if (use_ppm) {
-		PORTK   = (1<<0); //enable internal pull up on the SERIAL SUM pin A8
-		PCMSK2	= 1;	// Enable int for pin A8
-	} else {
-		PORTK   = (1<<0) | (1<<1) | (1<<2) | (1<<3) | (1<<4) | (1<<5) | (1<<6) | (1<<7); //enable internal pull ups on the PINs of PORTK
-		PCMSK2 = 255; // 
+	switch (use_ppm)
+	{
+		case 0:
+					PORTK = (1<<0) | (1<<1) | (1<<2) | (1<<3) | (1<<4) | (1<<5) | (1<<6) | (1<<7); //enable internal pull ups on the PINs of PORTK
+					PCMSK2 = 255;
+					PCICR = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
+					break;
+		case 1:  
+					PORTK   = (1<<0); //enable internal pull up on the SERIAL SUM pin A8
+					PCMSK2	= 1;	// Enable int for pin A8
+					PCICR = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
+					break;
+		case 2:
+//					Serial.print("Activale PL1\n");
+					pinMode(48, INPUT); // ICP5 pin (PL1) (PPM input) CRIUS v2
+					isr_reg->register_signal(ISR_REGISTRY_TIMER5_CAPT, _timer5_capt_cb );
+					TCCR5B = (1<<CS11) | (1<<ICES5); //Prescaler set to 8, resolution of 0.5us, input capture on rising edge 
+					TIMSK5 |= (1<<ICIE5); // Enable Input Capture interrupt. Timer interrupt mask  
+					PCMSK2	= 0;	// Disable INT for pin A8-A15
+					PCICR = 0; // PCINT activated only for PORTK dealing with [A8-A15] PINs
+					break;
 	}
 	PCMSK0 = B00010000; // sonar port B4 - d10 echo
-	PCICR = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
 }
 
 
