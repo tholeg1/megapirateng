@@ -474,4 +474,8 @@ enum gcs_severity {
 #define CHANNEL_CONFIG_DEFAULT 1
 #define CHANNEL_CONFIG_CUSTOM  2
 
+#define SERIAL_PPM_DISABLED 0
+#define SERIAL_PPM_ENABLED  1
+#define SERIAL_PPM_ENABLED_PL1 2
+
 #endif // _DEFINES_H
