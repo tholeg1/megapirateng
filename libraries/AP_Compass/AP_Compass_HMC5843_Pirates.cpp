@@ -322,8 +322,3 @@ AP_Compass_HMC5843_Pirates::set_orientation(enum Rotation rotation)
 {
    _orientation = rotation;
 }
-
-void
-AP_Compass_HMC5843_Pirates::accumulate(void)
-{
-}

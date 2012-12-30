@@ -10,15 +10,28 @@
 
 // we have separate helpers disabled to make it possible
 // to select MAVLink 1.0 in the arduino GUI build
-#define MAVLINK_SEPARATE_HELPERS
+//#define MAVLINK_SEPARATE_HELPERS
 
-#include "include/mavlink/v1.0/ardupilotmega/version.h"
+#ifndef MAVLINK10
+// default to MAVLINK 1.0
+#define MAVLINK10 ENABLED
+#endif
+
+#if MAVLINK10 == ENABLED
+# include "include/mavlink/v1.0/ardupilotmega/version.h"
+#else
+# include "include/mavlink/v0.9/ardupilotmega/version.h"
+#endif
 
 // this allows us to make mavlink_message_t much smaller
 #define MAVLINK_MAX_PAYLOAD_LEN MAVLINK_MAX_DIALECT_PAYLOAD_SIZE
 
 #define MAVLINK_COMM_NUM_BUFFERS 2
-#include "include/mavlink/v1.0/mavlink_types.h"
+#if MAVLINK10==ENABLED
+# include "include/mavlink/v1.0/mavlink_types.h"
+#else
+# include "include/mavlink/v0.9/mavlink_types.h"
+#endif
 
 /// MAVLink stream used for HIL interaction
 extern BetterStream	*mavlink_comm_0_port;
@@ -94,32 +107,29 @@ static inline uint16_t comm_get_available(mavlink_channel_t chan)
 /// Check for available transmit space on the nominated MAVLink channel
 ///
 /// @param chan		Channel to check
-/// @returns		Number of bytes available
-static inline uint16_t comm_get_txspace(mavlink_channel_t chan)
+/// @returns		Number of bytes available, -1 for error
+static inline int comm_get_txspace(mavlink_channel_t chan)
 {
-	int16_t ret = 0;
     switch(chan) {
 	case MAVLINK_COMM_0:
-		ret = mavlink_comm_0_port->txspace();
+		return mavlink_comm_0_port->txspace();
 		break;
 	case MAVLINK_COMM_1:
-		ret = mavlink_comm_1_port->txspace();
+		return mavlink_comm_1_port->txspace();
 		break;
 	default:
 		break;
 	}
-	if (ret < 0) {
-		ret = 0;
-	}
-    return (uint16_t)ret;
+    return -1;
 }
 
 #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
-#include "include/mavlink/v1.0/ardupilotmega/mavlink.h"
+#if MAVLINK10==ENABLED
+# include "include/mavlink/v1.0/ardupilotmega/mavlink.h"
+#else
+# include "include/mavlink/v0.9/ardupilotmega/mavlink.h"
+#endif
 
 uint8_t mavlink_check_target(uint8_t sysid, uint8_t compid);
-
-// return a MAVLink variable type given a AP_Param type
-uint8_t mav_var_type(enum ap_var_type t);
 
 #endif // GCS_MAVLink_h

@@ -17,15 +17,11 @@
 #define YAW_ACRO 			1
 #define YAW_AUTO 			2
 #define YAW_LOOK_AT_HOME 	3
-#define YAW_TOY 			4	// THOR This is the Yaw mode
-
 
 #define ROLL_PITCH_STABLE 	0
 #define ROLL_PITCH_ACRO 	1
 #define ROLL_PITCH_AUTO		2
 #define ROLL_PITCH_STABLE_OF	3
-#define ROLL_PITCH_TOY          4       // THOR This is the Roll and Pitch
-                                        // mode
 
 #define THROTTLE_MANUAL 	0
 #define THROTTLE_HOLD 		1
@@ -50,8 +46,6 @@
 #define CH7_AUTO_TRIM 5
 #define CH7_ADC_FILTER 6
 #define CH7_SAVE_WP 7
-#define CH7_MULTI_MODE 8
-
 
 // Frame types
 #define QUAD_FRAME 0
@@ -70,11 +64,6 @@
 #define NORMAL_LEDS 0
 #define AUTO_TRIM_LEDS 1
 
-
-#define CH_7_PWM_TRIGGER 1800
-#define CH_6_PWM_TRIGGER_HIGH 1800
-#define CH_6_PWM_TRIGGER 1500
-#define CH_6_PWM_TRIGGER_LOW 1200
 
 // Internal defines, don't edit and expect things to work
 // -------------------------------------------------------
@@ -112,7 +101,6 @@
 #define	OSD_PROTOCOL_NONE 0
 #define	OSD_PROTOCOL_SYBERIAN 1
 #define	OSD_PROTOCOL_REMZIBI 2
-#define OSD_PROTOCOL_FRSKY 3
 
 #define CH_ROLL CH_1
 #define CH_PITCH CH_2
@@ -145,11 +133,9 @@
 #define CIRCLE 7			// AUTO control
 #define POSITION 8			// AUTO control
 #define LAND 9				// AUTO control
-#define OF_LOITER 10            // Hold a single location using optical flow
-                                // sensor
-#define TOY_A 11                                // THOR Enum for Toy mode
-#define TOY_M 12                                // THOR Enum for Toy mode
-#define NUM_MODES 13
+#define OF_LOITER 10			// Hold a single location using optical flow sensor
+#define APPROACH 11			// AUTO control
+#define NUM_MODES 12
 
 #define SIMPLE_1 1
 #define SIMPLE_2 2
@@ -204,7 +190,6 @@
 #define CH6_LOITER_RATE_KD 23
 
 #define CH6_AHRS_YAW_KP 30
-#define CH6_AHRS_KP		31
 
 
 // nav byte mask
@@ -214,10 +199,8 @@
 #define NAV_DELAY    4
 
 
-// Commands - Note that APM now uses a subset of the MAVLink protocol
-// commands.  See enum MAV_CMD in the GCS_Mavlink library
-#define CMD_BLANK 0 // there is no command stored in the mem location
-                    // requested
+// Commands - Note that APM now uses a subset of the MAVLink protocol commands.  See enum MAV_CMD in the GCS_Mavlink library
+#define CMD_BLANK 0 // there is no command stored in the mem location requested
 #define NO_COMMAND 0
 
 
@@ -225,14 +208,6 @@
 #define WP_MODE 2
 #define CIRCLE_MODE 3
 #define NO_NAV_MODE 4
-#define TOY_MODE 5                      // THOR This mode defines the Virtual
-                                        // WP following mode
-
-// TOY mixing options
-#define TOY_LOOKUP_TABLE 0
-#define TOY_LINEAR_MIXER 1
-#define TOY_EXTERNAL_MIXER 2
-
 
 // Waypoint options
 #define MASK_OPTIONS_RELATIVE_ALT 		1
@@ -278,7 +253,6 @@ enum ap_message {
     MSG_NEXT_WAYPOINT,
     MSG_NEXT_PARAM,
     MSG_STATUSTEXT,
-    MSG_LIMITS_STATUS,
     MSG_AHRS,
     MSG_SIMSTATE,
     MSG_HWSTATUS,
@@ -297,10 +271,10 @@ enum gcs_severity {
 #define TYPE_GROUNDSTART_MSG	0x01
 #define LOG_ATTITUDE_MSG		0x01
 #define LOG_GPS_MSG				0x02
-#define LOG_MODE_MSG                    0x03
-#define LOG_CONTROL_TUNING_MSG          0x04
-#define LOG_NAV_TUNING_MSG              0x05
-#define LOG_PERFORMANCE_MSG             0x06
+#define LOG_MODE_MSG			0X03
+#define LOG_CONTROL_TUNING_MSG	0X04
+#define LOG_NAV_TUNING_MSG		0X05
+#define LOG_PERFORMANCE_MSG		0X06
 #define LOG_RAW_MSG				0x07
 #define LOG_CMD_MSG				0x08
 #define LOG_CURRENT_MSG 		0x09
@@ -309,8 +283,6 @@ enum gcs_severity {
 #define LOG_OPTFLOW_MSG 		0x0C
 #define LOG_DATA_MSG 			0x0D
 #define LOG_PID_MSG 			0x0E
-#define LOG_ITERM_MSG                   0x0F
-#define LOG_DMP_MSG                     0x10
 #define LOG_INDEX_MSG			0xF0
 #define MAX_NUM_LOGS			50
 
@@ -327,8 +299,6 @@ enum gcs_severity {
 #define MASK_LOG_MOTORS			(1<<10)
 #define MASK_LOG_OPTFLOW		(1<<11)
 #define MASK_LOG_PID			(1<<12)
-#define MASK_LOG_ITERM                  (1<<13)
-
 
 // Waypoint Modes
 // ----------------
@@ -349,8 +319,7 @@ enum gcs_severity {
 #define EVENT_LOOP 4
 
 // Climb rate calculations
-#define ALTITUDE_HISTORY_LENGTH 8       //Number of (time,altitude) points to
-                                        // regress a climb rate from
+#define	ALTITUDE_HISTORY_LENGTH 8	//Number of (time,altitude) points to regress a climb rate from
 
 #define BATTERY_VOLTAGE(x) (x*(g.input_voltage/1024.0))*g.volt_div_ratio
 #define CURRENT_AMPS(x) ((x*(g.input_voltage/1024.0))-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
@@ -360,33 +329,23 @@ enum gcs_severity {
 /* ************************************************************** */
 /* Expansion PIN's that people can use for various things. */
 
-// AN0 - 7 are located at edge of IMU PCB "above" pressure sensor and
-// Expansion port
+// AN0 - 7 are located at edge of IMU PCB "above" pressure sensor and Expansion port
 // AN0 - 5 are also located next to voltage dividers and sliding SW2 switch
-// AN0 - 3 has 10kOhm resistor in serial, include 3.9kOhm to make it as
-// voltage divider
-// AN4 - 5 are direct GPIO pins from atmega1280 and they are the latest pins
-// next to SW2 switch
+// AN0 - 3 has 10kOhm resistor in serial, include 3.9kOhm to make it as voltage divider
+// AN4 - 5 are direct GPIO pins from atmega1280 and they are the latest pins next to SW2 switch
 // Look more ArduCopter Wiki for voltage dividers and other ports
 #define AN0  54  // resistor, vdiv use, divider 1 closest to relay
 #define AN1  55  // resistor, vdiv use, divider 2
 #define AN2  56  // resistor, vdiv use, divider 3
 #define AN3  57  // resistor, vdiv use, divider 4 closest to SW2
-#define AN4  58  // direct GPIO pin, default as analog input, next to SW2
-                 // switch
-#define AN5  59  // direct GPIO pin, default as analog input, next to SW2
-                 // switch
-#define AN6  60  // direct GPIO pin, default as analog input, close to
-                 // Pressure sensor, Expansion Ports
-#define AN7  61  // direct GPIO pin, default as analog input, close to
-                 // Pressure sensor, Expansion Ports
+#define AN4  58  // direct GPIO pin, default as analog input, next to SW2 switch
+#define AN5  59  // direct GPIO pin, default as analog input, next to SW2 switch
+#define AN6  60  // direct GPIO pin, default as analog input, close to Pressure sensor, Expansion Ports
+#define AN7  61  // direct GPIO pin, default as analog input, close to Pressure sensor, Expansion Ports
 
-// AN8 - 15 are located at edge of IMU PCB "above" pressure sensor and
-// Expansion port
-// AN8 - 15 PINs are not connected anywhere, they are located as last 8 pins
-// on edge of the board above Expansion Ports
-// even pins (8,10,12,14) are at edge of board, Odd pins (9,11,13,15) are on
-// inner row
+// AN8 - 15 are located at edge of IMU PCB "above" pressure sensor and Expansion port
+// AN8 - 15 PINs are not connected anywhere, they are located as last 8 pins on edge of the board above Expansion Ports
+// even pins (8,10,12,14) are at edge of board, Odd pins (9,11,13,15) are on inner row
 #define AN8  62  // NC
 #define AN9  63  // NC
 #define AN10  64 // NC
@@ -413,22 +372,11 @@ enum gcs_severity {
 // EEPROM addresses
 #define EEPROM_MAX_ADDR		4096
 // parameters get the first 1536 bytes of EEPROM, remainder is for waypoints
-#define WP_START_BYTE 0x600 // where in memory home WP is stored + all other
-                            // WP
+#define WP_START_BYTE 0x600 // where in memory home WP is stored + all other WP
 #define WP_SIZE 15
 
 #define ONBOARD_PARAM_NAME_LENGTH 15
-
-// fence points are stored at the end of the EEPROM
-#define MAX_FENCEPOINTS 6
-#define FENCE_WP_SIZE sizeof(Vector2l)
-#define FENCE_START_BYTE (EEPROM_MAX_ADDR-(MAX_FENCEPOINTS*FENCE_WP_SIZE))
-
-#define MAX_WAYPOINTS  ((FENCE_START_BYTE - WP_START_BYTE) / WP_SIZE) - 1 // -
-                                                                          // 1
-                                                                          // to
-                                                                          // be
-                                                                          // safe
+#define MAX_WAYPOINTS  ((EEPROM_MAX_ADDR - WP_START_BYTE) / WP_SIZE) - 1 // - 1 to be safe
 
 // mark a function as not to be inlined
 #define NOINLINE __attribute__((noinline))
@@ -452,7 +400,6 @@ enum gcs_severity {
 #define PIRATES_FREEIMU_4 4
 #define PIRATES_DROTEK_10DOF_MPU 5
 #define PIRATES_CRIUS_AIO_PRO_V1 6
-#define PIRATES_CRIUS_AIO_PRO_V2 7
 
 #define AP_BARO_BMP085    1
 #define AP_BARO_MS5611    2
@@ -473,9 +420,5 @@ enum gcs_severity {
 
 #define CHANNEL_CONFIG_DEFAULT 1
 #define CHANNEL_CONFIG_CUSTOM  2
-
-#define SERIAL_PPM_DISABLED 0
-#define SERIAL_PPM_ENABLED  1
-#define SERIAL_PPM_ENABLED_PL1 2
 
 #endif // _DEFINES_H
