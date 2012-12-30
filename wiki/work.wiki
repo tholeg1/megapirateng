@@ -2,6 +2,7 @@
 
 = Current tasks =
  * Upgrade to latest ArduCopter source
+ * Add up-to-date ArduPlane support (based on ArduPlaneNG).
 
 == Hardware ==
   * Support for Remzibi OSD - *Done*
