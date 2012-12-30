@@ -121,7 +121,7 @@ void AP_GPS_NMEA::init(enum GPS_Engine_Setting nav_setting)
 
 bool AP_GPS_NMEA::read(void)
 {
-    int16_t numc;
+    int numc;
     bool parsed = false;
 
     numc = _port->available();
@@ -158,7 +158,7 @@ bool AP_GPS_NMEA::_decode(char c)
         _sentence_type = _GPS_SENTENCE_OTHER;
         _is_checksum_term = false;
         _gps_data_good = false;
-        return valid_sentence;
+        return valid_sentence;  // is false
     }
 
     // ordinary characters
@@ -167,13 +167,13 @@ bool AP_GPS_NMEA::_decode(char c)
     if (!_is_checksum_term)
         _parity ^= c;
     
-    return valid_sentence;
+    return valid_sentence;  // is false
 }
 
 //
 // internal utilities
 //
-int16_t AP_GPS_NMEA::_from_hex(char a)
+int AP_GPS_NMEA::_from_hex(char a)
 {
     if (a >= 'A' && a <= 'F')
         return a - 'A' + 10;
@@ -377,49 +377,9 @@ bool AP_GPS_NMEA::_term_complete()
         case _GPS_SENTENCE_GPVTG + 1: // Course (VTG)
             _new_course = _parse_decimal(_term, 2);
             break;
-      }
-    }
-}
         
-#define hexdigit(x) ((x)>9?'A'+(x):'0'+(x))
+        }   // switch type + term number
+    }   // if supported sentence type
 
-/*
-  detect a NMEA GPS. Adds one byte, and returns true if the stream
-  matches a NMEA string
- */
-bool
-AP_GPS_NMEA::_detect(uint8_t data)
-{
-	static uint8_t step;
-	static uint8_t ck;
-
-	switch (step) {
-	case 0:
-		ck = 0;
-		if ('$' == data) {
-			step++;
-		}
-		break;
-	case 1:
-		if ('*' == data) {
-			step++;
-		} else {
-			ck ^= data;
-		}
-		break;
-	case 2:
-		if (hexdigit(ck>>4) == data) {
-			step++;
-		} else {
-			step = 0;
-		}
-		break;
-	case 3:
-		if (hexdigit(ck&0xF) == data) {
-			return true;
-		}
-		step = 0;
-		break;
-    }
-    return false;
+    return false;   // Added a parm, but message not yet complete
 }

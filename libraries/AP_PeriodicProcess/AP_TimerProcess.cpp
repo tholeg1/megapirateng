@@ -16,7 +16,6 @@ extern "C" {
 uint8_t AP_TimerProcess::_period;
 ap_procedure AP_TimerProcess::_proc[AP_TIMERPROCESS_MAX_PROCS];
 ap_procedure AP_TimerProcess::_failsafe;
-ap_procedure AP_TimerProcess::_queued_proc = NULL;
 bool AP_TimerProcess::_in_timer_call;
 uint8_t AP_TimerProcess::_pidx = 0;
 bool AP_TimerProcess::_suspended;
@@ -47,7 +46,7 @@ void AP_TimerProcess::init( Arduino_Mega_ISR_Registry * isr_reg )
 }
 
 /*
- *  register a process to be called at the timer interrupt rate
+  register a process to be called at the timer interrupt rate
  */
 void AP_TimerProcess::register_process(ap_procedure proc)
 {
@@ -67,25 +66,6 @@ void AP_TimerProcess::set_failsafe(ap_procedure proc)
 	_failsafe = proc;
 }
 
-/*
- *  queue a process to be run as soon as any currently running ap_processes complete
- */
-bool AP_TimerProcess::queue_process(ap_procedure proc)
-{
-    // check if we are running any ap_processes
-    if( _in_timer_call || _suspended ) {
-         // queue the process to run after current processes finish
-        _queued_proc = proc;
-        return false;
-    }else{
-        // run process immediately
-        _suspended = true;
-        proc(micros());
-        _suspended = false;
-        return true;
-    }
-}
-
 void AP_TimerProcess::suspend_timer(void)
 {
 	_suspended = true;
@@ -94,10 +74,6 @@ void AP_TimerProcess::suspend_timer(void)
 void AP_TimerProcess::resume_timer(void)
 {
 	_suspended = false;
-}
-
-bool AP_TimerProcess::running(void) {
-    return !_suspended;
 }
 
 void AP_TimerProcess::run(void)
@@ -137,18 +113,6 @@ void AP_TimerProcess::run(void)
 		curproc++; // select next driver
 		if (curproc == _pidx)
 				curproc = 0;
-	}
-	if (!_suspended) {
-          // run any queued processes
-          cli();
-          ap_procedure qp = _queued_proc;
-          _queued_proc = NULL;
-          sei();
-          if( qp != NULL ) {
-              _suspended = true;
-              qp(tnow);
-              _suspended = false;
-          }
 	}
 
 	// and the failsafe, if one is setup
