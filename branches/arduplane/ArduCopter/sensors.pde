@@ -3,7 +3,8 @@
 // Sensors are not available in HIL_MODE_ATTITUDE
 #if HIL_MODE != HIL_MODE_ATTITUDE
 
-static void ReadSCP1000(void) {}
+static void ReadSCP1000(void) {
+}
 
 #if CONFIG_SONAR == ENABLED
 static void init_sonar(void)
@@ -20,68 +21,16 @@ static void init_sonar(void)
 
 static void init_barometer(void)
 {
-	#if HIL_MODE == HIL_MODE_SENSORS
-		gcs_update();					// look for inbound hil packets for initialization
-	#endif
-
-	ground_temperature = barometer.get_temperature();
-	int i;
-
-	// We take some readings...
-	for(i = 0; i < 60; i++){
-		delay(20);
-
-		// get new data from absolute pressure sensor
-		barometer.read();
-
-		//Serial.printf("init %ld, %d, -, %ld, %ld\n", barometer.RawTemp, barometer.Temp, barometer.RawPress,  barometer.Press);
+    barometer.calibrate(mavlink_delay);
+    ahrs.set_barometer(&barometer);
+    gcs_send_text_P(SEVERITY_LOW, PSTR("barometer calibration complete"));
 	}
 
-	for(i = 0; i < 40; i++){
-		delay(20);
-
-		#if HIL_MODE == HIL_MODE_SENSORS
-			gcs_update(); 				// look for inbound hil packets
-		#endif
-
-		// Get initial data from absolute pressure sensor
-		barometer.read();
-		ground_pressure 	= baro_filter.apply(barometer.get_pressure());
-
-		//Serial.printf("t: %ld, p: %d\n", ground_pressure, ground_temperature);
-
-		/*Serial.printf("init %d, %d, -, %d, %d, -, %d, %d\n",
-				barometer.RawTemp,
-				barometer.Temp,
-				barometer.RawPress,
-				barometer.Press,
-				ground_temperature,
-				ground_pressure);*/
-	}
-	// save our ground temp
-	ground_temperature	= barometer.get_temperature();
-}
-
-static void reset_baro(void)
-{
-	ground_pressure 	= baro_filter.apply(barometer.get_pressure());
-		ground_temperature	= barometer.get_temperature();
-	}
-
+// return barometric altitude in centimeters
 static int32_t read_barometer(void)
 {
- 	float x, scaling, temp;
-
 	barometer.read();
-	float abs_pressure = baro_filter.apply(barometer.get_pressure());
-
-
-	//Serial.printf("%ld, %ld, %ld, %ld\n", barometer.RawTemp, barometer.RawPress, barometer.Press, abs_pressure);
-
-	scaling 				= (float)ground_pressure / abs_pressure;
-	temp 					= ((float)ground_temperature / 10.0f) + 273.15f;
-	x 						= log(scaling) * temp * 29271.267f;
-	return 	(x / 10);
+	return baro_filter.apply(barometer.get_altitude() * 100.0);
 }
 
 
@@ -100,22 +49,28 @@ static void init_compass()
 	    }
 	#endif
 	ahrs.set_compass(&compass);
-	compass.null_offsets_enable();
+#if SECONDARY_DMP_ENABLED == ENABLED
+    ahrs2.set_compass(&compass);
+#endif
 }
 
 static void init_optflow()
 {
 #ifdef OPTFLOW_ENABLED
-	if( optflow.init(false) == false ) {
+    if( optflow.init(false, &timer_scheduler, &spi_semaphore, &spi3_semaphore) == false ) {
 	    g.optflow_enabled = false;
-	    SendDebug("\nFailed to Init OptFlow ");
+        Serial.print_P(PSTR("\nFailed to Init OptFlow "));
 	}
+    // suspend timer while we set-up SPI communication
+    timer_scheduler.suspend_timer();
+
 	optflow.set_orientation(OPTFLOW_ORIENTATION);			// set optical flow sensor's orientation on aircraft
 	optflow.set_frame_rate(2000);							// set minimum update rate (which should lead to maximum low light performance
 	optflow.set_resolution(OPTFLOW_RESOLUTION);				// set optical flow sensor's resolution
 	optflow.set_field_of_view(OPTFLOW_FOV);					// set optical flow sensor's field of view
-	// setup timed read of sensor
-	//timer_scheduler.register_process(&AP_OpticalFlow::read);
+
+    // resume timer
+    timer_scheduler.resume_timer();
 #endif
 }
 
@@ -127,10 +82,15 @@ static void read_battery(void)
 		return;
 	}
 
-	if(g.battery_monitoring == 3 || g.battery_monitoring == 4)
-		battery_voltage1 = BATTERY_VOLTAGE(analogRead(BATTERY_PIN_1)) * .1 + battery_voltage1 * .9;
+    if(g.battery_monitoring == 3 || g.battery_monitoring == 4) {
+        static AP_AnalogSource_Arduino batt_volt_pin(g.battery_volt_pin);
+        batt_volt_pin.set_pin(g.battery_volt_pin);
+        battery_voltage1 = BATTERY_VOLTAGE(batt_volt_pin.read_average());
+    }
 	if(g.battery_monitoring == 4) {
-		current_amps1	 = CURRENT_AMPS(analogRead(CURRENT_PIN_1)) * .1 + current_amps1 * .9; 	//reads power sensor current pin
+        static AP_AnalogSource_Arduino batt_curr_pin(g.battery_curr_pin);
+        batt_curr_pin.set_pin(g.battery_curr_pin);
+        current_amps1    = CURRENT_AMPS(batt_curr_pin.read_average());
 		current_total1	 += current_amps1 * 0.02778;	// called at 100ms on average, .0002778 is 1/3600 (conversion to hours)
 	}
 

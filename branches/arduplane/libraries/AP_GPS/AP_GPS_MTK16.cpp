@@ -11,6 +11,7 @@
 //	GPS configuration : Custom protocol per "DIYDrones Custom Binary Sentence Specification V1.1"
 //
 
+#include <FastSerial.h>
 #include "AP_GPS_MTK16.h"
 #include <stdint.h>
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -34,8 +35,14 @@ AP_GPS_MTK16::init(enum GPS_Engine_Setting nav_setting)
     // XXX should assume binary, let GPS_AUTO handle dynamic config?
     _port->print(MTK_SET_BINARY);
 
-    // set 4Hz update rate
-    _port->print(MTK_OUTPUT_4HZ);
+    // set 5Hz update rate
+    _port->print(MTK_OUTPUT_5HZ);
+
+    // set SBAS on
+    _port->print(SBAS_ON);
+
+    // set WAAS on
+    _port->print(WAAS_ON);
     
     // set initial epoch code
     _epoch = TIME_OF_DAY;
@@ -59,11 +66,11 @@ bool
 AP_GPS_MTK16::read(void)
 {
     uint8_t 	data;
-    int 		numc;
+    int16_t numc;
     bool		parsed = false;
 
     numc = _port->available();
-    for (int i = 0; i < numc; i++) {	// Process bytes received
+    for (int16_t i = 0; i < numc; i++) {        // Process bytes received
 
         // read the next byte
         data = _port->read();
@@ -125,7 +132,8 @@ restart:
                 break;
             }
 
-            fix				= _buffer.msg.fix_type == FIX_3D;
+            fix                         = ((_buffer.msg.fix_type == FIX_3D) ||
+                                           (_buffer.msg.fix_type == FIX_3D_SBAS));
             latitude		= _buffer.msg.latitude  * 10;	// XXX doc says *10e7 but device says otherwise
             longitude		= _buffer.msg.longitude * 10;	// XXX doc says *10e7 but device says otherwise
             altitude		= _buffer.msg.altitude;
@@ -136,8 +144,8 @@ restart:
             date			= _buffer.msg.utc_date;
 
             // time from gps is UTC, but convert here to msToD
-            long time_utc	= _buffer.msg.utc_time;
-            long temp = (time_utc/10000000);
+            int32_t time_utc    = _buffer.msg.utc_time;
+            int32_t temp = (time_utc/10000000);
             time_utc -= temp*10000000;
             time = temp * 3600000;
             temp = (time_utc/100000);
@@ -156,16 +164,16 @@ restart:
 #endif
 
             /*	Waiting on clarification of MAVLink protocol!
-            if(!_offset_calculated && parsed) {
-            	long tempd1 = date;
-            	long day 	= tempd1/10000;
-            	tempd1 		-= day * 10000;
-            	long month	= tempd1/100;
-            	long year	= tempd1 - month * 100;
-            	_time_offset = _calc_epoch_offset(day, month, year);
-            	_epoch = UNIX_EPOCH;
-            	_offset_calculated = TRUE;
-            }
+             *  if(!_offset_calculated && parsed) {
+             *                   int32_t tempd1 = date;
+             *                   int32_t day    = tempd1/10000;
+             *   tempd1         -= day * 10000;
+             *                   int32_t month	= tempd1/100;
+             *                   int32_t year	= tempd1 - month * 100;
+             *   _time_offset = _calc_epoch_offset(day, month, year);
+             *   _epoch = UNIX_EPOCH;
+             *   _offset_calculated = TRUE;
+             *  }
             */
 
         }
@@ -173,3 +181,56 @@ restart:
     return parsed;
 }
 
+
+/*
+  detect a MTK16 GPS
+ */
+bool
+AP_GPS_MTK16::_detect(uint8_t data)
+{
+	static uint8_t payload_counter;
+	static uint8_t step;
+	static uint8_t ck_a, ck_b;
+
+	switch (step) {
+        case 1:
+            if (PREAMBLE2 == data) {
+                step++;
+                break;
+            }
+            step = 0;
+        case 0:
+			ck_b = ck_a = payload_counter = 0;
+            if (PREAMBLE1 == data)
+                step++;
+			break;
+        case 2:
+            if (data == sizeof(struct diyd_mtk_msg)) {
+                step++;
+                ck_b = ck_a = data;
+            } else {
+                step = 0;
+            }
+            break;
+        case 3:
+            ck_b += (ck_a += data);
+            if (++payload_counter == sizeof(struct diyd_mtk_msg))
+                step++;
+            break;
+        case 4:
+            step++;
+            if (ck_a != data) {
+				Serial.printf("wrong ck_a\n");
+                step = 0;
+            }
+            break;
+        case 5:
+            step = 0;
+            if (ck_b == data) {
+				return true;
+            }
+			Serial.printf("wrong ck_b\n");
+			break;
+	}
+    return false;
+}

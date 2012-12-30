@@ -19,73 +19,72 @@
 #define AP_MOTORS_MATRIX_MOTOR_CW -1
 #define AP_MOTORS_MATRIX_MOTOR_CCW 1
 
-/// @class      AP_MotorsMatrix 
-class AP_MotorsMatrix : public AP_Motors { 
-public: 
+#define AP_MOTORS_MATRIX_YAW_LOWER_LIMIT_PWM    100
 
-	/// Constructor 
-	AP_MotorsMatrix( uint8_t APM_version, APM_RC_Class* rc_out, RC_Channel* rc_roll, RC_Channel* rc_pitch, RC_Channel* rc_throttle, RC_Channel* rc_yaw, uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT) :
-		AP_Motors(APM_version, rc_out, rc_roll, rc_pitch, rc_throttle, rc_yaw, speed_hz),
-		instant_pwm_force01(false),
-		instant_pwm_force23(false),
-		instant_pwm_force67(false),
-		_num_motors(0) {};
+/// @class      AP_MotorsMatrix
+class AP_MotorsMatrix : public AP_Motors {
+public:
 
-	// init
-	virtual void Init();
+    /// Constructor
+    AP_MotorsMatrix( uint8_t APM_version, APM_RC_Class* rc_out, RC_Channel* rc_roll, RC_Channel* rc_pitch, RC_Channel* rc_throttle, RC_Channel* rc_yaw, uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT) :
+        AP_Motors(APM_version, rc_out, rc_roll, rc_pitch, rc_throttle, rc_yaw, speed_hz),
+        _num_motors(0) {
+    };
 
-	// set update rate to motors - a value in hertz or AP_MOTORS_SPEED_INSTANT_PWM for instant pwm
-	// you must have setup_motors before calling this
-	virtual void set_update_rate( uint16_t speed_hz );
+    // init
+    virtual void        Init();
 
-	// set frame orientation (normally + or X)
-	virtual void set_frame_orientation( uint8_t new_orientation );
+    // set update rate to motors - a value in hertz
+    // you must have setup_motors before calling this
+    virtual void            set_update_rate( uint16_t speed_hz );
 
-	// enable - starts allowing signals to be sent to motors
-	virtual void enable();
+    // set frame orientation (normally + or X)
+    virtual void            set_frame_orientation( uint8_t new_orientation );
 
-	// get basic information about the platform
-	virtual uint8_t get_num_motors() { return _num_motors; };
+    // enable - starts allowing signals to be sent to motors
+    virtual void            enable();
 
-	// motor test
-	virtual void output_test();
- 
- 	// output_min - sends minimum values out to the motors
-	virtual void output_min();
+    // get basic information about the platform
+    virtual uint8_t         get_num_motors() {
+        return _num_motors;
+    };
 
-	// add_motor using just position and prop direction
-	virtual void add_motor(int8_t motor_num, float angle_degrees, int8_t direction, int8_t opposite_motor_num = AP_MOTORS_MATRIX_MOTOR_UNDEFINED, int8_t testing_order = AP_MOTORS_MATRIX_ORDER_UNDEFINED);
+    // motor test
+    virtual void        output_test();
 
-	// remove_motor
-	virtual void remove_motor(int8_t motor_num);
+    // output_min - sends minimum values out to the motors
+    virtual void        output_min();
 
-	// remove_all_motors - removes all motor definitions
-	virtual void remove_all_motors();
+    // add_motor using just position and prop direction
+    virtual void        add_motor(int8_t motor_num, float angle_degrees, int8_t direction, int8_t opposite_motor_num = AP_MOTORS_MATRIX_MOTOR_UNDEFINED, int8_t testing_order = AP_MOTORS_MATRIX_ORDER_UNDEFINED);
 
-	// setup_motors - configures the motors for a given frame type - should be overwritten by child classes
-	virtual void setup_motors() { remove_all_motors(); };
+    // remove_motor
+    virtual void        remove_motor(int8_t motor_num);
 
-	// matrix
-	AP_Int8		opposite_motor[AP_MOTORS_MAX_NUM_MOTORS];	// motor number of the opposite motor
-	AP_Int8		test_order[AP_MOTORS_MAX_NUM_MOTORS];		// order of the motors in the test sequence
+    // remove_all_motors - removes all motor definitions
+    virtual void        remove_all_motors();
 
-	// used for instant_pwm only
-	bool instant_pwm_force01;
-	bool instant_pwm_force23;
-	bool instant_pwm_force67;
+    // setup_motors - configures the motors for a given frame type - should be overwritten by child classes
+    virtual void        setup_motors() {
+        remove_all_motors();
+    };
+
+    // matrix
+    AP_Int8         opposite_motor[AP_MOTORS_MAX_NUM_MOTORS];           // motor number of the opposite motor
+    AP_Int8         test_order[AP_MOTORS_MAX_NUM_MOTORS];               // order of the motors in the test sequence
 
 protected:
-	// output - sends commands to the motors
-	virtual void output_armed();
-	virtual void output_disarmed();
+    // output - sends commands to the motors
+    virtual void        output_armed();
+    virtual void        output_disarmed();
 
-	// add_motor using raw roll, pitch, throttle and yaw factors
-	virtual void add_motor_raw(int8_t motor_num, float roll_fac, float pitch_fac, float yaw_fac, int8_t opposite_motor_num = AP_MOTORS_MATRIX_MOTOR_UNDEFINED, int8_t testing_order = AP_MOTORS_MATRIX_ORDER_UNDEFINED);
+    // add_motor using raw roll, pitch, throttle and yaw factors
+    virtual void        add_motor_raw(int8_t motor_num, float roll_fac, float pitch_fac, float yaw_fac, int8_t opposite_motor_num = AP_MOTORS_MATRIX_MOTOR_UNDEFINED, int8_t testing_order = AP_MOTORS_MATRIX_ORDER_UNDEFINED);
 
-	int8_t	_num_motors;	// not a very useful variable as you really need to check the motor_enabled array to see which motors are enabled
-	float	_roll_factor[AP_MOTORS_MAX_NUM_MOTORS];		// each motors contribution to roll
-	float	_pitch_factor[AP_MOTORS_MAX_NUM_MOTORS];	// each motors contribution to pitch
-	float	_yaw_factor[AP_MOTORS_MAX_NUM_MOTORS];		// each motors contribution to yaw (normally 1 or -1)
-}; 
+    int8_t              _num_motors; // not a very useful variable as you really need to check the motor_enabled array to see which motors are enabled
+    float               _roll_factor[AP_MOTORS_MAX_NUM_MOTORS]; // each motors contribution to roll
+    float               _pitch_factor[AP_MOTORS_MAX_NUM_MOTORS]; // each motors contribution to pitch
+    float               _yaw_factor[AP_MOTORS_MAX_NUM_MOTORS];  // each motors contribution to yaw (normally 1 or -1)
+};
 
 #endif  // AP_MOTORSMATRIX

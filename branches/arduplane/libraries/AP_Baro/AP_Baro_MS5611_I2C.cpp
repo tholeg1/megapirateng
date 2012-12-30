@@ -18,14 +18,13 @@
 
 	Methods:
 		init() : Initialization and sensor reset
-		read() : Read sensor data and _calculate Temperature, Pressure and Altitude
+		read() : Read sensor data and _calculate Temperature, Pressure
 		         This function is optimized so the main host don´t need to wait
 				 You can call this function in your main loop
 				 Maximun data output frequency 100Hz
 				 It returns a 1 if there are new data.
 		get_pressure() : return pressure in mbar*100 units
 		get_temperature() : return temperature in celsius degrees*100 units
-		get_altitude() : return altitude in meters
 
 	Internal functions:
 		_calculate() : Calculate Temperature and Pressure (temperature compensated) in real units
@@ -47,12 +46,14 @@
 #define CMD_CONVERT_D1_OSR4096 0x48   // Maximum resolution (oversampling)
 #define CMD_CONVERT_D2_OSR4096 0x58   // Maximum resolution (oversampling)
 
-uint32_t AP_Baro_MS5611_I2C::_s_D1;
-uint32_t AP_Baro_MS5611_I2C::_s_D2;
+uint32_t volatile AP_Baro_MS5611_I2C::_s_D1;
+uint32_t volatile AP_Baro_MS5611_I2C::_s_D2;
+uint8_t  volatile AP_Baro_MS5611_I2C::_d1_count;
+uint8_t  volatile AP_Baro_MS5611_I2C::_d2_count;
 uint8_t  AP_Baro_MS5611_I2C::_state;
 uint32_t     AP_Baro_MS5611_I2C::_timer;
 bool     AP_Baro_MS5611_I2C::_sync_access;
-bool     AP_Baro_MS5611_I2C::_updated;
+bool     volatile AP_Baro_MS5611_I2C::_updated;
 
 // Public Methods //////////////////////////////////////////////////////////////
 // SPI should be initialized externally
@@ -110,7 +111,12 @@ void AP_Baro_MS5611_I2C::init_hardware()
 		return;
 	}
 	_timer = micros();
-	_state = 1;
+	_s_D1 = 0;
+	_s_D2 = 0;
+	_d1_count = 0;
+	_d2_count = 0;
+	
+	_state = 0;
 	Temp=0;
 	Press=0;
 	healthy = true;
@@ -152,21 +158,45 @@ void AP_Baro_MS5611_I2C::_update(uint32_t tnow)
 
     _timer = tnow;
 
-    if (_state == 1) {
-	    _s_D2 = _i2c_read_adc();  				 // On state 1 we read temp
+    if (_state == 0) {
+	    _s_D2 += _i2c_read_adc();  				 // On state 1 we read temp
+      _d2_count++;
+      if (_d2_count == 32) {
+          // we have summed 32 values. This only happens
+          // when we stop reading the barometer for a long time
+          // (more than 1.2 seconds)
+          _s_D2 >>= 1;
+          _d2_count = 16;
+      }
 	    _state++;
 			if (I2c.write(MS5611_ADDRESS, CMD_CONVERT_D1_OSR4096) != 0) {
 				healthy = false;
 				return;
 			}
     } else {
-	    _s_D1 = _i2c_read_adc();
-	    _state = 1;			                // Start again from state = 1
-			if (I2c.write(MS5611_ADDRESS, CMD_CONVERT_D2_OSR4096) != 0) {
+	    _s_D1 += _i2c_read_adc();
+      _d1_count++;
+      if (_d1_count == 128) {
+          // we have summed 128 values. This only happens
+          // when we stop reading the barometer for a long time
+          // (more than 1.2 seconds)
+          _s_D1 >>= 1;
+          _d1_count = 64;
+      }
+	    _updated = true;					                // New pressure reading
+	    _state++;
+      if (_state == 5) {
+				if (I2c.write(MS5611_ADDRESS, CMD_CONVERT_D2_OSR4096) != 0) {
+					healthy = false;
+					return;
+				}
+				_state = 0;
+      } else {
+			if (I2c.write(MS5611_ADDRESS, CMD_CONVERT_D1_OSR4096) != 0) {
 				healthy = false;
 				return;
 			}
-	    _updated = true;					                // New pressure reading
+      }
     }
 }
 
@@ -176,10 +206,29 @@ uint8_t AP_Baro_MS5611_I2C::read()
     bool updated = _updated;
     _updated = 0;
     if (updated > 0) {
-        D1 = _s_D1;
-        D2 = _s_D2;
+        uint32_t sD1, sD2;
+        uint8_t d1count, d2count;
+        // we need to disable interrupts to access
+        // _s_D1 and _s_D2 as they are not atomic
+        cli();
+        sD1 = _s_D1; _s_D1 = 0;
+        sD2 = _s_D2; _s_D2 = 0;
+        d1count = _d1_count; _d1_count = 0;
+        d2count = _d2_count; _d2_count = 0;
+        _updated = false;
+        sei();
+        if (d1count != 0) {
+            D1 = ((float)sD1) / d1count;
+        }
+        if (d2count != 0) {
+            D2 = ((float)sD2) / d2count;
+        }
+        _pressure_samples = d1count;
         _raw_press = D1;
         _raw_temp = D2;
+    }
+    if (updated) {
+        _last_update = millis();
     }
     _sync_access = false;
     _calculate();
@@ -189,58 +238,49 @@ uint8_t AP_Baro_MS5611_I2C::read()
 // Calculate Temperature and compensated Pressure in real units (Celsius degrees*100, mbar*100).
 void AP_Baro_MS5611_I2C::_calculate()
 {
-	int32_t dT;
-	int64_t TEMP;  // 64 bits
-	int64_t OFF;
-	int64_t SENS;
-	int64_t P;
+	float dT;
+	float TEMP;
+	float OFF;
+	float SENS;
+	float P;
 
 	// Formulas from manufacturer datasheet
-	// as per data sheet some intermediate results require over 32 bits, therefore
-  // we define parameters as 64 bits to prevent overflow on operations
-  // sub -20c temperature compensation is not included
-	dT = D2-((long)C5*256);
-	TEMP = 2000 + ((int64_t)dT * C6)/8388608;
-	OFF = (int64_t)C2 * 65536 + ((int64_t)C4 * dT ) / 128;
-	SENS = (int64_t)C1 * 32768 + ((int64_t)C3 * dT) / 256;
+    // sub -20c temperature compensation is not included
 
-	if (TEMP < 2000){   // second order temperature compensation
-		int64_t T2 = (((int64_t)dT)*dT) >> 31;
-		int64_t Aux_64 = (TEMP-2000)*(TEMP-2000);
-		int64_t OFF2 = (5*Aux_64)>>1;
-		int64_t SENS2 = (5*Aux_64)>>2;
+    // we do the calculations using floating point
+    // as this is much faster on an AVR2560, and also allows
+    // us to take advantage of the averaging of D1 and D1 over
+    // multiple samples, giving us more precision
+	dT = D2-(((uint32_t)C5)<<8);
+	TEMP = (dT * C6)/8388608;
+	OFF = C2 * 65536.0 + (C4 * dT) / 128;
+	SENS = C1 * 32768.0 + (C3 * dT) / 256;
+
+	if (TEMP < 0) {
+        // second order temperature compensation when under 20 degrees C
+		float T2 = (dT*dT) / 0x80000000;
+		float Aux = TEMP*TEMP;
+		float OFF2 = 2.5*Aux;
+		float SENS2 = 1.25*Aux;
 		TEMP = TEMP - T2;
 		OFF = OFF - OFF2;
 		SENS = SENS - SENS2;
 	}
 
 	P = (D1*SENS/2097152 - OFF)/32768;
-	Temp = TEMP;
+	Temp = TEMP + 2000;
 	Press = P;
 }
 
-int32_t AP_Baro_MS5611_I2C::get_pressure()
+float AP_Baro_MS5611_I2C::get_pressure()
 {
 	return(Press);
 }
 
-int16_t AP_Baro_MS5611_I2C::get_temperature()
+float AP_Baro_MS5611_I2C::get_temperature()
 {
 	// callers want the temperature in 0.1C units
-	return(Temp/10);
-}
-
-// Return altitude using the standard 1013.25 mbar at sea level reference
-float AP_Baro_MS5611_I2C::get_altitude()
-{
-	float tmp_float;
-	float Altitude;
-
-	tmp_float = (Press / 101325.0);
-	tmp_float = pow(tmp_float, 0.190295);
-	Altitude = 44330.0 * (1.0 - tmp_float);
-
-	return (Altitude);
+	return Temp/10;
 }
 
 int32_t AP_Baro_MS5611_I2C::get_raw_pressure() {

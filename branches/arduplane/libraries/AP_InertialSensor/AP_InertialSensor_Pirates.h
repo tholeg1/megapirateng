@@ -42,6 +42,9 @@ class AP_InertialSensor_Pirates : public AP_InertialSensor
   Vector3f _accel;
   float _temp;
 
+  // get number of samples read from the sensors
+  uint16_t     num_samples_available();
+
   uint32_t _last_sample_micros;
 
   float _temp_to_celsius( uint16_t );

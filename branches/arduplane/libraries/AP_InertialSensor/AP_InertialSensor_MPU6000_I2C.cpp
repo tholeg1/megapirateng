@@ -6,6 +6,7 @@
 #define PIRATES_FREEIMU_4 4
 #define PIRATES_DROTEK_10DOF_MPU 5 
 #define PIRATES_CRIUS_AIO_PRO_V1 6
+#define PIRATES_CRIUS_AIO_PRO_V2 7
 
 // MPU 6000 registers
 #define MPU6000_ADDR 0x68 //
@@ -141,7 +142,7 @@ AP_InertialSensor_MPU6000_I2C::AP_InertialSensor_MPU6000_I2C(uint8_t addr, uint8
 		_accel_data_sign[0]  = -1;
 		_accel_data_sign[1]  = 1;
 		_accel_data_sign[2]  = -1;
-	} else if (_board_Type == PIRATES_DROTEK_10DOF_MPU || _board_Type == PIRATES_CRIUS_AIO_PRO_V1) {
+	} else if (_board_Type == PIRATES_DROTEK_10DOF_MPU || _board_Type == PIRATES_CRIUS_AIO_PRO_V1 || _board_Type == PIRATES_CRIUS_AIO_PRO_V2) {
 		_gyro_data_index[0]  = 5;	// Y
 		_gyro_data_index[1]  = 4; // X
 		_gyro_data_index[2]  = 6;	// Z
@@ -263,6 +264,12 @@ uint32_t AP_InertialSensor_MPU6000_I2C::sample_time()
 void AP_InertialSensor_MPU6000_I2C::reset_sample_time()
 {
     _last_sample_micros = micros();
+}
+
+// get number of samples read from the sensors
+uint16_t AP_InertialSensor_MPU6000_I2C::num_samples_available()
+{
+    return _count;
 }
 
 /*================ HARDWARE FUNCTIONS ==================== */
