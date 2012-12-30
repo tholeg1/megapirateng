@@ -161,9 +161,6 @@ static void init_ardupilot()
     adc.Init(&timer_scheduler);      // APM ADC library initialization
 #endif
 
-	if(g.compass_enabled)
-		init_compass();
-
 	barometer.init(&timer_scheduler);
 /*
 	if (g.compass_enabled==true) {
@@ -280,7 +277,11 @@ static void init_ardupilot()
 		//----------------
 		//read_EEPROM_airstart_critical();
 #if HIL_MODE != HIL_MODE_ATTITUDE
+		timer_scheduler.resume_timer(); 
 		imu.init(IMU::WARM_START, mavlink_delay, flash_leds, &timer_scheduler);
+		timer_scheduler.suspend_timer(); 		
+		if(g.compass_enabled)
+			init_compass();
 		ahrs.set_centripetal(1);
 #endif
 
@@ -303,12 +304,16 @@ static void init_ardupilot()
 		reload_commands_airstart();		// Get set to resume AUTO from where we left off
 
 	}else {
+		timer_scheduler.resume_timer(); 
 		startup_ground();
+		timer_scheduler.suspend_timer(); 
 		if (g.log_bitmask & MASK_LOG_CMD)
 			Log_Write_Startup(TYPE_GROUNDSTART_MSG);
 	}
 
-    set_mode(MANUAL);
+	timer_scheduler.resume_timer(); 
+
+	set_mode(MANUAL);
 
 	// set the correct flight mode
 	// ---------------------------
@@ -498,6 +503,7 @@ static void startup_IMU_ground(bool force_accel_level)
     gcs_send_text_P(SEVERITY_MEDIUM, PSTR("Beginning IMU calibration; do not move plane"));
 	mavlink_delay(1000);
 
+	timer_scheduler.resume_timer(); 
 	imu.init(IMU::COLD_START, mavlink_delay, flash_leds, &timer_scheduler);
     if (force_accel_level || g.manual_level == 0) {
         // when MANUAL_LEVEL is set to 1 we don't do accelerometer
@@ -505,8 +511,12 @@ static void startup_IMU_ground(bool force_accel_level)
         // it once via the ground station
         imu.init_accel(mavlink_delay, flash_leds);
     }
+	timer_scheduler.suspend_timer(); 
+	if(g.compass_enabled)
+		init_compass();
+    
 	ahrs.set_centripetal(1);
-    ahrs.reset();
+	ahrs.reset();
 
 	// read Baro pressure at ground
 	//-----------------------------
