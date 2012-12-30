@@ -3,8 +3,11 @@
 #define __ARDUCOPTER_APMCONFIG_H__ 
 // Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
 
+// Fast PWM 490Hz enabled by default (490 Hz can be changed in the APM Planner)
+#define INSTANT_PWM	DISABLED
+
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_CRIUS_AIO_PRO_V1
+#define PIRATES_SENSOR_BOARD PIRATES_ALLINONE
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -12,19 +15,12 @@
 	PIRATES_BLACKVORTEX
 	PIRATES_FREEIMU_4 					// New FreeIMU 0.4.1 with MPU6000, MS5611 and 5883L
 	PIRATES_DROTEK_10DOF_MPU 		// MPU6000, MS5611 and 5883L
-	PIRATES_CRIUS_AIO_PRO_V1    // Crius AllInOne Pro v1(1.1)
-	PIRATES_CRIUS_AIO_PRO_V2    // Crius AllInOne Pro v2
+	PIRATES_CRIUS_AIO_PRO_V1    // Crius AllInOne Pro v1
 */
 
 // RC configuration
-
-// PPM_SUM(CPPM) Signal processing
-#define SERIAL_PPM SERIAL_PPM_DISABLED
-/*
-	SERIAL_PPM_DISABLED
-	SERIAL_PPM_ENABLED				// For all boards, PPM_SUM pin is A8
-	SERIAL_PPM_ENABLED_PL1   // Use for CRIUS AIOP Pro v2,
-*/
+// Uncomment if you uses PPM Sum signal from receiver
+#define SERIAL_PPM DISABLED
 
 #define TX_CHANNEL_SET	TX_mwi
 /*
@@ -35,25 +31,23 @@
 */
 
 // Select your baro sensor
-#define CONFIG_BARO AP_BARO_MS5611_I2C
+#define CONFIG_BARO AP_BARO_BMP085_PIRATES
 /*
 	AP_BARO_BMP085_PIRATES
 	AP_BARO_MS5611_I2C
 */
 
 // Warning: COPTER_LEDS is not compatible with LED_SEQUENCER, so enable only one option
-//#define COPTER_LEDS ENABLED     // New feature coming from ArduCopter
-//#define LED_SEQUENCER ENABLED   // Old Oleg's LED Sequencer, see leds.pde for more info
+#define COPTER_LEDS DISABLED     // New feature coming from ArduCopter
+#define LED_SEQUENCER DISABLED   // Old Oleg's LED Sequencer, see leds.pde for more info
 
 #define MAX_SONAR_RANGE 400
 
-// This OSD works on the Serial1 port
 #define OSD_PROTOCOL OSD_PROTOCOL_NONE
 /*
 	OSD_PROTOCOL_NONE
 	OSD_PROTOCOL_SYBERIAN
 	OSD_PROTOCOL_REMZIBI  // Read more at: http://www.rcgroups.com/forums/showthread.php?t=921467
-	OSD_PROTOCOL_FRSKY		// FrSky Telemetry protocol
 */
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will be selected automatically
@@ -62,10 +56,14 @@
 	GPS_PROTOCOL_NONE 	without GPS
 	GPS_PROTOCOL_NMEA
 	GPS_PROTOCOL_SIRF
-	GPS_PROTOCOL_UBLOX     <<< Select this for UBLOX LEA-6 (CRIUS GPS boards and others)
+	GPS_PROTOCOL_UBLOX
+	GPS_PROTOCOL_IMU
+	GPS_PROTOCOL_MTK
+	GPS_PROTOCOL_HIL
 	GPS_PROTOCOL_MTK16
-	GPS_PROTOCOL_BLACKVORTEX
 	GPS_PROTOCOL_AUTO	auto select GPS
+	GPS_PROTOCOL_UBLOX_I2C
+	GPS_PROTOCOL_BLACKVORTEX
 */
 	
 #define SERIAL0_BAUD			 115200	// Console port 
@@ -106,11 +104,7 @@
 	CH7_AUTO_TRIM
 	CH7_ADC_FILTER (experimental)
 	CH7_SAVE_WP
- 	CH7_MULTI_MODE
- */
-
-//#define TOY_EDF	ENABLED
-//#define TOY_MIXER TOY_LOOKUP_TABLE
+*/
 
 //#define RATE_ROLL_I 	0.18
 //#define RATE_PITCH_I	0.18
@@ -134,13 +128,9 @@
 
 // to enable, set to 1
 // to disable, set to 0
-//#define AUTO_THROTTLE_HOLD 1
+#define AUTO_THROTTLE_HOLD 1
 
-#if PIRATES_SENSOR_BOARD == PIRATES_CRIUS_AIO_PRO_V2
-	#define LOGGING_ENABLED		ENABLED
-#else
-	#define LOGGING_ENABLED		DISABLED
-#endif
+#define LOGGING_ENABLED		DISABLED
 
 // Custom channel config - Expert Use Only.
 // this for defining your own MOT_n to CH_n mapping.
@@ -149,7 +139,7 @@
 // MOT_1 through MOT_m where m is the number of motors on your frame.
 // CH_n variables are used for RC output. These can be CH_1 through CH_8,
 // and CH_10 or CH_12. 
-// Sample channel config. Must define all MOT_ channels used by
+// Sample channel config. Must define all MOT_ chanels used by
 // your FRAME_TYPE.
 // #define CONFIG_CHANNELS CHANNEL_CONFIG_CUSTOM
 // #define MOT_1 CH_6
@@ -170,24 +160,30 @@
 #define INERTIAL_NAV DISABLED
 
 #if INERTIAL_NAV == ENABLED
-	#define ALT_HOLD_P			3
-	#define ALT_HOLD_I			0
+	#define ALT_HOLD_P			0.5
+	#define ALT_HOLD_I			0.007
 	#define ALT_HOLD_IMAX		300
 
 	// RATE control
-	#define THROTTLE_P			5		//
-	#define THROTTLE_I			0.4		//
+	#define THROTTLE_P			2		//
+	#define THROTTLE_I			0.5		// Don't edit
 	#define THROTTLE_D			0.0		//
 
 	#define LOITER_P			0.50
 	#define LOITER_I			0.0
-	#define LOITER_RATE_P		5		//
-	#define LOITER_RATE_I		0.1		// Wind control
+	#define LOITER_RATE_P		12			//
+	#define LOITER_RATE_I		1.0		// Wind control
 	#define LOITER_RATE_D		0.0		// try 2 or 3 for LOITER_RATE 1
 #endif
 
 // Enabling this will use the GPS lat/long coordinate to get the compass declination
 //#define AUTOMATIC_DECLINATION ENABLED
+
+// Enable Jeb Madgwick sensor fusion algo
+//#define QUATERNION_ENABLE ENABLED
+
+// use this to disable the new MAVLink 1.0 protocol
+// #define MAVLINK10 DISABLED
 
 //#define CLI_ENABLED DISABLED
 

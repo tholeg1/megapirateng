@@ -76,11 +76,15 @@ void AP_GPS_BLACKVORTEX::init(enum GPS_Engine_Setting nav_setting)
 
 	FastSerial	*fs = (FastSerial *)_port;
 
+	if (callback == NULL) callback = delay;
+
 	fs->begin(9600);
 	for (i=0;i<28;i++) fs->write(ublox_set_384[i]);
-	delay(50);
+	callback(100);
 	fs->begin(38400);
+	callback(100);
 	for (i=0;i<14;i++) fs->write(ublox_set_5hz[i]);
+	callback(100);
 
 	// send the ublox init strings
 	BetterStream	*bs = (BetterStream *)_port;

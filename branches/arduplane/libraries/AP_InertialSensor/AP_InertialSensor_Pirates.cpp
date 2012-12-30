@@ -188,12 +188,6 @@ void AP_InertialSensor_Pirates::reset_sample_time()
     _last_sample_micros = micros();
 }
 
-// get number of samples read from the sensors
-uint16_t AP_InertialSensor_Pirates::num_samples_available()
-{
-    return _count;
-}
-
 /*================ HARDWARE FUNCTIONS ==================== */
 
 void AP_InertialSensor_Pirates::read(uint32_t)

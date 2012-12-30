@@ -3,11 +3,11 @@
 
 const AP_Param::GroupInfo Compass::var_info[] PROGMEM = {
     // index 0 was used for the old orientation matrix
-    AP_GROUPINFO("OFS",    1, Compass, _offset, 0),
-    AP_GROUPINFO("DEC",    2, Compass, _declination, 0),
-    AP_GROUPINFO("LEARN",  3, Compass, _learn, 1), // true if learning calibration
-    AP_GROUPINFO("USE",    4, Compass, _use_for_yaw, 1), // true if used for DCM yaw
-    AP_GROUPINFO("AUTODEC",5, Compass, _auto_declination, 1),
+    AP_GROUPINFO("OFS",    1, Compass, _offset),
+    AP_GROUPINFO("DEC",    2, Compass, _declination),
+    AP_GROUPINFO("LEARN",  3, Compass, _learn), // true if learning calibration
+    AP_GROUPINFO("USE",    4, Compass, _use_for_yaw), // true if used for DCM yaw
+    AP_GROUPINFO("AUTODEC",5, Compass, _auto_declination),
     AP_GROUPEND
 };
 
@@ -19,6 +19,11 @@ bool Compass::healthy = false;        ///< true if last read OKint Compass::prod
 int Compass::product_id = AP_COMPASS_TYPE_UNKNOWN;
 Compass::Compass(void) :
     _orientation(ROTATION_NONE),
+    _declination		(0.0),
+    _learn(1),
+    _use_for_yaw(1),
+    _auto_declination(1),
+    _null_enable(false),
     _null_init_done(false)
 {
 }
@@ -56,13 +61,15 @@ Compass::get_offsets()
 }
 
 void
-Compass::set_initial_location(int32_t latitude, int32_t longitude)
+Compass::set_initial_location(long latitude, long longitude)
 {
     // if automatic declination is configured, then compute
     // the declination based on the initial GPS fix
 	if (_auto_declination) {
 		// Set the declination based on the lat/lng from GPS
+		null_offsets_disable();
 		_declination.set(radians(AP_Declination::get_declination((float)latitude / 10000000, (float)longitude / 10000000)));
+		null_offsets_enable();
 	}
 }
 
@@ -79,8 +86,8 @@ Compass::get_declination()
 }
 
 
-float
-Compass::calculate_heading(float roll, float pitch)
+void
+Compass::calculate(float roll, float pitch)
 {
 //  Note - This function implementation is deprecated
 //  The alternate implementation of this function using the dcm matrix is preferred
@@ -90,8 +97,6 @@ Compass::calculate_heading(float roll, float pitch)
     float sin_roll;
     float cos_pitch;
     float sin_pitch;
-    float heading;
-
     cos_roll = cos(roll);
 	sin_roll = sin(roll);
     cos_pitch = cos(pitch);
@@ -114,18 +119,18 @@ Compass::calculate_heading(float roll, float pitch)
             heading += (2.0 * M_PI);
     }
 
-    return heading;
+    // Optimization for external DCM use. Calculate normalized components
+    heading_x = cos(heading);
+    heading_y = sin(heading);
 }
 
 
-float
-Compass::calculate_heading(const Matrix3f &dcm_matrix)
+void
+Compass::calculate(const Matrix3f &dcm_matrix)
 {
     float headX;
     float headY;
     float cos_pitch = safe_sqrt(1-(dcm_matrix.c.x*dcm_matrix.c.x));
-    float heading;
-
 	// sin(pitch) = - dcm_matrix(3,1)
 	// cos(pitch)*sin(roll) = - dcm_matrix(3,2)
 	// cos(pitch)*cos(roll) = - dcm_matrix(3,3)
@@ -134,7 +139,7 @@ Compass::calculate_heading(const Matrix3f &dcm_matrix)
         // we are pointing straight up or down so don't update our
         // heading using the compass. Wait for the next iteration when
         // we hopefully will have valid values again.
-        return 0;
+        return;
     }
 
     // Tilt compensated magnetic field X component:
@@ -155,34 +160,50 @@ Compass::calculate_heading(const Matrix3f &dcm_matrix)
             heading += (2.0 * M_PI);
     }
 
-    return heading;
+    // Optimization for external DCM use. Calculate normalized components
+    heading_x = cos(heading);
+    heading_y = sin(heading);
+
+#if 0
+    if (isnan(heading_x) || isnan(heading_y)) {
+        Serial.printf("COMPASS: c.x %f c.y %f c.z %f cos_pitch %f mag_x %d mag_y %d mag_z %d headX %f headY %f heading %f heading_x %f heading_y %f\n",
+                      dcm_matrix.c.x,
+                      dcm_matrix.c.y,
+                      dcm_matrix.c.x,
+                      cos_pitch,
+                      (int)mag_x, (int)mag_y, (int)mag_z,
+                      headX, headY,
+                      heading,
+                      heading_x, heading_y);
+    }
+#endif
 }
 
 
 /*
- *  this offset nulling algorithm is inspired by this paper from Bill Premerlani
- *
- *  http://gentlenav.googlecode.com/files/MagnetometerOffsetNullingRevisited.pdf
- *
- *  The base algorithm works well, but is quite sensitive to
- *  noise. After long discussions with Bill, the following changes were
- *  made:
- *
- *   1) we keep a history buffer that effectively divides the mag
- *      vectors into a set of N streams. The algorithm is run on the
- *      streams separately
- *
- *   2) within each stream we only calculate a change when the mag
- *      vector has changed by a significant amount.
- *
- *  This gives us the property that we learn quickly if there is no
- *  noise, but still learn correctly (and slowly) in the face of lots of
- *  noise.
+  this offset nulling algorithm is inspired by this paper from Bill Premerlani
+
+  http://gentlenav.googlecode.com/files/MagnetometerOffsetNullingRevisited.pdf
+
+  The base algorithm works well, but is quite sensitive to
+  noise. After long discussions with Bill, the following changes were
+  made:
+
+    1) we keep a history buffer that effectively divides the mag
+       vectors into a set of N streams. The algorithm is run on the
+       streams separately
+
+    2) within each stream we only calculate a change when the mag
+       vector has changed by a significant amount.
+
+  This gives us the property that we learn quickly if there is no
+  noise, but still learn correctly (and slowly) in the face of lots of
+  noise.
  */
 void
 Compass::null_offsets(void)
 {
-    if (_learn == 0) {
+    if (_null_enable == false || _learn == 0) {
         // auto-calibration is disabled
         return;
     }
@@ -253,4 +274,19 @@ Compass::null_offsets(void)
 
     // set the new offsets
     _offset.set(_offset.get() - diff);
+}
+
+
+void
+Compass::null_offsets_enable(void)
+{
+	_null_init_done = false;
+	_null_enable = true;
+}
+
+void
+Compass::null_offsets_disable(void)
+{
+	_null_init_done = false;
+	_null_enable = false;
 }

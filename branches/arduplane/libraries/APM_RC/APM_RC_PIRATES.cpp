@@ -1,16 +1,16 @@
 /*
- *	APM_RC.cpp - Radio Control Library for ArduPirates Arduino Mega with IPWM
- *	
- *	Total rewritten by Syberian
- *	
- *	Methods:
- *		Init() : Initialization of interrupts an Timers
- *		OutpuCh(ch,pwm) : Output value to servos (range : 900-2100us) ch=0..10
- *		InputCh(ch) : Read a channel input value.  ch=0..7
- *		GetState() : Returns the state of the input. 1 => New radio frame to process
- *		             Automatically resets when we call InputCh to read channels
- *		
- */
+	APM_RC.cpp - Radio Control Library for ArduPirates Arduino Mega with IPWM
+	
+	Total rewritten by Syberian
+	
+	Methods:
+		Init() : Initialization of interrupts an Timers
+		OutpuCh(ch,pwm) : Output value to servos (range : 900-2100us) ch=0..10
+		InputCh(ch) : Read a channel input value.  ch=0..7
+		GetState() : Returns the state of the input. 1 => New radio frame to process
+		             Automatically resets when we call InputCh to read channels
+		
+*/
 
 #include "APM_RC_PIRATES.h"
 
@@ -29,7 +29,7 @@
 
 // Variable definition for Input Capture interrupt
 volatile uint8_t radio_status=0;
-volatile uint8_t use_ppm = 0; // 0-Do not use PPM, 1 - Use PPM on A8 pin, 2- Use PPM on PL1 (CRIUS v2) 
+volatile bool use_ppm = 0;
 volatile bool bv_mode;
 uint8_t *pinRcChannel;
 
@@ -41,41 +41,18 @@ volatile uint8_t failsafeCnt=0;
 // ******************
 volatile uint16_t rcPinValue[NUM_CHANNELS]; // Default RC values
 
-// Serial PPM support on PL1(ICP5) pin
-void APM_RC_PIRATES::_timer5_capt_cb(void)
-{
-    static uint16_t ICR5_old;
-    static uint8_t PPM_Counter=0;
-
-    uint16_t Pulse;
-    uint16_t Pulse_Width;
-
-    Pulse=ICR5;
-    if (Pulse<ICR5_old) { 
-        Pulse_Width=(0xFFFF - ICR5_old)+Pulse; // Calculating pulse
-    }
-    else {
-        Pulse_Width=Pulse-ICR5_old;           // Calculating pulse
-    }
-
-    if (Pulse_Width < 4400) {                   // SYNC pulse?
-        if (PPM_Counter < NUM_CHANNELS) {     // Valid pulse channel?
-        		Pulse_Width = Pulse_Width >> 1;
-        		// just small filtering
-        		if (abs(rcPinValue[PPM_Counter]-Pulse_Width) > 2) {
-            	rcPinValue[PPM_Counter++] = Pulse_Width;   // Saving pulse.
-            } else {
-            	PPM_Counter++;
-            }
-        }
-    }
-    else {
-            if (PPM_Counter > 3) {
-                failsafeCnt = 0;
-            }
-        PPM_Counter=0;
-    }
-    ICR5_old = Pulse;
+// Configure each rc pin for PCINT
+void configureReceiver() {
+	// PCINT activated only for specific pin inside [A8-A15]
+	DDRK = 0;  // defined PORTK as a digital port ([A8-A15] are consired as digital PINs and not analogical)
+	PORTK   = (1<<0) | (1<<1) | (1<<2) | (1<<3) | (1<<4) | (1<<5) | (1<<6) | (1<<7); //enable internal pull ups on the PINs of PORTK
+	#ifdef SERIAL_SUM
+		PCMSK2=1;	// Enable int for pin A8
+	#else
+		PCMSK2 = 255; // 
+	#endif
+	PCMSK0 = B00010000; // sonar port B4 - d10 echo
+	PCICR = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
 }
 
 ISR(PCINT2_vect) { //this ISR is common to every receiver channel, it is call everytime a change state occurs on a digital pin [D2-D7]
@@ -91,7 +68,7 @@ static uint8_t PCintLast;
   sei();                    // re enable other interrupts at this point, the rest of this interrupt is not so time critical and can be interrupted safely
   PCintLast = pin;          // we memorize the current state of all PINs [D0-D7]
 
-	if (use_ppm==1) {
+	if (use_ppm) {
 		static uint8_t pps_num=0;
 		static uint16_t pps_etime=0;
 	
@@ -104,13 +81,8 @@ static uint8_t PCintLast;
 				rcPinValue[pps_num] = dTime>>1;
 				pps_num++;
 				pps_num&=7; // upto 8 packets in slot
-			} else {
-				if (pps_num > 3) {
-					// If we read at least 4 channel - reset failsafe counter
-        	failsafeCnt = 0;
-        }
+			} else 
 				pps_num=0; 
-			}
 		 	pps_etime = cTime; // Save edge time
 		 }
 	} else {
@@ -203,14 +175,12 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
   pinMode(9,OUTPUT);
   pinMode(11,OUTPUT);
   pinMode(12,OUTPUT);
-  
   if (bv_mode) {
-  	// BlackVortex Mapping
-		pinMode(32,OUTPUT);	// cam roll PC5 (Digital Pin 32)
-		pinMode(33,OUTPUT);	// cam pitch PC4 (Digital Pin 33)
+		pinMode(32,OUTPUT);//cam roll L5
+		pinMode(33,OUTPUT);// cam pitch L4
 	} else {
-		pinMode(44,OUTPUT);	// cam roll PL5 (Digital Pin 44)
-		pinMode(45,OUTPUT);	// cam pitch PL4 (Digital Pin 45)
+		pinMode(44,OUTPUT);//cam roll L5
+		pinMode(45,OUTPUT);// cam pitch L4
 	}
   
   //general servo
@@ -244,31 +214,7 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
   TCCR4B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
   TIMSK4 = 1;
   
-	// PCINT activated only for specific pin inside [A8-A15]
-	DDRK = 0;  // defined PORTK as a digital port ([A8-A15] are consired as digital PINs and not analogical)
-	switch (use_ppm)
-	{
-		case 0:
-					PORTK = (1<<0) | (1<<1) | (1<<2) | (1<<3) | (1<<4) | (1<<5) | (1<<6) | (1<<7); //enable internal pull ups on the PINs of PORTK
-					PCMSK2 = 255;
-					PCICR = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
-					break;
-		case 1:  
-					PORTK   = (1<<0); //enable internal pull up on the SERIAL SUM pin A8
-					PCMSK2	= 1;	// Enable int for pin A8
-					PCICR = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
-					break;
-		case 2:
-//					Serial.print("Activale PL1\n");
-					pinMode(48, INPUT); // ICP5 pin (PL1) (PPM input) CRIUS v2
-					isr_reg->register_signal(ISR_REGISTRY_TIMER5_CAPT, _timer5_capt_cb );
-					TCCR5B = (1<<CS11) | (1<<ICES5); //Prescaler set to 8, resolution of 0.5us, input capture on rising edge 
-					TIMSK5 |= (1<<ICIE5); // Enable Input Capture interrupt. Timer interrupt mask  
-					PCMSK2	= 0;	// Disable INT for pin A8-A15
-					PCICR = 0; // PCINT activated only for PORTK dealing with [A8-A15] PINs
-					break;
-	}
-	PCMSK0 = B00010000; // sonar port B4 - d10 echo
+  configureReceiver();
 }
 
 
@@ -303,7 +249,7 @@ ISR(TIMER5_COMPB_vect)
 		switch (OCRstate>>1)
 		{
 			case 0: if(OCRstate&1)PORTC&=(1<<5)^255; else PORTC|=(1<<5);break;	//d32, cam roll
-			case 1: if(OCRstate&1)PORTC&=(1<<4)^255; else PORTC|=(1<<4);break;	//d33, cam pitch
+			case 1: if(OCRstate&1)PORTC&=(1<<4)^255; else PORTC|=(1<<4);break;	//d33, cam pitch	
 		}
 	} else {
 		switch (OCRstate>>1)
@@ -377,8 +323,9 @@ uint16_t APM_RC_PIRATES::OutputCh_current(uint8_t ch)
 	case 5:  pwm=OCRxx1[0]; break;  //ch6
 	case 6:  pwm=OCR4B; break;  //ch7
 	case 7:  pwm=OCR4C; break;  //ch8
-	case 9:  pwm=OCR1A; break;  //ch10
-	case 10: pwm=OCR1B; break;  //ch111
+//	case 8:  pwm=OCR5A; break;  //ch9
+	case 9:  pwm=OCR1A; break;  //ch9
+	case 10: pwm=OCR1B; break;  //ch10
 	}
 	return pwm>>1;
 }
@@ -393,8 +340,8 @@ void APM_RC_PIRATES::enable_out(uint8_t ch)
     	// 4,5
     case 6: TCCR4A |= (1<<COM4B1); break; // CH_7
     case 7: TCCR4A |= (1<<COM4C1); break; // CH_8
-    case 9: TCCR1A |= (1<<COM1A1); break; // CH_10
-    case 10: TCCR1A |= (1<<COM1B1); break; // CH_11
+    case 9: TCCR1A |= (1<<COM1A1); break; // CH_9
+    case 10: TCCR1A |= (1<<COM1B1); break; // CH_10
   }
 }
 
@@ -408,8 +355,8 @@ void APM_RC_PIRATES::disable_out(uint8_t ch)
     	// 4,5
     case 6: TCCR4A &= ~(1<<COM4B1); break; // CH_7
     case 7: TCCR4A &= ~(1<<COM4C1); break; // CH_8
-    case 9: TCCR1A &= ~(1<<COM1A1); break; // CH_10
-    case 10: TCCR1A &= ~(1<<COM1B1); break; // CH_11
+    case 9: TCCR1A &= ~(1<<COM1A1); break; // CH_9
+    case 10: TCCR1A &= ~(1<<COM1B1); break; // CH_10
   }
 }
  
