@@ -21,11 +21,8 @@ heli:
 apm2:
 	make -f Makefile EXTRAFLAGS="-DCONFIG_APM_HARDWARE=APM_HARDWARE_APM2"
 
-apm2-mavlink10:
-	make -f Makefile EXTRAFLAGS="-DCONFIG_APM_HARDWARE=APM_HARDWARE_APM2 -DMAVLINK10=1"
-
-apm2-mavlink09:
-	make -f Makefile EXTRAFLAGS="-DCONFIG_APM_HARDWARE=APM_HARDWARE_APM2 -DMAVLINK10=0"
+dmp:
+	make -f Makefile EXTRAFLAGS="-DDMP_ENABLED=ENABLED"
 
 apm2hexa:
 	make -f Makefile EXTRAFLAGS="-DCONFIG_APM_HARDWARE=APM_HARDWARE_APM2 -DFRAME_CONFIG=HEXA_FRAME"
@@ -33,20 +30,8 @@ apm2hexa:
 apm2beta:
 	make -f Makefile EXTRAFLAGS="-DCONFIG_APM_HARDWARE=APM_HARDWARE_APM2 -DAPM2_BETA_HARDWARE"
 
-mavlink10:
-	make -f Makefile EXTRAFLAGS="-DMAVLINK10=1"
-
-mavlink09:
-	make -f Makefile EXTRAFLAGS="-DMAVLINK10=0"
-
 sitl:
 	make -f ../libraries/Desktop/Makefile.desktop
-
-sitl-mavlink10:
-	make -f ../libraries/Desktop/Makefile.desktop EXTRAFLAGS="-DMAVLINK10=1"
-
-sitl-mavlink09:
-	make -f ../libraries/Desktop/Makefile.desktop EXTRAFLAGS="-DMAVLINK10=0"
 
 sitl-octa:
 	make -f ../libraries/Desktop/Makefile.desktop octa
@@ -56,9 +41,6 @@ sitl-hexa:
 
 sitl-y6:
 	make -f ../libraries/Desktop/Makefile.desktop y6
-
-sitl-quaternion:
-	make -f ../libraries/Desktop/Makefile.desktop EXTRAFLAGS="-DQUATERNION_ENABLE=ENABLED"
 
 etags:
 	cd .. && etags -f ArduCopter/TAGS --langmap=C++:.pde.cpp.h $$(git ls-files ArduCopter libraries)

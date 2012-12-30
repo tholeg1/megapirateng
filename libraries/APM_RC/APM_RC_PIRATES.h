@@ -31,6 +31,7 @@ class APM_RC_PIRATES : public APM_RC_Class
 
   private:
 	int16_t _HIL_override[NUM_CHANNELS];
+	static void _timer5_capt_cb(void);
 };
 
 #endif
