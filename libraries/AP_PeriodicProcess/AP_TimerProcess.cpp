@@ -37,7 +37,7 @@ void AP_TimerProcess::init( Arduino_Mega_ISR_Registry * isr_reg )
 	TIMSK2 = _BV(TOIE2);        // enable the overflow interrupt
 
 	_failsafe = NULL;
-    _suspended = false;
+    _suspended = true;
 	_in_timer_call = false;
 
 	for (uint8_t i = 0; i < AP_TIMERPROCESS_MAX_PROCS; i++)
