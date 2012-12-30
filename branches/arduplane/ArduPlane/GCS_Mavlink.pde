@@ -391,7 +391,7 @@ static void NOINLINE send_servo_out(mavlink_channel_t chan)
         0, // port 0
 	g.channel_roll.servo_out,
 	g.channel_pitch.servo_out,
-        int((10000 * (g.channel_throttle.norm_output() + 1))/2),
+        100 * thr_out,
 	g.channel_rudder.servo_out,
         10000 * g.channel_roll.norm_output(),
         10000 * g.channel_pitch.norm_output(),

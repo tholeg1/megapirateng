@@ -3,19 +3,14 @@
 #define THISFIRMWARE "ArduPlaneNG V2x R5 for AIOP v1.0 by JLN" // New setup for CRIUS_AIO_PRO_V1
 /*
 Firmware based on ArduPlane 2.40 and 2.50 updated version + JLN addons for the AIOP v1.0 board (All In One Pro) by Jean-Louis Naudin
-This firmware use some parts of of the MegaPirateNG
 
 Authors:    Doug Weibel, Jose Julio, Jordi Munoz, Jason Short, Andrew Tridgell, Randy Mackay, Pat Hickey, John Arne Birkeland, Olivier Adler
 Thanks to:  Chris Anderson, Michael Oborne, Paul Mather, Bill Premerlani, James Cohen, JB from rotorFX, Automatik, Fefenin, Peter Meister, Remzibi, Yury Smirnov, Sandro Benigno, Max Levine, Roberto Navoni, Lorenz Meier
 Please contribute your ideas!
 
 Porting to All In One v1.0 Pro by JLN (alias Bluelightning)
-Porting to MegaPirate Next Generation by
-   Sir Alex (rsoft@tut.by)
-   SovGVD (sovgvd@gmail.com)
-   Romb89 (UBLOX GPS i2c library)
-   Syberian (libraries from MegaPirate r741)
-
+  Romb89 (UBLOX GPS i2c library)
+  Syberian (libraries from MegaPirate r741)
 
 This firmware is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -339,7 +334,8 @@ AP_Baro_BMP085_HIL      barometer;
 
 // we always have a timer scheduler
 AP_TimerProcess timer_scheduler;
-
+//timer_scheduler.suspend_timer(); 
+	
 #if CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
 	AP_Compass_HMC5843_Pirates      compass;
 #else
