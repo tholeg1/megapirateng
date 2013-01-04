@@ -82,6 +82,7 @@ Example: FLDW - front-left lower motor with clockwise rotation (Y6 or Y4)
 
 === MPNG History ===
 --- 2.8 R3
+AHRS_GPS_GAIN disabled
 Added support for PPM_SUM on PL1 pin (for CRIUS AIOP v2)
 
 --- 2.8 R2
