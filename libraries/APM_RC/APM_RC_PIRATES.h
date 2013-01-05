@@ -16,7 +16,6 @@ class APM_RC_PIRATES : public APM_RC_Class
 	uint16_t OutputCh_current(uint8_t ch);
 	uint16_t InputCh(uint8_t ch);
 	uint8_t GetState();
-	uint8_t GetFailSafeState();
 	bool setHIL(int16_t v[NUM_CHANNELS]);
 	void clearOverride(void);
 	void Force_Out(void);
