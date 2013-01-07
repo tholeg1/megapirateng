@@ -95,9 +95,7 @@ if (g.ch7_option == CH7_SAVE_WP){         // set to 1
 
 static void update_servo_switches()
 {
-#if CONFIG_APM_HARDWARE != APM_HARDWARE_APM2
-
-#if HIL_MODE != HIL_MODE_ATTITUDE   // JLN update
+#if CONFIG_APM_HARDWARE == APM_HARDWARE_APM1
 	if (!g.switch_enable) {
         // switches are disabled in EEPROM (see SWITCH_ENABLE option)
         // this means the EEPROM control of all channel reversal is enabled
@@ -115,12 +113,6 @@ static void update_servo_switches()
 		g.reverse_ch1_elevon = (PINE & 64) ? true : false;
 		g.reverse_ch2_elevon = (PINL & 64) ? true : false;
 	}
-#else
-	g.mix_mode = 0; // 1 for elevon mode     // setup for the the Predator MQ9 of AeroSim   - JLN update
-	g.channel_roll.set_reverse(false);       // roll reversed
-	g.channel_pitch.set_reverse(false);      // pitch normal
-	g.channel_rudder.set_reverse(false);     // yaw normal
-#endif
 #endif
 }
 
