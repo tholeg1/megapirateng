@@ -8,6 +8,7 @@
 
 #include <inttypes.h>
 #include <Stream.h>
+#include <avr/pgmspace.h>
 
 /// @class	GPS
 /// @brief	Abstract base class for GPS receiver drivers.
@@ -111,7 +112,7 @@ public:
 	bool	print_errors; 	///< deprecated
 
 	// HIL support
-	virtual void setHIL(long time, float latitude, float longitude, float altitude,
+    virtual void setHIL(uint32_t time, float latitude, float longitude, float altitude,
             float ground_speed, float ground_course, float speed_3d, uint8_t num_sats);
 
 	/// Time in milliseconds after which we will assume the GPS is no longer
@@ -124,6 +125,14 @@ public:
 
 	// our approximate linear acceleration in m/s/s
 	float acceleration(void) { return _acceleration; }
+
+	// components of acceleration in 2D, in m/s/s
+	float acceleration_north(void) { return _status == GPS_OK? _acceleration_north : 0; }
+	float acceleration_east(void)  { return _status == GPS_OK? _acceleration_east  : 0; }
+
+	// components of velocity in 2D, in m/s
+	float velocity_north(void) { return _status == GPS_OK? _velocity_north : 0; }
+	float velocity_east(void)  { return _status == GPS_OK? _velocity_east  : 0; }
 
 	// the time we got our last fix in system milliseconds
 	uint32_t last_fix_time;
@@ -180,6 +189,8 @@ protected:
 
 	enum GPS_Engine_Setting _nav_setting;
 
+	void _write_progstr_block(Stream *_fs, const prog_char *pstr, uint8_t size);
+
 private:
 
 
@@ -193,8 +204,15 @@ private:
 	// previous ground speed in cm/s
     uint32_t _last_ground_speed;
 
-	// smoothed estimate of our acceleration
+	// smoothed estimate of our acceleration, in m/s/s
 	float _acceleration;
+	float _acceleration_north;
+	float _acceleration_east;
+
+	// components of the velocity, in m/s
+	float _velocity_north;
+	float _velocity_east;
+
 };
 
 inline long
