@@ -1,4 +1,4 @@
-Release Notes for MegaPirateNG 2.8 R3 (ArduCopter 2.8.1a)
+Release Notes for MegaPirateNG 2.8 R4 (ArduCopter 2.8.1a)
 
 === How to compile MegaPirateNG ===
 
@@ -23,16 +23,17 @@ A14	- CAMPITCH
 A15	- CAMROLL
 
 *** Camera stabilization ***
-d32 - Camera stabilisation Roll servo
-d33 - Camera stabilisation Pitch servo
-For BlackVortex:
 d44 - Camera stabilisation Roll servo
 d45 - Camera stabilisation Pitch servo
+For BlackVortex:
+d32 - Camera stabilisation Roll servo
+d33 - Camera stabilisation Pitch servo
 
 Serial ports:
-GPS - Serial2 (RX2,TX2)
-Telemetry (3DR, Xbee, Bluetooth) - Serial3 (RX3,TX3)
-OSD (Remzibi, E-OSD, FrSky) - Serial1 (RX1,TX1)
+Serial0 (RX0,TX0) - USB/Console/Mavlink
+Serial1 (RX1,TX1) - OSD (Remzibi, E-OSD, FrSky) 
+Serial2 (RX2,TX2) - GPS
+Serial3 (RX3,TX3) - Telemetry (3DR, Xbee, Bluetooth)
 
 *** Sonar ***
 d9 - Sonar Tx 
@@ -81,6 +82,9 @@ Example: FLDW - front-left lower motor with clockwise rotation (Y6 or Y4)
 
 
 === MPNG History ===
+--- 2.8 R4
+FAILSAFE support for receivers without it
+
 --- 2.8 R3
 AHRS_GPS_GAIN disabled
 Added support for PPM_SUM on PL1 pin (for CRIUS AIOP v2)
