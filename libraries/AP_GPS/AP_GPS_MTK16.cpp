@@ -1,14 +1,14 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 //
 //  DIYDrones Custom Mediatek GPS driver for ArduPilot and ArduPilotMega.
-//	Code by Michael Smith, Jordi Munoz and Jose Julio, DIYDrones.com
+//	Code by Michael Smith, Jordi Munoz and Jose Julio, Craig Elder, DIYDrones.com
 //
 //	This library is free software; you can redistribute it and / or
 //	modify it under the terms of the GNU Lesser General Public
 //	License as published by the Free Software Foundation; either
 //	version 2.1 of the License, or (at your option) any later version.
 //
-//	GPS configuration : Custom protocol per "DIYDrones Custom Binary Sentence Specification V1.1"
+//	GPS configuration : Custom protocol per "DIYDrones Custom Binary Sentence Specification V1.6, v1.7, v1.8"
 //
 
 #include <FastSerial.h>
@@ -44,6 +44,9 @@ AP_GPS_MTK16::init(enum GPS_Engine_Setting nav_setting)
     // set WAAS on
     _port->print(WAAS_ON);
     
+    // Set Nav Threshold to 0 m/s
+    _port->print(MTK_NAVTHRES_OFF);
+
     // set initial epoch code
     _epoch = TIME_OF_DAY;
     _time_offset = 0;
@@ -220,7 +223,7 @@ AP_GPS_MTK16::_detect(uint8_t data)
         case 4:
             step++;
             if (ck_a != data) {
-				Serial.printf("wrong ck_a\n");
+				Serial.print_P(PSTR("wrong ck_a\n"));
                 step = 0;
             }
             break;
@@ -229,7 +232,7 @@ AP_GPS_MTK16::_detect(uint8_t data)
             if (ck_b == data) {
 				return true;
             }
-			Serial.printf("wrong ck_b\n");
+			Serial.print_P(PSTR("wrong ck_b\n"));
 			break;
 	}
     return false;

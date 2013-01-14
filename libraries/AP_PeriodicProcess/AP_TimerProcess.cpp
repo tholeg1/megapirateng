@@ -56,10 +56,11 @@ void AP_TimerProcess::register_process(ap_procedure proc)
     for (uint8_t i=0; i<_pidx; i++) {
         if (_proc[i] == proc) return;
     }
+    uint8_t oldSREG = SREG;
     cli();
     if (_pidx < AP_TIMERPROCESS_MAX_PROCS)
         _proc[_pidx++] = proc;
-    sei();
+    SREG = oldSREG;
 }
 
 void AP_TimerProcess::set_failsafe(ap_procedure proc)
@@ -133,17 +134,32 @@ void AP_TimerProcess::run(void)
 	_in_timer_call = true;
 
 	if (!_suspended && _pidx > 0) {
-		_proc[curproc](tnow); // call current driver
-		curproc++; // select next driver
-		if (curproc == _pidx)
-				curproc = 0;
+		if (_proc[curproc](tnow)) { // call current driver
+			curproc++; // select next driver
+			if (curproc == _pidx)
+					curproc = 0;
+		} else {
+			uint8_t calledproc = curproc;
+			curproc++; // select next driver
+			if (curproc == _pidx)
+					curproc = 0;
+			bool ret = false;
+			while (curproc != calledproc && !ret) {
+				tnow = micros();
+				ret = _proc[curproc](tnow);
+				curproc++; // select next driver
+				if (curproc == _pidx)
+						curproc = 0;
+			}
+		}
 	}
 	if (!_suspended) {
           // run any queued processes
+        uint8_t oldSREG = SREG;
           cli();
           ap_procedure qp = _queued_proc;
           _queued_proc = NULL;
-          sei();
+        SREG = oldSREG;
           if( qp != NULL ) {
               _suspended = true;
               qp(tnow);

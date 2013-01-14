@@ -1,3 +1,4 @@
+// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
  *       RC_Channel.cpp - Radio library for Arduino
  *       Code by Jason Short. DIYDrones.com
@@ -17,10 +18,6 @@
  #include "WProgram.h"
 #endif
 #include "RC_Channel.h"
-
-#define RC_CHANNEL_ANGLE 0
-#define RC_CHANNEL_RANGE 1
-#define RC_CHANNEL_ANGLE_RAW 2
 
 /// global array with pointers to all APM RC channels, will be used by AP_Mount and AP_Camera classes
 /// It points to RC input channels, both APM1 and APM2 only have 8 input channels.
@@ -75,7 +72,7 @@ const AP_Param::GroupInfo RC_Channel::var_info[] PROGMEM = {
 void
 RC_Channel::set_range(int16_t low, int16_t high)
 {
-    _type           = RC_CHANNEL_RANGE;
+    _type           = RC_CHANNEL_TYPE_RANGE;
     _high           = high;
     _low            = low;
     _high_out       = high;
@@ -92,7 +89,7 @@ RC_Channel::set_range_out(int16_t low, int16_t high)
 void
 RC_Channel::set_angle(int16_t angle)
 {
-    _type   = RC_CHANNEL_ANGLE;
+    _type   = RC_CHANNEL_TYPE_ANGLE;
     _high   = angle;
 }
 
@@ -117,12 +114,6 @@ RC_Channel::get_reverse(void)
 }
 
 void
-RC_Channel::set_filter(bool filter)
-{
-    _filter = filter;
-}
-
-void
 RC_Channel::set_type(uint8_t t)
 {
     _type = t;
@@ -139,45 +130,17 @@ RC_Channel::trim()
 void
 RC_Channel::set_pwm(int16_t pwm)
 {
-
-    /*if(_filter){
-     *       if(radio_in == 0)
-     *               radio_in = pwm;
-     *       else
-     *               radio_in = (pwm + radio_in) >> 1;		// Small filtering
-     *  }else{
-     *       radio_in = pwm;
-     *  }*/
-
     radio_in = pwm;
 
-    if(_type == RC_CHANNEL_RANGE) {
+    if(_type == RC_CHANNEL_TYPE_RANGE) {
         control_in = pwm_to_range();
         //control_in = constrain(control_in, _low, _high);
         //control_in = min(control_in, _high);
         control_in = (control_in < _dead_zone) ? 0 : control_in;
 
-        if (fabs(scale_output) != 1) {
-            control_in *= scale_output;
-        }
-
-    }else{
-
-        //RC_CHANNEL_ANGLE, RC_CHANNEL_ANGLE_RAW
+    } else {
+        //RC_CHANNEL_TYPE_ANGLE, RC_CHANNEL_TYPE_ANGLE_RAW
         control_in = pwm_to_angle();
-
-
-        if (fabs(scale_output) != 1) {
-            control_in *= scale_output;
-        }
-
-        /*
-         *  // coming soon ??
-         *  if(expo) {
-         *       long temp = control_in;
-         *       temp = (temp * temp) / (long)_high;
-         *       control_in = (int16_t)((control_in >= 0) ? temp : -temp);
-         *  }*/
     }
 }
 
@@ -198,15 +161,15 @@ RC_Channel::get_failsafe(void)
 void
 RC_Channel::calc_pwm(void)
 {
-    if(_type == RC_CHANNEL_RANGE) {
+    if(_type == RC_CHANNEL_TYPE_RANGE) {
         pwm_out         = range_to_pwm();
         radio_out       = (_reverse >= 0) ? (radio_min + pwm_out) : (radio_max - pwm_out);
 
-    }else if(_type == RC_CHANNEL_ANGLE_RAW) {
+    }else if(_type == RC_CHANNEL_TYPE_ANGLE_RAW) {
         pwm_out         = (float)servo_out * .1;
         radio_out       = (pwm_out * _reverse) + radio_trim;
 
-    }else{     // RC_CHANNEL_ANGLE
+    }else{     // RC_CHANNEL_TYPE_ANGLE
         pwm_out         = angle_to_pwm();
         radio_out       = pwm_out + radio_trim;
     }
@@ -251,13 +214,15 @@ RC_Channel::update_min_max()
     radio_max = max(radio_max.get(), radio_in);
 }
 
-// ------------------------------------------
-
+/*
+  return an "angle in centidegrees" (normally -4500 to 4500) from
+  the current radio_in value using the specified dead_zone
+ */
 int16_t
-RC_Channel::pwm_to_angle()
+RC_Channel::pwm_to_angle_dz(int16_t dead_zone)
 {
-    int16_t radio_trim_high = radio_trim + _dead_zone;
-    int16_t radio_trim_low  = radio_trim - _dead_zone;
+    int16_t radio_trim_high = radio_trim + dead_zone;
+    int16_t radio_trim_low  = radio_trim - dead_zone;
 
     // prevent div by 0
     if ((radio_trim_low - radio_min) == 0 || (radio_max - radio_trim_high) == 0)
@@ -269,6 +234,16 @@ RC_Channel::pwm_to_angle()
         return _reverse * ((long)_high * (long)(radio_in - radio_trim_low)) / (long)(radio_trim_low - radio_min);
     }else
         return 0;
+}
+
+/*
+  return an "angle in centidegrees" (normally -4500 to 4500) from
+  the current radio_in value
+ */
+int16_t
+RC_Channel::pwm_to_angle()
+{
+	return pwm_to_angle_dz(_dead_zone);
 }
 
 
@@ -344,6 +319,12 @@ void
 RC_Channel::output()
 {
     _apm_rc->OutputCh(_ch_out, radio_out);
+}
+
+void
+RC_Channel::input()
+{
+    radio_in = _apm_rc->InputCh(_ch_out);
 }
 
 void

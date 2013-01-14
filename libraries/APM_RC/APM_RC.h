@@ -49,17 +49,15 @@ class APM_RC_Class
 	virtual void Force_Out2_Out3(void) = 0;
 	virtual void Force_Out6_Out7(void) = 0;
 
+    // get the time of the last radio update (_last_update modified by interrupt, so reading of variable must be interrupt safe)
+  virtual uint32_t  get_last_update() = 0;
+
 protected:
     uint16_t                _map_speed(uint16_t speed_hz) {
         return 2000000UL / speed_hz;
     }
-
 };
 
-
-
-#include "APM_RC_APM1.h"
-#include "APM_RC_APM2.h"
 #include "APM_RC_PIRATES.h"
 
 #endif

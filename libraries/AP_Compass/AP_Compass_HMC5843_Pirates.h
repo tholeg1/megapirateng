@@ -67,7 +67,7 @@ class AP_Compass_HMC5843_Pirates : public Compass
 	virtual bool read(void);
 	virtual void set_orientation(enum Rotation rotation);
 	static bool _updated;
-	static void _update(uint32_t tnow);
+	static bool _update(uint32_t tnow);
 	void accumulate(void);
 };
 #endif

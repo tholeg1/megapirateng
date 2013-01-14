@@ -40,6 +40,8 @@ volatile uint8_t use_ppm = 0; // 0-Do not use PPM, 1 - Use PPM on A8 pin, 2- Use
 volatile bool bv_mode;
 uint8_t *pinRcChannel;
 
+volatile uint32_t _last_update;
+
 // failsafe counter
 volatile uint8_t failsafeCnt = 0;
 volatile bool valid_frame = false;
@@ -85,6 +87,7 @@ void APM_RC_PIRATES::_timer5_capt_cb(void)
 	if (PPM_Counter > 3) {
 		valid_frame = true;
 		failsafeCnt = 0;
+		_last_update = millis();
 	}
 	ICR5_old = Pulse;
 }
@@ -122,6 +125,7 @@ ISR(PCINT2_vect) { //this ISR is common to every receiver channel, it is call ev
 			if (pps_num > 3) {
 				valid_frame = true;
 				failsafeCnt = 0;
+				_last_update = millis();
 			}
 		 	pps_etime = cTime; // Save edge time
 		 }
@@ -168,6 +172,7 @@ ISR(PCINT2_vect) { //this ISR is common to every receiver channel, it is call ev
 		// failsafe counter must be zero if all ok  
 		if (mask & 1<<pinRcChannel[2]) {    // If pulse present on THROTTLE pin, clear FailSafe counter  - added by MIS fow multiwii (copy by SovGVD to megapirateNG)
 			failsafeCnt = 0;
+			_last_update = millis();
 		}
 
 	}
@@ -542,5 +547,13 @@ void APM_RC_PIRATES::clearOverride(void)
 	}
 }
 
+// get the time of the last radio update (_last_update modified by interrupt, so reading of variable must be interrupt safe)
+uint32_t APM_RC_PIRATES::get_last_update() {
+    
+    uint32_t _tmp = _last_update;
+    while( _tmp != _last_update ) _tmp = _last_update;
+
+    return _tmp;
+}; 
 
 #endif // defined(ATMega1280)

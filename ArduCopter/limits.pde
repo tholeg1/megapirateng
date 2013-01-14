@@ -23,7 +23,7 @@ void set_recovery_home_alt() {
             return_altitude_cm_ahl = (uint32_t) (home.alt + (100 * (uint16_t) ((amax_meters_ahl - amin_meters_ahl) / 2)));
         }
     } else {
-        return_altitude_cm_ahl = (uint32_t) (home.alt + g.RTL_altitude*100);
+        return_altitude_cm_ahl = (uint32_t) (home.alt + g.rtl_altitude);
     }
     // final sanity check
     // if our return is less than 4 meters from ground, set it to 4m, to clear "people" height.
@@ -269,7 +269,7 @@ static void limits_loop() {
 
                 //set_recovery_home_alt();
                 set_mode(POSITION);
-                throttle_mode = THROTTLE_AUTO;
+                set_throttle_mode(THROTTLE_AUTO);
                 limits.last_action = millis();
                 gcs_send_message(MSG_LIMITS_STATUS);
                 break;

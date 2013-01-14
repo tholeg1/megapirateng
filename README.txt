@@ -1,8 +1,8 @@
-Release Notes for MegaPirateNG 2.8 R4 (ArduCopter 2.8.1a)
+Release Notes for MegaPirateNG 2.9 R1 (ArduCopter 2.8.1a)
 
 === How to compile MegaPirateNG ===
 
-1. Download and install Arduino 1.0.1!!!!
+1. Download and install Arduino 1.0.1 - 1.0.3!!!!
 2. See additional requirements for BlackVortex boards in the release_notes_BlackVortex.txt
 3. Delete original libraries folder in Arduino IDE folder
 4. Copy libraries folder from MegaPirateNG distributive into Arduino IDE folder
@@ -22,9 +22,15 @@ A13	- AUX2
 A14	- CAMPITCH
 A15	- CAMROLL
 
+A4-A7 - Copter LEDs. Connect your LED strips to this pins via ULN2003
+A0 - Voltage sensor pin
+A1 - Current sensor pin
+
 *** Camera stabilization ***
 d44 - Camera stabilisation Roll servo
 d45 - Camera stabilisation Pitch servo
+d46 - Camera trigger relay (5V - On, 0v - Off)
+
 For BlackVortex:
 d32 - Camera stabilisation Roll servo
 d33 - Camera stabilisation Pitch servo
@@ -43,9 +49,6 @@ d10 - Sonar Echo
 d13 - RED
 d30 - YELLOW
 d31 - GREEN
-
-*** LED Sequencer ***
-A1,A2,A3,A4 - default LED sequencer pins (read more in led.pde),
 
 *** Motor mapping ***
 motor mapping (maximize your text viewer or disable word wrapping to avoid line breaks)
@@ -83,7 +86,7 @@ Example: FLDW - front-left lower motor with clockwise rotation (Y6 or Y4)
 
 === MPNG History ===
 --- 2.8 R4
-FAILSAFE support for receivers without it
+FAILSAFE support for receivers without it (Trigger on signal lost (When receiver stops to send signal to the board)
 
 --- 2.8 R3
 AHRS_GPS_GAIN disabled
