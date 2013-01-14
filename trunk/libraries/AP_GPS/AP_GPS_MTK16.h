@@ -1,14 +1,14 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 //
 //  DIYDrones Custom Mediatek GPS driver for ArduPilot and ArduPilotMega.
-//	Code by Michael Smith, Jordi Munoz and Jose Julio, DIYDrones.com
+//	Code by Michael Smith, Jordi Munoz and Jose Julio, Craig Elder, DIYDrones.com
 //
 //	This library is free software; you can redistribute it and / or
 //	modify it under the terms of the GNU Lesser General Public
 //	License as published by the Free Software Foundation; either
 //	version 2.1 of the License, or (at your option) any later version.
 //
-//	GPS configuration : Custom protocol per "Customize Function Specification, 3D Robotics, v1.6"
+//	GPS configuration : Custom protocol per "Customize Function Specification, 3D Robotics, v1.6, v1.7, v1.8"
 //
 #ifndef AP_GPS_MTK16_h
 #define AP_GPS_MTK16_h

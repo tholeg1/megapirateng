@@ -7,7 +7,8 @@
 
 // the callback type for periodic processes. They are passed the time
 // in microseconds since boot 
-typedef void (*ap_procedure)(uint32_t );
+// return true if processed or false if process called not in time
+typedef bool (*ap_procedure)(uint32_t );
 
 class AP_PeriodicProcess
 {

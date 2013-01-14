@@ -9,6 +9,10 @@
 #include <AP_Common.h>
 #include <APM_RC.h>
 
+#define RC_CHANNEL_TYPE_ANGLE       0
+#define RC_CHANNEL_TYPE_RANGE       1
+#define RC_CHANNEL_TYPE_ANGLE_RAW   2
+
 /// @class	RC_Channel
 /// @brief	Object managing one RC channel
 class RC_Channel {
@@ -19,8 +23,6 @@ public:
     /// @param name     Optional name for the group.
     ///
     RC_Channel(uint8_t ch_out) :
-        scale_output(1.0),
-        _filter(false),
         _high(1),
         _ch_out(ch_out) {
 		if (_reverse == 0) {
@@ -36,7 +38,6 @@ public:
     void        load_eeprom(void);
     void        save_eeprom(void);
     void        save_trim(void);
-    void        set_filter(bool filter);
     void        set_type(uint8_t t);
 
     // setup the control preferences
@@ -81,6 +82,7 @@ public:
     // includes offset from PWM
     //int16_t   get_radio_out(void);
 
+    int16_t                                         pwm_to_angle_dz(int16_t dead_zone);
     int16_t                                         pwm_to_angle();
     float                                           norm_input();
     float                                           norm_output();
@@ -88,16 +90,15 @@ public:
     int16_t                                         pwm_to_range();
     int16_t                                         range_to_pwm();
 
-    float                                           scale_output;
     static void                                     set_apm_rc(APM_RC_Class * apm_rc);
     void                                            output();
+    void                                            input();
     void                                            enable_out();
     static APM_RC_Class *                           _apm_rc;
 
     static const struct AP_Param::GroupInfo         var_info[];
 
 private:
-    bool            _filter;
     AP_Int8         _reverse;
     AP_Int16        _dead_zone;
     uint8_t         _type;

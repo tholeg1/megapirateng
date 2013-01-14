@@ -16,28 +16,28 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] PROGMEM = {
 
     // @Param: GPS_GAIN
     // @DisplayName: AHRS GPS gain
-    // @Description: This controls how how much to use the GPS to correct the attitude
+    // @Description: This controls how how much to use the GPS to correct the attitude. This should never be set to zero for a plane as it would result in the plane losing control in turns. For a plane please use the default value of 1.0.
     // @Range: 0.0 1.0
     // @Increment: .01
     AP_GROUPINFO("GPS_GAIN",  2, AP_AHRS, gps_gain, 1.0),
 
     // @Param: GPS_USE
-    // @DisplayName: AHRS use GPS
-    // @Description: This controls how how much to use the GPS to correct the attitude. This is for testing the dead-reckoning code
+    // @DisplayName: AHRS use GPS for navigation
+    // @Description: This controls whether to use dead-reckoning or GPS based navigation. If set to 0 then the GPS won't be used for navigation, and only dead reckoning will be used. A value of zero should never be used for normal flight.
     // @User: Advanced
     AP_GROUPINFO("GPS_USE",  3, AP_AHRS, _gps_use, 1),
 
     // @Param: YAW_P
     // @DisplayName: Yaw P
-    // @Description: This controls the weight the compass has on the overall heading
-    // @Range: 0 .4
+    // @Description: This controls the weight the compass or GPS has on the heading. A higher value means the heading will track the yaw source (GPS or compass) more rapidly.
+    // @Range: 0.1 0.4
     // @Increment: .01
     AP_GROUPINFO("YAW_P", 4,    AP_AHRS, _kp_yaw, 0.4),
 
     // @Param: RP_P
     // @DisplayName: AHRS RP_P
     // @Description: This controls how fast the accelerometers correct the attitude
-    // @Range: 0 .4
+    // @Range: 0.1 0.4
     // @Increment: .01
     AP_GROUPINFO("RP_P",  5,    AP_AHRS, _kp, 0.4),
 
@@ -51,10 +51,17 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] PROGMEM = {
 
     // @Param: BARO_USE
     // @DisplayName: AHRS Use Barometer
-    // @Description: This controls the use of the barometer for vertical acceleration compensation in AHRS
+    // @Description: This controls the use of the barometer for vertical acceleration compensation in AHRS. It is currently recommended that you set this value to zero unless you are a developer experimenting with the AHRS system.
     // @Values: 0:Disabled,1:Enabled
     // @User: Advanced
     AP_GROUPINFO("BARO_USE",  7,    AP_AHRS, _baro_use, 0),
+
+    // @Param: TRIM
+    // @DisplayName: AHRS Trim
+    // @Description: Compensates for the difference between the control board and the frame
+    // @Units: Radians
+    // @User: Advanced
+    AP_GROUPINFO("TRIM", 8, AP_AHRS, _trim, 0),
 
     AP_GROUPEND
 };
@@ -87,4 +94,22 @@ bool AP_AHRS::airspeed_estimate(float *airspeed_ret)
 		return true;
 	}
 	return false;
+}
+
+// add_trim - adjust the roll and pitch trim up to a total of 10 degrees
+void AP_AHRS::add_trim(float roll_in_radians, float pitch_in_radians, bool save_to_eeprom)
+{
+    Vector3f trim = _trim.get();
+
+    // add new trim
+    trim.x = constrain(trim.x + roll_in_radians, ToRad(-10.0), ToRad(10.0));
+    trim.y = constrain(trim.y + pitch_in_radians, ToRad(-10.0), ToRad(10.0));
+
+    // set new trim values
+    _trim.set(trim);
+
+    // save to eeprom
+    if( save_to_eeprom ) {
+        _trim.save();
+    }
 }

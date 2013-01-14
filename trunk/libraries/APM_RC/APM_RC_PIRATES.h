@@ -28,6 +28,8 @@ class APM_RC_PIRATES : public APM_RC_Class
 	void Force_Out2_Out3(void);
 	void Force_Out6_Out7(void);
 
+	uint32_t get_last_update();
+		
   private:
 	int16_t _HIL_override[NUM_CHANNELS];
 	static void _timer5_capt_cb(void);

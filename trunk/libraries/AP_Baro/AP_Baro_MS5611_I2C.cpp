@@ -148,12 +148,12 @@ uint32_t AP_Baro_MS5611_I2C::_i2c_read_adc()
 // Read the sensor. This is a state machine
 // We read one time Temperature (state=1) and Pressure (states!=1)
 // temperature does not change so quickly...
-void AP_Baro_MS5611_I2C::_update(uint32_t tnow)
+bool AP_Baro_MS5611_I2C::_update(uint32_t tnow)
 {
-    if (_sync_access) return;
+    if (_sync_access) return false;
 
     if (tnow - _timer < 9500) {
-	    return; // wait for more than 10ms
+	    return false; // wait for more than 10ms
     }
 
     _timer = tnow;
@@ -171,7 +171,7 @@ void AP_Baro_MS5611_I2C::_update(uint32_t tnow)
 	    _state++;
 			if (I2c.write(MS5611_ADDRESS, CMD_CONVERT_D1_OSR4096) != 0) {
 				healthy = false;
-				return;
+				return true;
 			}
     } else {
 	    _s_D1 += _i2c_read_adc();
@@ -188,16 +188,17 @@ void AP_Baro_MS5611_I2C::_update(uint32_t tnow)
       if (_state == 5) {
 				if (I2c.write(MS5611_ADDRESS, CMD_CONVERT_D2_OSR4096) != 0) {
 					healthy = false;
-					return;
+					return true ;
 				}
 				_state = 0;
       } else {
 			if (I2c.write(MS5611_ADDRESS, CMD_CONVERT_D1_OSR4096) != 0) {
 				healthy = false;
-				return;
+				return true;
 			}
       }
     }
+	return true;
 }
 
 uint8_t AP_Baro_MS5611_I2C::read()
@@ -210,13 +211,14 @@ uint8_t AP_Baro_MS5611_I2C::read()
         uint8_t d1count, d2count;
         // we need to disable interrupts to access
         // _s_D1 and _s_D2 as they are not atomic
+        uint8_t oldSREG = SREG;
         cli();
         sD1 = _s_D1; _s_D1 = 0;
         sD2 = _s_D2; _s_D2 = 0;
         d1count = _d1_count; _d1_count = 0;
         d2count = _d2_count; _d2_count = 0;
         _updated = false;
-        sei();
+        SREG = oldSREG;
         if (d1count != 0) {
             D1 = ((float)sD1) / d1count;
         }
@@ -274,7 +276,7 @@ void AP_Baro_MS5611_I2C::_calculate()
 
 float AP_Baro_MS5611_I2C::get_pressure()
 {
-	return(Press);
+    return Press;
 }
 
 float AP_Baro_MS5611_I2C::get_temperature()

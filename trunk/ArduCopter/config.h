@@ -143,6 +143,28 @@
  # define TOY_MIXER      TOY_LINEAR_MIXER
 #endif
 
+/////////////////////////////////////////////////////////////////////////////////
+// Bulk defines for TradHeli
+#if FRAME_CONFIG == HELI_FRAME
+  # define RC_FAST_SPEED 				125
+  # define RTL_YAW                  	YAW_LOOK_AT_HOME
+  # define TILT_COMPENSATION 			5
+  # define RATE_INTEGRATOR_LEAK_RATE 	0.02
+  # define RATE_ROLL_D    				0
+  # define RATE_PITCH_D       			0
+  # define HELI_PITCH_FF				0
+  # define HELI_ROLL_FF					0
+  # define HELI_YAW_FF					0  
+  # define RC_FAST_SPEED 				125
+  # define STABILIZE_THROTTLE			THROTTLE_MANUAL
+  # define MPU6K_FILTER                 10
+#endif
+
+
+// optical flow doesn't work in SITL yet
+#ifdef DESKTOP_BUILD
+# define OPTFLOW DISABLED
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -151,30 +173,10 @@
 #ifndef CONFIG_IMU_TYPE
 # define CONFIG_IMU_TYPE CONFIG_IMU_OILPAN
 #endif
-
-#if CONFIG_IMU_TYPE == CONFIG_IMU_OILPAN
- # define NUM_IMU_SAMPLES_FOR_200HZ 5
- # define NUM_IMU_SAMPLES_FOR_100HZ 10
- # define NUM_IMU_SAMPLES_FOR_50HZ  20
-#endif
-
-#if CONFIG_IMU_TYPE == CONFIG_IMU_MPU6000
- # define NUM_IMU_SAMPLES_FOR_200HZ 1
- # define NUM_IMU_SAMPLES_FOR_100HZ 2
- # define NUM_IMU_SAMPLES_FOR_50HZ  4
+#ifndef MPU6K_FILTER
+ # define MPU6K_FILTER MPU6K_DEFAULT_FILTER
 # endif
 
-#if CONFIG_IMU_TYPE == CONFIG_IMU_MPU6000_I2C
- # define NUM_IMU_SAMPLES_FOR_200HZ 1
- # define NUM_IMU_SAMPLES_FOR_100HZ 2
- # define NUM_IMU_SAMPLES_FOR_50HZ  4
-# endif
-
-#if CONFIG_IMU_TYPE == CONFIG_IMU_PIRATES
- # define NUM_IMU_SAMPLES_FOR_200HZ 1
- # define NUM_IMU_SAMPLES_FOR_100HZ 2
- # define NUM_IMU_SAMPLES_FOR_50HZ  4
-# endif
 //////////////////////////////////////////////////////////////////////////////
 // ADC Enable - used to eliminate for systems which don't have ADC.
 //
@@ -190,11 +192,7 @@
 // PWM control
 // default RC speed in Hz
 #ifndef RC_FAST_SPEED
-# if FRAME_CONFIG == HELI_FRAME
-#   define RC_FAST_SPEED 125
-# else
 # define RC_FAST_SPEED 490
-#endif
 #endif
 
 ////////////////////////////////////////////////////////
@@ -237,8 +235,8 @@
 # define CLI_SLIDER_ENABLED DISABLED
 # define USB_MUX_PIN 23
 # define OPTFLOW_CS_PIN   A3
- # define BATTERY_VOLT_PIN      1      // Battery voltage on A1
- # define BATTERY_CURR_PIN      2      // Battery current on A2
+# define BATTERY_VOLT_PIN      1      // Battery voltage on A1
+# define BATTERY_CURR_PIN      2      // Battery current on A2
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -271,14 +269,14 @@
 #define COPTER_LED_7 AN14 	// Motor LED
 #define COPTER_LED_8 AN15 	// Motor LED
 #elif CONFIG_APM_HARDWARE == APM_HARDWARE_PIRATES
-#define COPTER_LED_1 AN4  	// Motor or Aux LED
-#define COPTER_LED_2 AN5  	// Motor LED
-#define COPTER_LED_3 AN6 	// Motor or GPS LED
-#define COPTER_LED_4 AN7 	// Motor LED
-#define COPTER_LED_5 A_LED_PIN	// Pin not available on Pirate boards
-#define COPTER_LED_6 A_LED_PIN 	// Pin not available on Pirate boards
-#define COPTER_LED_7 A_LED_PIN 	// Pin not available on Pirate boards
-#define COPTER_LED_8 A_LED_PIN 	// Pin not available on Pirate boards
+#define COPTER_LED_1 A4		// Motor or Aux LED
+#define COPTER_LED_2 A5		// Motor LED
+#define COPTER_LED_3 A6		// Motor or GPS LED
+#define COPTER_LED_4 A7		// Motor LED
+#define COPTER_LED_5 NOT_A_PIN		// Pin not available on Pirate boards
+#define COPTER_LED_6 NOT_A_PIN		// Pin not available on Pirate boards
+#define COPTER_LED_7 NOT_A_PIN		// Pin not available on Pirate boards
+#define COPTER_LED_8 NOT_A_PIN		// Pin not available on Pirate boards
 #endif
 
 
@@ -342,16 +340,20 @@
 # define CONFIG_SONAR ENABLED
 #endif
 
-//////////////////////////////////////////////////////////////////////////////
-// Channel Config (custom MOT channel mappings)
-//
+#ifndef SONAR_ALT_HEALTH_MAX
+ # define SONAR_ALT_HEALTH_MAX 3            // number of good reads that indicates a healthy sonar
+#endif
 
-#ifndef CONFIG_CHANNELS
-# define CONFIG_CHANNELS CHANNEL_CONFIG_DEFAULT
+#ifndef THR_SURFACE_TRACKING_P
+ # define THR_SURFACE_TRACKING_P 0.2        // gain for controlling how quickly sonar range adjusts target altitude (lower means slower reaction)
+#endif
+
+#ifndef THR_SURFACE_TRACKING_VELZ_MAX
+ # define THR_SURFACE_TRACKING_VELZ_MAX 30  // max speed number of good reads that indicates a healthy sonar
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// Acrobatics
+// Channel 7 default option
 //
 
 #ifndef CH7_OPTION
@@ -410,9 +412,6 @@
 //////////////////////////////////////////////////////////////////////////////
 // Battery monitoring
 //
-#ifndef BATTERY_EVENT
-# define BATTERY_EVENT			DISABLED
-#endif
 #ifndef LOW_VOLTAGE
 # define LOW_VOLTAGE			9.6
 #endif
@@ -430,7 +429,10 @@
 # define HIGH_DISCHARGE		1760
 #endif
 
-
+// Battery failsafe
+#ifndef FS_BATTERY
+ # define FS_BATTERY              DISABLED
+#endif
 
 
 
@@ -454,9 +456,6 @@
 
 //////////////////////////////////////////////////////////////////////////////
 //  OPTICAL_FLOW
-#if defined( __AVR_ATmega2560__ )  // determines if optical flow code is included
-  //#define OPTFLOW_ENABLED
-#endif
 #ifndef OPTFLOW					// sets global enabled/disabled flag for optflow (as seen in CLI)
 # define OPTFLOW				DISABLED
 #endif
@@ -524,19 +523,18 @@
 
 
 //////////////////////////////////////////////////////////////////////////////
-// THROTTLE_FAILSAFE
-// THROTTLE_FS_VALUE
-// THROTTLE_FAILSAFE_ACTION
+// Throttle Failsafe
 //
-#ifndef THROTTLE_FAILSAFE
-# define THROTTLE_FAILSAFE			DISABLED
+// possible values for FS_THR parameter
+#define FS_THR_DISABLED                    0
+#define FS_THR_ENABLED_ALWAYS_RTL          1
+#define FS_THR_ENABLED_CONTINUE_MISSION    2
+
+#ifndef FS_THR_VALUE_DEFAULT
+ # define FS_THR_VALUE_DEFAULT             975
 #endif
-#ifndef THROTTE_FS_VALUE
-# define THROTTLE_FS_VALUE			975
-#endif
-#ifndef THROTTLE_FAILSAFE_ACTION
-# define THROTTLE_FAILSAFE_ACTION	2
-#endif
+
+
 #ifndef MINIMUM_THROTTLE
 # define MINIMUM_THROTTLE	130
 #endif
@@ -544,11 +542,15 @@
 # define MAXIMUM_THROTTLE	1000
 #endif
 
-#ifndef AUTO_LAND_TIME
-# define AUTO_LAND_TIME	5
+#ifndef LAND_SPEED
+ # define LAND_SPEED    50          // the descent speed for the final stage of landing in cm/s
 #endif
-
-
+#ifndef LAND_START_ALT
+ # define LAND_START_ALT 1000         // altitude in cm where land controller switches to slow rate of descent
+#endif
+#ifndef LAND_DETECTOR_TRIGGER
+ # define LAND_DETECTOR_TRIGGER 50    // number of 50hz iterations with near zero climb rate and low throttle that triggers landing complete.
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -638,6 +640,11 @@
 #define EARTH_FRAME     0
 #define BODY_FRAME      1
 
+// Stabilize Mode
+#ifndef STABILIZE_THROTTLE
+ # define STABILIZE_THROTTLE		THROTTLE_MANUAL_TILT_COMPENSATED
+#endif
+
 // Alt Hold Mode
 #ifndef ALT_HOLD_YAW
 # define ALT_HOLD_YAW 		YAW_HOLD
@@ -653,7 +660,7 @@
 
 // AUTO Mode
 #ifndef AUTO_YAW
-# define AUTO_YAW 			YAW_AUTO
+ # define AUTO_YAW                  YAW_LOOK_AT_NEXT_WP
 #endif
 
 #ifndef AUTO_RP
@@ -664,9 +671,22 @@
 # define AUTO_THR			THROTTLE_AUTO
 #endif
 
+// Guided Mode
+#ifndef GUIDED_YAW
+ # define GUIDED_YAW                YAW_LOOK_AT_NEXT_WP
+#endif
+
+#ifndef GUIDED_RP
+ # define GUIDED_RP                 ROLL_PITCH_AUTO
+#endif
+
+#ifndef GUIDED_THR
+ # define GUIDED_THR                THROTTLE_AUTO
+#endif
+
 // CIRCLE Mode
 #ifndef CIRCLE_YAW
-# define CIRCLE_YAW 		YAW_AUTO
+ # define CIRCLE_YAW             	YAW_LOOK_AT_NEXT_WP
 #endif
 
 #ifndef CIRCLE_RP
@@ -693,11 +713,7 @@
 
 // RTL Mode
 #ifndef RTL_YAW
- #if FRAME_CONFIG == HELI_FRAME
-  # define RTL_YAW                    	  YAW_LOOK_AT_HOME
- #else
-# define RTL_YAW 			YAW_HOLD
-#endif
+ # define RTL_YAW                   YAW_LOOK_AT_NEXT_WP
 #endif
 
 #ifndef RTL_RP
@@ -705,7 +721,7 @@
 #endif
 
 #ifndef RTL_THR
-# define RTL_THR			THROTTLE_HOLD
+ # define RTL_THR                   THROTTLE_AUTO
 #endif
 
 #ifndef SUPER_SIMPLE
@@ -717,13 +733,22 @@
 #endif
 
 // RTL Mode
-#ifndef RTL_APPROACH_ALT
-# define RTL_APPROACH_ALT 	200 // cm!!!
+#ifndef RTL_ALT_FINAL
+ # define RTL_ALT_FINAL             200     // the altitude the vehicle will move to as the final stage of Returning to Launch.  Set to zero to land.
 #endif
 
-#ifndef RTL_HOLD_ALT
-# define RTL_HOLD_ALT 1500		// height to return to Home in CM, 0 = Maintain current altitude
+#ifndef RTL_ALT
+ # define RTL_ALT 				    1500    // default alt to return to home in cm, 0 = Maintain current altitude
 #endif
+
+#ifndef RTL_ALT_MAX
+ # define RTL_ALT_MAX               8000    // Max height to return to home in cm (i.e 80m)
+#endif
+
+#ifndef RTL_LOITER_TIME
+ # define RTL_LOITER_TIME           5000    // Time (in milliseconds) to loiter above home before begining final descent
+#endif
+
 
 
 // LOITER Mode
@@ -768,15 +793,9 @@
 # define ACRO_P 		4.5
 #endif
 
-
 #ifndef AXIS_LOCK_ENABLED
  # define AXIS_LOCK_ENABLED      ENABLED
 #endif
-
-#ifndef AXIS_LOCK_P
-# define AXIS_LOCK_P 		.02
-#endif
-
 
 // Good for smaller payload motors.
 #ifndef STABILIZE_ROLL_P
@@ -809,15 +828,26 @@
 # define STABILIZE_YAW_IMAX		8.0		// degrees * 100
 #endif
 
+#ifndef YAW_LOOK_AHEAD_MIN_SPEED
+ # define YAW_LOOK_AHEAD_MIN_SPEED  1000             // minimum ground speed in cm/s required before copter is aimed at ground course
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Stabilize Rate Control
 //
+
+#ifndef MAX_INPUT_ROLL_ANGLE
+ # define MAX_INPUT_ROLL_ANGLE      4500
+#endif
+#ifndef MAX_INPUT_PITCH_ANGLE
+ # define MAX_INPUT_PITCH_ANGLE     4500
+#endif
 #ifndef RATE_ROLL_P
- # define RATE_ROLL_P        0.175
+ # define RATE_ROLL_P        		0.150
 #endif
 #ifndef RATE_ROLL_I
- # define RATE_ROLL_I        0.010
+ # define RATE_ROLL_I        		0.100
 #endif
 #ifndef RATE_ROLL_D
  # define RATE_ROLL_D        0.004
@@ -827,10 +857,10 @@
 #endif
 
 #ifndef RATE_PITCH_P
- # define RATE_PITCH_P       0.175
+ # define RATE_PITCH_P       		0.150
 #endif
 #ifndef RATE_PITCH_I
- # define RATE_PITCH_I       0.010
+ # define RATE_PITCH_I       		0.100
 #endif
 #ifndef RATE_PITCH_D
  # define RATE_PITCH_D       0.004
@@ -840,7 +870,7 @@
 #endif
 
 #ifndef RATE_YAW_P
- # define RATE_YAW_P              .25
+ # define RATE_YAW_P              	0.25
 #endif
 #ifndef RATE_YAW_I
  # define RATE_YAW_I              0.015
@@ -850,15 +880,6 @@
 #endif
 #ifndef RATE_YAW_IMAX
 # define RATE_YAW_IMAX 		  8.0		// degrees
-#endif
-
-
-#ifndef STABILIZE_D
-# define STABILIZE_D 		0.00
-#endif
-
-#ifndef STABILIZE_D_SCHEDULE
-# define STABILIZE_D_SCHEDULE 		0.5
 #endif
 
 
@@ -886,6 +907,10 @@
  #define ACRO_BALANCE_PITCH	200
 #endif
 
+#ifndef ACRO_TRAINER_ENABLED
+ #define ACRO_TRAINER_ENABLED       ENABLED
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 // Loiter control gains
 //
@@ -898,6 +923,10 @@
 #ifndef LOITER_IMAX
 # define LOITER_IMAX		30		// degrees
 #endif
+#ifndef LOITER_REPOSITION_RATE
+ # define LOITER_REPOSITION_RATE   500.0            // cm/s
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Loiter Navigation control gains
@@ -932,7 +961,11 @@
 #endif
 
 #ifndef AUTO_SLEW_RATE
-# define AUTO_SLEW_RATE		30			// degrees
+ # define AUTO_SLEW_RATE         	30                     // degrees/sec
+#endif
+
+#ifndef AUTO_YAW_SLEW_RATE
+ # define AUTO_YAW_SLEW_RATE        60                     // degrees/sec
 #endif
 
 
@@ -945,31 +978,23 @@
 #endif
 
 #ifndef TILT_COMPENSATION
- # if FRAME_CONFIG == HELI_FRAME
-  #   define TILT_COMPENSATION 5
- # else
   #   define TILT_COMPENSATION 54
  # endif 
-#endif
 
 
 
 //////////////////////////////////////////////////////////////////////////////
 // Throttle control gains
 //
-#ifndef AUTO_THROTTLE_HOLD
-# define AUTO_THROTTLE_HOLD 1
-#endif
-
 #ifndef THROTTLE_CRUISE
 # define THROTTLE_CRUISE	450			//
 #endif
 
 #ifndef ALT_HOLD_P
-# define ALT_HOLD_P			0.3		// .5
+ # define ALT_HOLD_P            2.0
 #endif
 #ifndef ALT_HOLD_I
- # define ALT_HOLD_I                     0.04
+ # define ALT_HOLD_I            0.0
 #endif
 #ifndef ALT_HOLD_IMAX
 # define ALT_HOLD_IMAX		300
@@ -977,16 +1002,46 @@
 
 // RATE control
 #ifndef THROTTLE_P
-# define THROTTLE_P			0.3	// .25
+ # define THROTTLE_P            6.0
 #endif
 #ifndef THROTTLE_I
-# define THROTTLE_I			0.03
+ # define THROTTLE_I            0.0
 #endif
 #ifndef THROTTLE_D
- # define THROTTLE_D                     0.0
+ # define THROTTLE_D            0.2
 #endif
+
 #ifndef THROTTLE_IMAX
 # define THROTTLE_IMAX	300
+#endif
+
+
+// default minimum and maximum vertical velocity the autopilot may request
+#ifndef AUTO_VELZ_MIN
+ # define AUTO_VELZ_MIN -125
+#endif
+#ifndef AUTO_VELZ_MAX
+ # define AUTO_VELZ_MAX 125
+#endif
+
+// default maximum vertical velocity the pilot may request
+#ifndef PILOT_VELZ_MAX
+ # define PILOT_VELZ_MAX    250     // maximum vertical velocity in cm/s
+#endif
+#define ACCELERATION_MAX_Z  750     // maximum veritcal acceleration in cm/s/s
+
+// Throttle Accel control
+#ifndef THROTTLE_ACCEL_P
+ # define THROTTLE_ACCEL_P  0.75
+#endif
+#ifndef THROTTLE_ACCEL_I
+ # define THROTTLE_ACCEL_I  1.50
+#endif
+#ifndef THROTTLE_ACCEL_D
+ # define THROTTLE_ACCEL_D 0.0
+#endif
+#ifndef THROTTLE_ACCEL_IMAX
+ # define THROTTLE_ACCEL_IMAX 500
 #endif
 
 
@@ -996,6 +1051,11 @@
 #ifndef CROSSTRACK_GAIN
 # define CROSSTRACK_GAIN		.2
 #endif
+#ifndef CROSSTRACK_MIN_DISTANCE
+ # define CROSSTRACK_MIN_DISTANCE       15
+#endif
+
+
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1072,6 +1132,15 @@
 #ifndef LOG_PID
 # define LOG_PID				DISABLED
 #endif
+#ifndef LOG_ITERM
+ # define LOG_ITERM                     DISABLED
+#endif
+#ifndef LOG_INAV
+ # define LOG_INAV                      DISABLED
+#endif
+#ifndef LOG_CAMERA
+ # define LOG_CAMERA                    DISABLED
+#endif
 
 // calculate the default log_bitmask
 #define LOGBIT(_s)     (LOG_##_s ? MASK_LOG_##_s : 0)
@@ -1089,7 +1158,9 @@
                LOGBIT(CUR)						| \
                LOGBIT(MOTORS)					| \
 			LOGBIT(OPTFLOW)			| \
-			LOGBIT(PID)
+    LOGBIT(PID)                     | \
+    LOGBIT(ITERM)                   | \
+    LOGBIT(INAV)
 
 // if we are using fast, Disable Medium
 //#if LOG_ATTITUDE_FAST == ENABLED
@@ -1104,19 +1175,12 @@
 # define WP_RADIUS_DEFAULT	2
 #endif
 
-#ifndef LOITER_RADIUS
-# define LOITER_RADIUS 10		// meters for circle mode
+#ifndef CIRCLE_RADIUS
+ # define CIRCLE_RADIUS 10              // meters for circle mode
 #endif
 
 #ifndef USE_CURRENT_ALT
 # define USE_CURRENT_ALT FALSE
-#endif
-
-//////////////////////////////////////////////////////////////////////////////
-// RC override
-//
-#ifndef ALLOW_RC_OVERRIDE
-# define ALLOW_RC_OVERRIDE DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1186,12 +1250,12 @@
  # define SECONDARY_DMP_ENABLED DISABLED
 #endif
 
-#ifndef ALTERNATIVE_YAW_MODE
-# define ALTERNATIVE_YAW_MODE DISABLED
+// Inertia based contollers.
+#ifndef INERTIAL_NAV_XY
+ # define INERTIAL_NAV_XY DISABLED
 #endif
-
-// Inertia based contollers.  disabled by default, work in progress
-#define ACCEL_ALT_HOLD 0
-#define INERTIAL_NAV DISABLED
+#ifndef INERTIAL_NAV_Z
+ # define INERTIAL_NAV_Z ENABLED
+#endif
 
 #endif // __ARDUCOPTER_CONFIG_H__

@@ -3,7 +3,6 @@
 #include "AP_InertialSensor_Pirates.h"
 
 #include <I2C.h>
-#include <FastSerial.h>
 
 // #define BMA_020 // do you have it?
 
@@ -18,9 +17,21 @@
 #define PIRATES_FREEIMU 2
 #define PIRATES_BLACKVORTEX 3 
 
+// accelerometer scaling
+#define ACCEL_SCALE_1G    (GRAVITY / 2730.0)
+
+#define GYRO_SMPLRT_50HZ 19 // 1KHz/(divider+1)
+#define GYRO_SMPLRT_100HZ 9 // 1KHz/(divider+1)
+#define GYRO_SMPLRT_200HZ 4 // 1KHz/(divider+1)
+
+#define GYRO_DLPF_CFG_5HZ 6
+#define GYRO_DLPF_CFG_10HZ 5
+#define GYRO_DLPF_CFG_20HZ 4
+#define GYRO_DLPF_CFG_42HZ 3
+#define GYRO_DLPF_CFG_98HZ 2
+
 // ITG-3200 14.375 LSB/degree/s
 const float AP_InertialSensor_Pirates::_gyro_scale = 0.0012141421; // ToRad(1/14.375)
-const float AP_InertialSensor_Pirates::_accel_scale = 9.81 / 2730.0;
 uint8_t AP_InertialSensor_Pirates::_board_Type = PIRATES_ALLINONE;
 int AP_InertialSensor_Pirates::accel_addr = 0;
 const uint8_t AP_InertialSensor_Pirates::_temp_data_index = 3;
@@ -29,6 +40,10 @@ int8_t AP_InertialSensor_Pirates::_gyro_data_sign[3];
 
 uint8_t AP_InertialSensor_Pirates::_accel_data_index[3];
 int8_t AP_InertialSensor_Pirates::_accel_data_sign[3];
+uint32_t AP_InertialSensor_Pirates::_micros_per_sample = 20000;
+	
+static volatile uint32_t _delta_time_micros = 1;   // time period overwhich samples were collected (initialise to non-zero number but will be overwritten on 2nd read in any case)
+
 
 bool AP_InertialSensor_Pirates::healthy;
 
@@ -40,12 +55,11 @@ AP_InertialSensor_Pirates::AP_InertialSensor_Pirates(uint8_t brd)
   _accel.x = 0;
   _accel.y = 0;
   _accel.z = 0;
-  _temp = 0;
   _initialised = 0;
   _board_Type = brd;
 }
 
-uint16_t AP_InertialSensor_Pirates::init( AP_PeriodicProcess * scheduler )
+uint16_t AP_InertialSensor_Pirates::_init_sensor( AP_PeriodicProcess * scheduler, Sample_rate sample_rate)
 {
 	if (_initialised) return _board_Type;
 		
@@ -86,7 +100,7 @@ uint16_t AP_InertialSensor_Pirates::init( AP_PeriodicProcess * scheduler )
 	}
 
 	delay(50);
-	hardware_init();
+	hardware_init(sample_rate);
 	scheduler->register_process( &AP_InertialSensor_Pirates::read );
 	_initialised = 1;
 		
@@ -107,11 +121,16 @@ bool AP_InertialSensor_Pirates::update( void )
 	int32_t sum[7];
 	uint16_t count;
 	float count_scale;
+	
+	Vector3f gyro_offset = _gyro_offset.get();
+	Vector3f accel_scale = _accel_scale.get();
+	Vector3f accel_offset = _accel_offset.get();
 
 	// wait for at least 1 sample
 	while (_count == 0) ; // nop
 
 	// disable interrupts for mininum time
+	uint8_t oldSREG = SREG;
 	cli();
 	for (int i=0; i<7; i++) {
 		sum[i] = _sum[i];
@@ -119,19 +138,22 @@ bool AP_InertialSensor_Pirates::update( void )
 	}
 	count = _count;
 	_count = 0;
-	sei();
+	// record sample time
+	_delta_time_micros = count * _micros_per_sample;
+
+	SREG = oldSREG;
 
 	count_scale = 1.0 / count;
 	_gyro.x = _gyro_scale * _gyro_data_sign[0] * sum[_gyro_data_index[0]] * count_scale;
 	_gyro.y = _gyro_scale * _gyro_data_sign[1] * sum[_gyro_data_index[1]] * count_scale;
 	_gyro.z = _gyro_scale * _gyro_data_sign[2] * sum[_gyro_data_index[2]] * count_scale;
-
-	_accel.x = _accel_scale * _accel_data_sign[0] * sum[_accel_data_index[0]] * count_scale;
-	_accel.y = _accel_scale * _accel_data_sign[1] * sum[_accel_data_index[1]] * count_scale;
-	_accel.z = _accel_scale * _accel_data_sign[2] * sum[_accel_data_index[2]] * count_scale;
-
-	_temp    = _temp_to_celsius(sum[_temp_data_index] * count_scale);
-
+	_gyro -= gyro_offset;
+	
+	_accel.x = accel_scale.x * _accel_data_sign[0] * sum[_accel_data_index[0]] * count_scale * ACCEL_SCALE_1G;
+	_accel.y = accel_scale.y * _accel_data_sign[1] * sum[_accel_data_index[1]] * count_scale * ACCEL_SCALE_1G;
+	_accel.z = accel_scale.z * _accel_data_sign[2] * sum[_accel_data_index[2]] * count_scale * ACCEL_SCALE_1G;
+	_accel -= accel_offset;
+	
 	return true;
 }
 
@@ -140,71 +162,36 @@ bool AP_InertialSensor_Pirates::new_data_available( void )
     return _count != 0;
 }
 
-float AP_InertialSensor_Pirates::gx() { return _gyro.x; }
-float AP_InertialSensor_Pirates::gy() { return _gyro.y; }
-float AP_InertialSensor_Pirates::gz() { return _gyro.z; }
-
-void AP_InertialSensor_Pirates::get_gyros( float * g )
-{
-  g[0] = _gyro.x;
-  g[1] = _gyro.y;
-  g[2] = _gyro.z;
-}
-
-float AP_InertialSensor_Pirates::ax() { return _accel.x; }
-float AP_InertialSensor_Pirates::ay() { return _accel.y; }
-float AP_InertialSensor_Pirates::az() { return _accel.z; }
-
-void AP_InertialSensor_Pirates::get_accels( float * a )
-{
-  a[0] = _accel.x;
-  a[1] = _accel.y;
-  a[2] = _accel.z;
-}
-
-void AP_InertialSensor_Pirates::get_sensors( float * sensors )
-{
-  sensors[0] = _gyro.x;
-  sensors[1] = _gyro.y;
-  sensors[2] = _gyro.z;
-  sensors[3] = _accel.x;
-  sensors[4] = _accel.y;
-  sensors[5] = _accel.z;
-}
-
-float AP_InertialSensor_Pirates::temperature() { return _temp; }
-
-uint32_t AP_InertialSensor_Pirates::sample_time()
-{
-  uint32_t us = micros();
-  /* XXX rollover creates a major bug */
-  uint32_t delta = us - _last_sample_micros;
-  reset_sample_time();
-  return delta;
-}
-
-void AP_InertialSensor_Pirates::reset_sample_time()
-{
-    _last_sample_micros = micros();
-}
-
 // get number of samples read from the sensors
 uint16_t AP_InertialSensor_Pirates::num_samples_available()
 {
     return _count;
 }
 
+// get_delta_time returns the time period in seconds overwhich the sensor data was collected
+uint32_t AP_InertialSensor_Pirates::get_delta_time_micros() 
+{
+    return _delta_time_micros;
+}
 /*================ HARDWARE FUNCTIONS ==================== */
 
-void AP_InertialSensor_Pirates::read(uint32_t)
+static volatile uint32_t _ins_timer = 0;
+
+bool AP_InertialSensor_Pirates::read(uint32_t tnow)
 {
+	if (tnow - _ins_timer < _micros_per_sample) {
+		return false; // wait for more than 5ms
+	}
+	
+	_ins_timer = tnow;
+		
 	static uint8_t i;
 	uint8_t rawADC_ITG3200[8];
 	uint8_t rawADC_BMA180[6];
 
 	if (I2c.read(ITG3200_ADDRESS, 0X1B, 8, rawADC_ITG3200) != 0) {
 		healthy = false;
-		return;
+		return true;
 	}
   
 	_sum[3] += ((rawADC_ITG3200[0]<<8) | rawADC_ITG3200[1]); // temperature
@@ -214,7 +201,7 @@ void AP_InertialSensor_Pirates::read(uint32_t)
 
 	if (I2c.read(accel_addr, 0x02, 6, rawADC_BMA180) != 0) {
 		healthy = false;
-		return;
+		return true;
 	} 
 	  
 	_sum[4] += ((rawADC_BMA180[3]<<8) | (rawADC_BMA180[2])) >> 2; //a pitch
@@ -226,16 +213,65 @@ void AP_InertialSensor_Pirates::read(uint32_t)
 	  // rollover - v unlikely
 	  memset((void*)_sum, 0, sizeof(_sum));
   }
+ 	return true;
 }
 
-void AP_InertialSensor_Pirates::hardware_init()
+void AP_InertialSensor_Pirates::hardware_init(Sample_rate sample_rate)
 {
 	int i;
 	
 	I2c.begin();
 	I2c.setSpeed(true);// 400Hz
 	I2c.pullup(true);
+
+	// sample rate and filtering
+	uint8_t rate, filter, default_filter;
 	
+	// to minimise the effects of aliasing we choose a filter
+	// that is less than half of the sample rate
+	switch (sample_rate) {
+	case RATE_50HZ:
+		rate = GYRO_SMPLRT_50HZ;
+		default_filter = GYRO_DLPF_CFG_20HZ;
+		_micros_per_sample = 20000;
+		break;
+	case RATE_100HZ:
+		rate = GYRO_SMPLRT_100HZ;
+		default_filter = GYRO_DLPF_CFG_42HZ;
+		_micros_per_sample = 10000;
+		break;
+	case RATE_200HZ:
+	default:
+		rate = GYRO_SMPLRT_200HZ;
+		default_filter = GYRO_DLPF_CFG_42HZ;
+		_micros_per_sample = 5000;
+		break;
+	}
+		
+	// choose filtering frequency
+	switch (_mpu6000_filter) {
+	case 5:
+		filter = GYRO_DLPF_CFG_5HZ;
+		break;
+	case 10:
+		filter = GYRO_DLPF_CFG_10HZ;
+		break;
+	case 20:
+		filter = GYRO_DLPF_CFG_20HZ;
+		break;
+	case 42:
+		filter = GYRO_DLPF_CFG_42HZ;
+		break;
+	case 98:
+		filter = GYRO_DLPF_CFG_98HZ;
+		break;
+	case 0:
+	default:
+	    // the user hasn't specified a specific frequency,
+	    // use the default value for the given sample rate
+	    filter = default_filter;
+	}
+		
 	// GYRO
 	//=== ITG3200 INIT
 	delay(10);  
@@ -244,27 +280,21 @@ void AP_InertialSensor_Pirates::hardware_init()
 		return;
 	} 	
 	delay(5);
-	Serial.print("1");
-	if (I2c.write(ITG3200_ADDRESS, 0x15, 0x3+1) != 0) {	// Sample Rate Divider, 1000Hz/(3+1) = 250Hz . 
+	if (I2c.write(ITG3200_ADDRESS, 0x15, &rate, 1) != 0) {	// Sample Rate Divider, 1000Hz/(rate+1) 
 		healthy = false;
 		return;
 	} 	
 	delay(5);
-	Serial.print("2");
-	if (I2c.write(ITG3200_ADDRESS, 0x16, 0x18+4) != 0) {	// Internal Sample Rate 1kHz, Low pass filter: 1..6: 1=200hz, 2-100,3-50,4-20,5-10,6-5
+	if (I2c.write(ITG3200_ADDRESS, 0x16, 0x18 && filter) != 0) {	// Internal Sample Rate 1kHz, Low pass filter: 1..6: 1=200hz, 2-100,3-50,4-20,5-10,6-5
 		healthy = false;
 		return;
 	} 	
 	delay(5);
-	Serial.print("3");
 	if (I2c.write(ITG3200_ADDRESS, 0x3E, 0x03) != 0) {	// PLL with Z Gyro reference
 		healthy = false;
 		return;
 	} 	
 	delay(100);
-	Serial.print("4");
-
-	delay(10);
 
 	// ACCEL
 	//===BMA180 INIT

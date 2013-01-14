@@ -1,9 +1,10 @@
+/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
  *       APM_AHRS_DCM.cpp
  *
  *       AHRS system using DCM matrices
  *
- *       Based on DCM code by Doug Weibel, Jordi Muñoz and Jose Julio. DIYDrones.com
+ *       Based on DCM code by Doug Weibel, Jordi Muï¿½oz and Jose Julio. DIYDrones.com
  *
  *       Adapted for the general ArduPilot AHRS interface by Andrew Tridgell
  *
@@ -37,14 +38,23 @@ AP_AHRS_DCM::update(void)
     float delta_t;
 
     // tell the IMU to grab some data
-    _imu->update();
+    _ins->update();
 
     // ask the IMU how much time this sensor reading represents
-    delta_t = _imu->get_delta_time();
+    delta_t = _ins->get_delta_time();
+
+    // if the update call took more than 0.2 seconds then discard it,
+    // otherwise we may move too far. This happens when arming motors 
+    // in ArduCopter
+    if (delta_t > 0.2) {
+        _ra_sum.zero();
+        _ra_deltat = 0;
+        return;
+    }
 
     // Get current values for gyros
-    _gyro_vector  = _imu->get_gyro();
-    _accel_vector = _imu->get_accel();
+    _gyro_vector  = _ins->get_gyro();
+    _accel_vector = _ins->get_accel();
 
     // Integrate the DCM matrix using gyro inputs
     matrix_update(delta_t);
@@ -198,7 +208,7 @@ AP_AHRS_DCM::renorm(Vector3f const &a, Vector3f &result)
  *  to approximations rather than identities. In effect, the axes in the two frames of reference no
  *  longer describe a rigid body. Fortunately, numerical error accumulates very slowly, so it is a
  *  simple matter to stay ahead of it.
- *  We call the process of enforcing the orthogonality conditions ÒrenormalizationÓ.
+ *  We call the process of enforcing the orthogonality conditions ï¿½renormalizationï¿½.
  */
 void
 AP_AHRS_DCM::normalize(void)
@@ -375,6 +385,7 @@ AP_AHRS_DCM::drift_correction_yaw(void)
 void
 AP_AHRS_DCM::drift_correction(float deltat)
 {
+    Matrix3f temp_dcm = _dcm_matrix;
     Vector3f velocity;
     uint32_t last_correction_time;
 
@@ -382,17 +393,27 @@ AP_AHRS_DCM::drift_correction(float deltat)
     // vector
     drift_correction_yaw();
 
+    // apply trim
+    temp_dcm.rotate(_trim);
+
+    // rotate accelerometer values into the earth frame
+    _accel_ef = temp_dcm * _accel_vector;
+
     // integrate the accel vector in the earth frame between GPS readings
-    _ra_sum += _dcm_matrix * (_accel_vector * deltat);
+    _ra_sum += _accel_ef * deltat;
 
     // keep a sum of the deltat values, so we know how much time
     // we have integrated over
     _ra_deltat += deltat;
 
     if (!have_gps()) {
-        // no GPS, or no lock. We assume zero velocity. This at
-        // least means we can cope with gyro drift while sitting
-        // on a bench with no GPS lock
+        // no GPS, or not a good lock. From experience we need at
+        // least 6 satellites to get a really reliable velocity number
+        // from the GPS.
+        //
+        // As a fallback we use the fixed wing acceleration correction
+        // if we have an airspeed estimate (which we only have if
+        // _fly_forward is set), otherwise no correction
         if (_ra_deltat < 0.2) {
             // not enough time has accumulated
             return;
@@ -421,7 +442,7 @@ AP_AHRS_DCM::drift_correction(float deltat)
             // we don't have a new GPS fix - nothing more to do
             return;
         }
-        velocity = Vector3f(_gps->velocity_north(), _gps->velocity_east(), 0);
+        velocity = Vector3f(_gps->velocity_north(), _gps->velocity_east(), _gps->velocity_down());
         last_correction_time = _gps->last_fix_time;
         if (_have_gps_lock == false) {
             // if we didn't have GPS lock in the last drift

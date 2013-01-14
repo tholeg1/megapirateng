@@ -2,18 +2,15 @@
 
 static void init_commands()
 {
-    g.command_index             = NO_COMMAND;
-    command_nav_index               = NO_COMMAND;
-    command_cond_index              = NO_COMMAND;
-    prev_nav_index                  = NO_COMMAND;
+    g.command_index         = NO_COMMAND;
+    command_nav_index       = NO_COMMAND;
+    command_cond_index      = NO_COMMAND;
+    prev_nav_index          = NO_COMMAND;
     command_cond_queue.id   = NO_COMMAND;
     command_nav_queue.id    = NO_COMMAND;
 
-    fast_corner                     = false;
+    ap.fast_corner          = false;
 	reset_desired_speed();
-
-    // default Yaw tracking
-    yaw_tracking                    = MAV_ROI_WPNEXT;
 }
 
 // Getters
@@ -35,7 +32,7 @@ static struct Location get_cmd_with_index(int i)
     }else{
         // we can load a command, we don't process it yet
         // read WP position
-        int32_t mem = (WP_START_BYTE) + (i * WP_SIZE);
+        uintptr_t mem = (WP_START_BYTE) + (i * WP_SIZE);
 
         temp.id = eeprom_read_byte((uint8_t*)mem);
 
@@ -75,7 +72,7 @@ static void set_cmd_with_index(struct Location temp, int i)
 {
 
     i = constrain(i, 0, g.command_total.get());
-    //Serial.printf("set_command: %d with id: %d\n", i, temp.id);
+    //cliSerial->printf("set_command: %d with id: %d\n", i, temp.id);
 
     // store home as 0 altitude!!!
     // Home is always a MAV_CMD_NAV_WAYPOINT (16)
@@ -84,7 +81,7 @@ static void set_cmd_with_index(struct Location temp, int i)
         temp.id = MAV_CMD_NAV_WAYPOINT;
     }
 
-    uint32_t mem = WP_START_BYTE + (i * WP_SIZE);
+    uintptr_t mem = WP_START_BYTE + (i * WP_SIZE);
 
     eeprom_write_byte((uint8_t *)   mem, temp.id);
 
@@ -110,12 +107,12 @@ static void set_cmd_with_index(struct Location temp, int i)
 
 static int32_t get_RTL_alt()
 {
-    if(g.RTL_altitude <= 0) {
-        return current_loc.alt;
-    }else if (g.RTL_altitude < current_loc.alt) {
-        return current_loc.alt;
+    if(g.rtl_altitude <= 0) {
+		return min(current_loc.alt, RTL_ALT_MAX);
+    }else if (g.rtl_altitude < current_loc.alt) {
+		return min(current_loc.alt, RTL_ALT_MAX);
     }else{
-        return g.RTL_altitude;
+        return g.rtl_altitude;
     }
 }
 
@@ -140,13 +137,13 @@ static void set_next_WP(struct Location *wp)
     if (next_WP.lat == 0 || command_nav_index <= 1) {
         prev_WP = current_loc;
     }else{
-        if (get_distance_cm(&filtered_loc, &next_WP) < 500)
+        if (get_distance_cm(&current_loc, &next_WP) < 500)
             prev_WP = next_WP;
         else
             prev_WP = current_loc;
     }
 
-    //Serial.printf("set_next_WP #%d, ", command_nav_index);
+    //cliSerial->printf("set_next_WP #%d, ", command_nav_index);
     //print_wp(&prev_WP, command_nav_index -1);
 
     // Load the next_WP slot
@@ -161,22 +158,17 @@ static void set_next_WP(struct Location *wp)
     // Save new altitude so we can track it for climb_rate
     set_new_altitude(next_WP.alt);
 
-    // this is used to offset the shrinking longitude as we go towards the poles
-    float rads                      = (fabs((float)next_WP.lat)/t7) * 0.0174532925;
-    scaleLongDown           = cos(rads);
-    scaleLongUp             = 1.0f/cos(rads);
-
     // this is handy for the groundstation
     // -----------------------------------
-    wp_distance             = get_distance_cm(&filtered_loc, &next_WP);
-    target_bearing          = get_bearing_cd(&prev_WP, &next_WP);
+    wp_distance             = get_distance_cm(&current_loc, &next_WP);
+    wp_bearing              = get_bearing_cd(&prev_WP, &next_WP);
 
     // calc the location error:
     calc_location_error(&next_WP);
 
     // to check if we have missed the WP
     // ---------------------------------
-    original_target_bearing = target_bearing;
+    original_wp_bearing = wp_bearing;
 }
 
 
@@ -184,23 +176,29 @@ static void set_next_WP(struct Location *wp)
 // -------------------------------
 static void init_home()
 {
-    home_is_set = true;
+    set_home_is_set(true);
     home.id         = MAV_CMD_NAV_WAYPOINT;
     home.lng        = g_gps->longitude;                                 // Lon * 10**7
     home.lat        = g_gps->latitude;                                  // Lat * 10**7
     home.alt        = 0;                                                        // Home is always 0
 
-    // to point yaw towards home until we set it with Mavlink
-    target_WP       = home;
-
     // Save Home to EEPROM
     // -------------------
     // no need to save this to EPROM
     set_cmd_with_index(home, 0);
-    //print_wp(&home, 0);
+
+#if INERTIAL_NAV_XY == ENABLED
+    // set inertial nav's home position
+    inertial_nav.set_current_position(g_gps->longitude, g_gps->latitude);
+#endif
 
     if (g.log_bitmask & MASK_LOG_CMD)
         Log_Write_Cmd(0, &home);
+
+    // update navigation scalers.  used to offset the shrinking longitude as we go towards the poles
+    float rads              = (fabs((float)next_WP.lat)/t7) * 0.0174532925;
+    scaleLongDown           = cos(rads);
+    scaleLongUp             = 1.0f/cos(rads);
 
     // Save prev loc this makes the calcs look better before commands are loaded
     prev_WP = home;
@@ -208,7 +206,7 @@ static void init_home()
     // Load home for a default guided_WP
     // -------------
     guided_WP = home;
-    guided_WP.alt += g.RTL_altitude;
+    guided_WP.alt += g.rtl_altitude;
 }
 
 
