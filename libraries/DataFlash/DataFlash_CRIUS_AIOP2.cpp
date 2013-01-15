@@ -291,11 +291,11 @@ void DataFlash_CRIUS_AIOP2::BlockErase (uint16_t BlockAdr)
   SPI.transfer(DF_BLOCK_ERASE);   // Command
 
   if (df_PageSize==512) {
-      SPI.transfer((unsigned char)(BlockAdr >> 3));
-      SPI.transfer((unsigned char)(BlockAdr << 5));
-  } else {
       SPI.transfer((unsigned char)(BlockAdr >> 4));
       SPI.transfer((unsigned char)(BlockAdr << 4));
+  } else {
+      SPI.transfer((unsigned char)(BlockAdr >> 3));
+      SPI.transfer((unsigned char)(BlockAdr << 5));
   }
 
   SPI.transfer(0x00);	           // "dont cares"
