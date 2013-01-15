@@ -3,7 +3,7 @@
 #define __ARDUCOPTER_APMCONFIG_H__ 
 
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_CRIUS_AIO_PRO_V1
+#define PIRATES_SENSOR_BOARD PIRATES_CRIUS_AIO_PRO_V2
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -18,7 +18,7 @@
 // RC configuration
 
 // PPM_SUM(CPPM) Signal processing
-#define SERIAL_PPM SERIAL_PPM_DISABLED
+#define SERIAL_PPM SERIAL_PPM_ENABLED_PL1
 /*
 	SERIAL_PPM_DISABLED
 	SERIAL_PPM_ENABLED				// For all boards, PPM_SUM pin is A8
@@ -57,7 +57,7 @@
 */
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will be selected automatically
-#define GPS_PROTOCOL GPS_PROTOCOL_UBLOX
+#define GPS_PROTOCOL GPS_PROTOCOL_NONE
 /*
 	GPS_PROTOCOL_NONE 	without GPS
 	GPS_PROTOCOL_NMEA
@@ -121,7 +121,7 @@
 //#define USERHOOK_SUPERSLOWLOOP userhook_SuperSlowLoop();
 #define USERHOOK_INIT userhook_init();
 
-// the choice of includeed variables file (*.h) is up to the user and does not have to match this one
+// the choice of included variables file (*.h) is up to the user and does not have to match this one
 // Ensure the defined file exists and is in the arducopter directory
 #define USERHOOK_VARIABLES "UserVariables.h"
 
@@ -133,6 +133,7 @@
 
 // ************** EXPERIMENTAL FEATURES *****************
 
-#define LOITER_REPOSITIONING    DISABLED                          // Experimental Do Not Use
+// #define LOITER_REPOSITIONING    ENABLED                         // Experimental Do Not Use
+// #define LOITER_RP               ROLL_PITCH_LOITER_PR                        // Experimental Do Not Use
 
 #endif //__ARDUCOPTER_APMCONFIG_H__
