@@ -153,7 +153,7 @@ static void init_ardupilot()
 		piezo_beep();
 	}
 	
-	#endif
+#endif
 
 
     // load parameters from EEPROM

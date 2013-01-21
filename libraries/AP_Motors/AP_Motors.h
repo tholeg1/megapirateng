@@ -34,6 +34,7 @@
 // APM board definitions
 #define AP_MOTORS_APM1  1
 #define AP_MOTORS_APM2  2
+#define AP_MOTORS_PIRATES 3 
 
 // frame definitions
 #define AP_MOTORS_PLUS_FRAME 0

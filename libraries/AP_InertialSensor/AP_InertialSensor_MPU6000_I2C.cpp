@@ -30,6 +30,15 @@
 #define MPUREG_FIFO_EN 0x23
 #define MPUREG_INT_PIN_CFG 0x37
 #define MPUREG_INT_ENABLE 0x38
+// bit definitions for MPUREG_INT_ENABLE
+#       define BIT_RAW_RDY_EN                                   0x01
+#       define BIT_DMP_INT_EN                                   0x02    // enabling this bit (DMP_INT_EN) also enables RAW_RDY_EN it seems
+#       define BIT_UNKNOWN_INT_EN                               0x04
+#       define BIT_I2C_MST_INT_EN                               0x08
+#       define BIT_FIFO_OFLOW_EN                                0x10
+#       define BIT_ZMOT_EN                                              0x20
+#       define BIT_MOT_EN                                               0x40
+#       define BIT_FF_EN                                                0x80
 #define MPUREG_INT_STATUS 0x3A
 #define MPUREG_ACCEL_XOUT_H 0x3B //
 #define MPUREG_ACCEL_XOUT_L 0x3C //
@@ -83,7 +92,7 @@
 											// Product ID Description for MPU6000
 											// high 4 bits 	low 4 bits
 											// Product Name	Product Revision
-#define MPU6000_REV_A4 			0x04 	// 0001			0100
+#define MPU6000_REV_A4				0x04 	// 0000			0100
 #define MPU6000ES_REV_C4 			0x14 	// 0001			0100
 #define MPU6000ES_REV_C5 			0x15 	// 0001			0101
 #define MPU6000ES_REV_D6 			0x16	// 0001			0110
@@ -107,6 +116,7 @@ const float AP_InertialSensor_MPU6000_I2C::_gyro_scale = (0.0174532 / 16.4);
  */
 const uint8_t AP_InertialSensor_MPU6000_I2C::_temp_data_index = 3;
 uint32_t AP_InertialSensor_MPU6000_I2C::_micros_per_sample = 20000;
+uint32_t AP_InertialSensor_MPU6000_I2C::_micros_per_sample_pre = 20000;
 
 static uint8_t _product_id;
 
@@ -267,34 +277,42 @@ static volatile uint32_t _ins_timer = 0;
 
 bool AP_InertialSensor_MPU6000_I2C::read(uint32_t tnow)
 {
-	if (tnow - _ins_timer < _micros_per_sample) {
-		return false; // wait for more than 5ms
+	if (tnow - _ins_timer < _micros_per_sample_pre) {
+		return false; // wait for more than 4ms
 	}
 
-	_ins_timer = tnow;
-    
-	// now read the data
-	uint8_t rawMPU[14];
+	uint8_t _status = 0;
 	
-	if (I2c.read(mpu_addr, MPUREG_ACCEL_XOUT_H, 14, rawMPU) != 0) {
-//		healthy = false;
+	// Data ready?
+	if (I2c.read(mpu_addr, MPUREG_INT_STATUS, 1, &_status) != 0) { 
+		return false;
+	}
+	if (_status && 1) {
+		_ins_timer = tnow;
+	
+		// now read the data
+		uint8_t rawMPU[14];
+		
+		if (I2c.read(mpu_addr, MPUREG_ACCEL_XOUT_H, 14, rawMPU) != 0) {
+			return true;
+		}
+		
+		_sum[0] += (((int16_t)rawMPU[0])<<8) | rawMPU[1]; // Accel X
+		_sum[1] += (((int16_t)rawMPU[2])<<8) | rawMPU[3]; // Accel Y
+		_sum[2] += (((int16_t)rawMPU[4])<<8) | rawMPU[5]; // Accel Z
+//		_sum[3] += (((int16_t)rawMPU[6])<<8) | rawMPU[7]; // Temperature
+		_sum[4] += (((int16_t)rawMPU[8])<<8) | rawMPU[9]; // Gyro X
+		_sum[5] += (((int16_t)rawMPU[10])<<8) | rawMPU[11]; // Gyro Y
+		_sum[6] += (((int16_t)rawMPU[12])<<8) | rawMPU[13]; // Gyro Z
+	
+		_count++;
+		if (_count == 0) {
+			// rollover - v unlikely
+			memset((void*)_sum, 0, sizeof(_sum));
+		}
 		return true;
-	}
-	
-	_sum[0] += (((int16_t)rawMPU[0])<<8) | rawMPU[1]; // Accel X
-	_sum[1] += (((int16_t)rawMPU[2])<<8) | rawMPU[3]; // Accel Y
-	_sum[2] += (((int16_t)rawMPU[4])<<8) | rawMPU[5]; // Accel Z
-	_sum[3] += (((int16_t)rawMPU[6])<<8) | rawMPU[7]; // Temperature
-	_sum[4] += (((int16_t)rawMPU[8])<<8) | rawMPU[9]; // Gyro X
-	_sum[5] += (((int16_t)rawMPU[10])<<8) | rawMPU[11]; // Gyro Y
-	_sum[6] += (((int16_t)rawMPU[12])<<8) | rawMPU[13]; // Gyro Z
-
-	_count++;
-	if (_count == 0) {
-		// rollover - v unlikely
-		memset((void*)_sum, 0, sizeof(_sum));
-	}
-	return true;
+	} else
+		return false;
 }
 
 void AP_InertialSensor_MPU6000_I2C::hardware_init(Sample_rate sample_rate)
@@ -325,17 +343,20 @@ void AP_InertialSensor_MPU6000_I2C::hardware_init(Sample_rate sample_rate)
 			rate = MPUREG_SMPLRT_50HZ;
 			default_filter = BITS_DLPF_CFG_20HZ;
 			_micros_per_sample = 20000;
+			_micros_per_sample_pre = 19000;
 			break;
 		case RATE_100HZ:
 			rate = MPUREG_SMPLRT_100HZ;
 			default_filter = BITS_DLPF_CFG_42HZ;
 			_micros_per_sample = 10000;
+			_micros_per_sample_pre = 9000;
 			break;
 		case RATE_200HZ:
 		default:
 			rate = MPUREG_SMPLRT_200HZ;
 			default_filter = BITS_DLPF_CFG_42HZ;
 			_micros_per_sample = 5000;
+			_micros_per_sample_pre = 4000;
 			break;
 		}
     
@@ -413,9 +434,9 @@ void AP_InertialSensor_MPU6000_I2C::hardware_init(Sample_rate sample_rate)
 		user_ctrl = user_ctrl & ~(1 << 5); // reset I2C_MST_EN bit
 		if (I2c.write(mpu_addr, MPUREG_USER_CTRL, &user_ctrl, 1) != 0) {
 			return;
-		} 	
+		}
     delay(1);
-    
+
 		// Enable I2C Bypass mode
 		if (I2c.read(mpu_addr, MPUREG_INT_PIN_CFG, 1, &user_ctrl) != 0) { 
 			return;
@@ -423,8 +444,15 @@ void AP_InertialSensor_MPU6000_I2C::hardware_init(Sample_rate sample_rate)
 		user_ctrl = user_ctrl | (1 << 1); // set I2C_BYPASS_EN bit
 		if (I2c.write(mpu_addr, MPUREG_INT_PIN_CFG, &user_ctrl, 1) != 0) {
 			return;
-		} 
-#endif	
+		}
+#endif
+
+
+		// configure interrupt to fire when new data arrives
+		if (I2c.write(mpu_addr, MPUREG_INT_ENABLE, BIT_RAW_RDY_EN) != 0) {
+			return;
+		}
+		delay(1);
 }
 
 
