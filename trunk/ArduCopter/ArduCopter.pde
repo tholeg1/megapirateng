@@ -1,8 +1,8 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.9 R2"
+#define THISFIRMWARE "MegaPirateNG V2.9 R3"
 /*
- *  ArduCopter Version 2.9-rc5
+ *  ArduCopter Version 2.9
  *
  *  Please, read README.txt before you go!
  *
@@ -989,6 +989,8 @@ void loop()
 		// ---------------------
 		fast_loop();
 
+//		Log_Write_Data(DATA_FAST_LOOP, (int32_t)(micros() - fast_loopTimer));
+
 		// run the 50hz loop 1/2 the time
 		ap_system.run_50hz_loop = !ap_system.run_50hz_loop;
 		
@@ -1015,6 +1017,8 @@ void loop()
 			// Stuff to run at full 50hz, but after the med loops
 			// --------------------------------------------------
 			fifty_hz_loop();
+
+//			Log_Write_Data(DATA_MED_LOOP, (int32_t)(micros() - fiftyhz_loopTimer));
 
 			counter_one_herz++;
 	

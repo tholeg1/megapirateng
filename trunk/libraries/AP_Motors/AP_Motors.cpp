@@ -57,7 +57,7 @@ AP_Motors::AP_Motors( uint8_t APM_version, APM_RC_Class* rc_out, RC_Channel* rc_
     top_bottom_ratio = AP_MOTORS_TOP_BOTTOM_RATIO;
 
     // initialise motor map
-    if( APM_version == AP_MOTORS_APM1 ) {
+	if( APM_version == AP_MOTORS_APM1 || APM_version == AP_MOTORS_PIRATES ) {
         set_motor_to_channel_map(APM1_MOTOR_TO_CHANNEL_MAP);
     } else {
         set_motor_to_channel_map(APM2_MOTOR_TO_CHANNEL_MAP);

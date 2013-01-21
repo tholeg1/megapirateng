@@ -150,10 +150,8 @@ uint32_t AP_Baro_MS5611_I2C::_i2c_read_adc()
 // temperature does not change so quickly...
 bool AP_Baro_MS5611_I2C::_update(uint32_t tnow)
 {
-    if (_sync_access) return false;
-
-    if (tnow - _timer < 9500) {
-	    return false; // wait for more than 10ms
+    if (_sync_access || (tnow - _timer < 8500)) {
+	    return false; // wait for more than 8.2ms
     }
 
     _timer = tnow;

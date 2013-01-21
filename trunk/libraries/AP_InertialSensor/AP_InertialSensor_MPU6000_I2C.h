@@ -35,6 +35,7 @@ private:
 
   uint32_t _last_sample_micros;
   static uint32_t _micros_per_sample;
+  static uint32_t _micros_per_sample_pre;
 
   float _temp_to_celsius( uint16_t );
 

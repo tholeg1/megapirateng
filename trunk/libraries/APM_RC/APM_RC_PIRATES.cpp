@@ -93,9 +93,9 @@ void APM_RC_PIRATES::_timer5_capt_cb(void)
 }
 
 ISR(PCINT2_vect) { //this ISR is common to every receiver channel, it is call everytime a change state occurs on a digital pin [D2-D7]
-	static  uint8_t mask;
-	static  uint8_t pin;
-	static  uint16_t cTime,dTime;
+	static uint8_t mask;
+	static uint8_t pin;
+	static uint16_t cTime,dTime;
 	static uint16_t edgeTime[8];
 	static uint8_t PCintLast;
 
@@ -212,18 +212,6 @@ APM_RC_PIRATES::APM_RC_PIRATES(int _use_ppm, int _bv_mode, uint8_t *_pin_map)
 
 void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
 {
-	//We are using JUST 1 timer1 for 16 PPM outputs!!! (Syberian)
-	pinMode(2,OUTPUT);
-	pinMode(3,OUTPUT);
-	pinMode(4,OUTPUT);
-	pinMode(5,OUTPUT);
-	pinMode(6,OUTPUT);
-	pinMode(7,OUTPUT);
-	pinMode(8,OUTPUT);
-	pinMode(9,OUTPUT);
-	pinMode(11,OUTPUT);
-	pinMode(12,OUTPUT);
-
 	if (bv_mode) {
 		// BlackVortex Mapping
 		pinMode(32,OUTPUT);	// cam roll PC5 (Digital Pin 32)
@@ -238,31 +226,52 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
 	TCCR5B = (1<<CS11); //Prescaler set to 8, resolution of 0.5us
 	TIMSK5=B00000111; // ints: overflow, capture, compareA
 	OCR5A=65510; 
-	OCR5B=3000;
+	OCR5B=3000; // Init OCR registers to nil output signal
 
 	//motors
-	OCR1A = 1800; 
-	OCR1B = 1800; 
-	ICR1 = 40000; //50hz freq...Datasheet says  (system_freq/prescaler)/target frequency. So (16000000hz/8)/50hz=40000,
+	digitalWrite(11,HIGH);
+	pinMode(11,OUTPUT);
+	digitalWrite(11,HIGH);
+	digitalWrite(12,HIGH);
+	pinMode(12,OUTPUT);
+	digitalWrite(12,HIGH);
 	TCCR1A = (1<<WGM31); 
 	TCCR1B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
-	TIMSK1 = 1;
+	OCR1A = 0xFFFF; 
+	OCR1B = 0xFFFF; 
+	ICR1 = 40000; //50hz freq...Datasheet says  (system_freq/prescaler)/target frequency. So (16000000hz/8)/50hz=40000,
 
-	OCR3A = 1800; 
-	OCR3B = 1800; 
-	OCR3C = 1800; 
-	ICR3 = 40000; //50hz freq
+	digitalWrite(2,HIGH);
+	pinMode(2,OUTPUT);
+	digitalWrite(2,HIGH);
+	digitalWrite(3,HIGH);
+	pinMode(3,OUTPUT);
+	digitalWrite(3,HIGH);
+	digitalWrite(5,HIGH);
+	pinMode(5,OUTPUT);
+	digitalWrite(5,HIGH);
 	TCCR3A = (1<<WGM31);
 	TCCR3B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
-	TIMSK3 = 1;
+	OCR3A = 0xFFFF; 
+	OCR3B = 0xFFFF; 
+	OCR3C = 0xFFFF; 
+	ICR3 = 40000; //50hz freq
 
-	OCR4A = 1800; 
-	OCR4B = 1800; 
-	OCR4C = 1800; 
-	ICR4 = 40000; //50hz freq
+	digitalWrite(6,HIGH);
+	pinMode(6,OUTPUT);
+	digitalWrite(6,HIGH);
+	digitalWrite(7,HIGH);
+	pinMode(7,OUTPUT);
+	digitalWrite(7,HIGH);
+	digitalWrite(8,HIGH);
+	pinMode(8,OUTPUT);
+	digitalWrite(8,HIGH);
 	TCCR4A = (1<<WGM31);
 	TCCR4B = (1<<WGM33)|(1<<WGM32)|(1<<CS31);
-	TIMSK4 = 1;
+	OCR4A = 0xFFFF; 
+	OCR4B = 0xFFFF; 
+	OCR4C = 0xFFFF; 
+	ICR4 = 40000; //50hz freq
 
 	// PCINT activated only for specific pin inside [A8-A15]
 	DDRK = 0;  // defined PORTK as a digital port ([A8-A15] are consired as digital PINs and not analogical)
@@ -290,30 +299,10 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
 	PCMSK0 = B00010000; // sonar port B4 - d10 echo
 }
 
-
-
 uint16_t OCRxx1[8]={1800,1800,1800,1800,1800,1800,1800,1800,};
 char OCRstate = 7;
-/*
-D	Port PWM
-2	e4	0 3B
-3	e5	1 3C
-4	g5	2
-5	e3	3 3A
-6	h3	4 4A
-7	h4	5 4B
-8	h5	6 5C
-9	h6	7
-//2nd group
-22	a0	8
-23	a1	9
-24	a2	10
-25	a3	11
-26	a4	12
-27	a5	13
-28	a6	14
-29	a7	15
-*/
+
+// Software PWM generator (used for Gimbal)
 ISR(TIMER5_COMPB_vect)
 { // set the corresponding pin to 1
 	OCRstate++;
@@ -342,27 +331,6 @@ Pin			D2	D3	D5	D6	D7	D8	D11		D12
 
 For motor mapping, see release_notes.txt
 */
-int ocr_tbl[8];
-ISR(TIMER4_OVF_vect)
-{
-	OCR4A = ocr_tbl[1];
-	OCR4B = ocr_tbl[4];
-	OCR4C = ocr_tbl[5];
-}
-
-ISR(TIMER3_OVF_vect)
-{
-	OCR3A = ocr_tbl[0];
-	OCR3B = ocr_tbl[2];
-	OCR3C = ocr_tbl[3];
-}
-
-ISR(TIMER1_OVF_vect)
-{
-	OCR1A = ocr_tbl[6];
-	OCR1B = ocr_tbl[7];
-}
-
 void APM_RC_PIRATES::OutputCh(uint8_t ch, uint16_t pwm)
 {
 	pwm = constrain(pwm,MIN_PULSEWIDTH,MAX_PULSEWIDTH);
@@ -370,18 +338,17 @@ void APM_RC_PIRATES::OutputCh(uint8_t ch, uint16_t pwm)
  
 	switch(ch)
 	{
-		case 0:  ocr_tbl[0] = pwm; break; //5
-		case 1:  ocr_tbl[1] = pwm; break; //6
-		case 2:  ocr_tbl[2] = pwm; break; //2
-		case 3:  ocr_tbl[3] = pwm; break; //3
-		case 4:  OCRxx1[1]  = pwm; break; //CAM PITCH
-		case 5:  OCRxx1[0]  = pwm; break; //CAM ROLL
-		case 6:  ocr_tbl[4] = pwm; break; //7
-		case 7:  ocr_tbl[5] = pwm; break; //8
-		
-		case 9:  ocr_tbl[6] = pwm; break;// d11
-		case 10: ocr_tbl[7] = pwm; break;// d12
-	} 
+		case 0:  OCR3A = pwm; break; //5
+		case 1:  OCR4A = pwm; break; //6
+		case 2:  OCR3B = pwm; break; //2
+		case 3:  OCR3C = pwm; break; //3
+		case 4:  OCRxx1[1] = pwm; break; //CAM PITCH
+		case 5:  OCRxx1[0] = pwm; break; //CAM ROLL
+		case 6:  OCR4B = pwm; break; //7
+		case 7:  OCR4C = pwm; break; //8
+		case 9:  OCR1A = pwm; break;// d11
+		case 10: OCR1B = pwm; break;// d12
+	}
 }
 
 uint16_t APM_RC_PIRATES::OutputCh_current(uint8_t ch)
