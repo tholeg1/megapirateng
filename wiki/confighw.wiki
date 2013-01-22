@@ -14,7 +14,7 @@ connect you [dypme007 DYP-ME007] sonar:
 || Echo    || D10            ||
 
 = RC =
-you can define you R set in /libraries/APM_RC/APM_RC.cpp, but default is MultiWii style:
+you can define you RC set in /libraries/APM_RC/APM_RC.cpp, but default is MultiWii style:
 || *RC*           || *Arduino* ||
 || CH1 (Roll)     || A9        ||
 || CH2 (Pitch)    || A10       ||
@@ -22,8 +22,5 @@ you can define you R set in /libraries/APM_RC/APM_RC.cpp, but default is MultiWi
 || CH4 (Yaw)      || A11       ||
 || CH5 (AUX1)     || A12       ||
 
-= Motors =
-== Quad ==
-== Hexa ==
-== Octa ==
-== Tri and Y6 ==
+= Motor mappings =
+http://megapirateng.googlecode.com/svn/images/FRAMES_hexa_octa_y6.png
