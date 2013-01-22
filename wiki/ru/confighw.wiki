@@ -23,7 +23,4 @@
 || CH5 (AUX1)     || A12       ||
 
 = Подключение моторов/регулей =
-== Квадрокоптер ==
-== Гексокоптер ==
-== Октокоптер ==
-== Трикоптер и Y6 ==
+http://megapirateng.googlecode.com/svn/images/FRAMES_hexa_octa_y6.png
