@@ -99,6 +99,10 @@ static void init_rc_out()
             cliSerial->printf_P(PSTR("ESC Calibration active: passing throttle through to ESCs.\n"));
             // clear esc flag
             g.esc_calibrate.set_and_save(0);
+            
+            // Set 50Hz PWM
+            motors.set_update_rate(50);
+
             // block until we restart
             init_esc();
         }
