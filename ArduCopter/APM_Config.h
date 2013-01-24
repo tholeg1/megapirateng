@@ -3,7 +3,7 @@
 #define __ARDUCOPTER_APMCONFIG_H__ 
 
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_CRIUS_AIO_PRO_V2
+#define PIRATES_SENSOR_BOARD PIRATES_CRIUS_AIO_PRO_V1
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -18,14 +18,14 @@
 // RC configuration
 
 // PPM_SUM(CPPM) Signal processing
-#define SERIAL_PPM SERIAL_PPM_ENABLED_PL1
+#define SERIAL_PPM SERIAL_PPM_DISABLED
 /*
 	SERIAL_PPM_DISABLED
 	SERIAL_PPM_ENABLED				// For all boards, PPM_SUM pin is A8
 	SERIAL_PPM_ENABLED_PL1		// Use for CRIUS AIOP Pro v2,
 */
 
-#define TX_CHANNEL_SET	TX_standard
+#define TX_CHANNEL_SET	TX_mwi
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
@@ -42,7 +42,7 @@
 
 // Warning: COPTER_LEDS is not compatible with LED_SEQUENCER, so enable only one option
 // Connect LEDs to A4 - A7
-#define COPTER_LEDS ENABLED				// Native ArduCopter LEDs
+//#define COPTER_LEDS ENABLED				// Native ArduCopter LEDs
 //#define LED_SEQUENCER ENABLED		// Old Syberian's LED Sequencer, see leds.pde for more info
 
 #define MAX_SONAR_RANGE 400

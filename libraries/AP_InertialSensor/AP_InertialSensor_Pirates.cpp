@@ -237,7 +237,7 @@ void AP_InertialSensor_Pirates::hardware_init(Sample_rate sample_rate)
 		break;
 	case RATE_100HZ:
 		rate = GYRO_SMPLRT_100HZ;
-		default_filter = GYRO_DLPF_CFG_42HZ;
+		default_filter = GYRO_DLPF_CFG_20HZ;
 		_micros_per_sample = 10000;
 		break;
 	case RATE_200HZ:
@@ -280,15 +280,18 @@ void AP_InertialSensor_Pirates::hardware_init(Sample_rate sample_rate)
 		return;
 	} 	
 	delay(5);
+	
 	if (I2c.write(ITG3200_ADDRESS, 0x15, &rate, 1) != 0) {	// Sample Rate Divider, 1000Hz/(rate+1) 
 		healthy = false;
 		return;
 	} 	
 	delay(5);
-	if (I2c.write(ITG3200_ADDRESS, 0x16, 0x18 && filter) != 0) {	// Internal Sample Rate 1kHz, Low pass filter: 1..6: 1=200hz, 2-100,3-50,4-20,5-10,6-5
+ 	
+	if (I2c.write(ITG3200_ADDRESS, 0x16, 0x18 + filter) != 0) {	// Internal Sample Rate 1kHz, Low pass filter: 1..6: 1=200hz, 2-100,3-50,4-20,5-10,6-5
 		healthy = false;
 		return;
-	} 	
+	} 
+
 	delay(5);
 	if (I2c.write(ITG3200_ADDRESS, 0x3E, 0x03) != 0) {	// PLL with Z Gyro reference
 		healthy = false;

@@ -206,7 +206,7 @@
 # define LED_OFF          LOW
 # define SLIDE_SWITCH_PIN 40
 # define PUSHBUTTON_PIN   41
-# define USB_MUX_PIN      -1
+# define USB_MUX_PIN      (-1)
 # define CLI_SLIDER_ENABLED DISABLED
 # define OPTFLOW_CS_PIN   34
 # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
@@ -217,9 +217,9 @@
 # define C_LED_PIN        30
 # define LED_ON           HIGH
 # define LED_OFF          LOW
-# define SLIDE_SWITCH_PIN 59
-# define PUSHBUTTON_PIN   41
-# define USB_MUX_PIN      -1
+# define SLIDE_SWITCH_PIN (-1)
+# define PUSHBUTTON_PIN   (-1)
+# define USB_MUX_PIN      (-1)
 # define CLI_SLIDER_ENABLED DISABLED
 # define OPTFLOW_CS_PIN   34
 # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
