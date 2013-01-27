@@ -23,4 +23,4 @@ you can define you RC set in /libraries/APM_RC/APM_RC.cpp, but default is MultiW
 || CH5 (AUX1)     || A12       ||
 
 = Motor mappings =
-http://megapirateng.googlecode.com/svn/images/FRAMES_hexa_octa_y6.png
+http://megapirateng.googlecode.com/svn/images/FRAMES_hexa_octa_y6.gif

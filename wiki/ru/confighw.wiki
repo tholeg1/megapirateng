@@ -23,4 +23,4 @@
 || CH5 (AUX1)     || A12       ||
 
 = Подключение моторов/регулей =
-http://megapirateng.googlecode.com/svn/images/FRAMES_hexa_octa_y6.png
+http://megapirateng.googlecode.com/svn/images/FRAMES_hexa_octa_y6.gif
