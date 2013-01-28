@@ -38,7 +38,7 @@
 #include "AP_Baro_MS5611_I2C.h"
 
 /* on APM v.24 MS5661_CS is PG1 (Arduino pin 40) */
-#define MS5611_ADDRESS 0x77
+#define MS5611_ADDRESS 0x76
 
 #define CMD_MS5611_RESET 0x1E
 #define CMD_MS5611_PROM_Setup 0xA0
