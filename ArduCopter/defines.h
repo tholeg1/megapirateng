@@ -469,6 +469,7 @@ enum gcs_severity {
 #define TX_standard_mode6	3		//standard, Mode channel is 6  						ROLL,PITCH,THROTTLE,YAW,AUX1,MODE,CAMPITCH,CAMROLL
 #define TX_set2	4							//some Hitec/Sanwa/others									PITCH,ROLL,THROTTLE,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
 #define TX_mwi	5							//MultiWii layout													ROLL,THROTTLE,PITCH,YAW,AUX1,AUX2,CAMPITCH,CAMROLL
+#define TX_JR   6
 
 #define SERIAL_PPM_DISABLED 0
 #define SERIAL_PPM_ENABLED  1
