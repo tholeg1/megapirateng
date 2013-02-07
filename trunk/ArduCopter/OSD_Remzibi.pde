@@ -53,115 +53,138 @@ byte readOSDSwitch(void){
 	return 1;
 }
 */
-void osd_init(){
+
+void osd_init()
+{
 	Serial1.begin(38400);
 	set_osd_mode(1);
 }
 
 void osd_heartbeat_10Hz(void)
 {
-        double nMult=0;
-        int nMeters=0; //Change this to 1 for meters, 0 for feet
-
-        if (nMeters==1) {
-          nMult=1;
-        } else {
-          nMult=3.2808399;
-        }
+  // keep one of the two following
+  // you can leave it in meters and change to imperial units on Remzibi OSD Configuration tool
+  double nMult = 0.01; // cm to meters
+  //double nMult = 0.032808399; // cm to feets
+  
+  // Remzibi packet description
+  // Supported messages from Ardupilot or any external device must have this format :
+  //    2    3   4      5    6    7      8        9      10       11
+  //"$A,lat,lng,numSV,[dist],alt,speed,course,[azimuth],gpsDate,gpsTime," CR LF
+  //Notice comas must be after message and at end of it 
+  //[dist] and [azimuth] can be empty 
+  //Lat and lon format as float ex. "-121.123456" 
 
 	SendSer("$A,");
-	SendSer((float)current_loc.lat/10000000,5); //Latitude
+	SendSer((float)current_loc.lat/10000000, 6); //Latitude
 	SendSer(",");
-	SendSer((float)current_loc.lng/10000000,5); //Longitude
+	SendSer((float)current_loc.lng/10000000, 6); //Longitude
 	SendSer(",");
-	SendSer(g_gps->num_sats,DEC); //Satellite Count
+	SendSer(g_gps->num_sats, DEC); //Satellite Count
 	SendSer(",");
-  SendSer((int)(wp_distance*nMult)); //Distance to Waypoint
+        SendSer((int)wp_distance*nMult, DEC); //Distance to Waypoint in m
 	SendSer(",");
-	SendSer(current_loc.alt*nMult/10,DEC); //Altitude
+	// essai baptiste pour avoir la fleche du vario plus précisemment
+        SendSer((float)current_loc.alt*nMult, DEC); //Altitude in m
 	SendSer(",");
-	SendSer(g_gps->ground_speed/100,DEC); //Ground Speed
+	SendSer((int)g_gps->ground_speed*nMult, DEC); //Ground Speed
 	SendSer(",");
-  SendSer(get_bearing_cd(&current_loc,&home)/100,DEC);
+	// heading from 0 to 360°
+	if(g.compass_enabled) 
+	{
+    float heading = compass.calculate_heading(ahrs.get_dcm_matrix());
+    SendSer(wrap_360(ToDeg(heading) * 100) /100, DEC);
+	}
+	else
+	{
+    // TODO: compute heading from GPS
+  }
 	SendSer(",");
+	// Azimuth (optional)
 	SendSer(",");
-	//SendSer(pitch_sensor/100,DEC); //Pitch
-	//SendSer(",");
-	//SendSer((roll_sensor/100) * -1,DEC); //Roll
-	//SendSer(",");
-	SendSer(g_gps->date,DEC); //Date
-  //SendSer(""); //Date
+	SendSer(g_gps->date, DEC); //Date
 	SendSer(",");
-	SendSer(g_gps->time,DEC); //Time
+	SendSer(g_gps->time, DEC); //Time
+	SendSer(",");
 	SendSerln();
 
 # if BATTERY_EVENT == ENABLED
     if(battery_voltage < LOW_VOLTAGE)
     {
-          SendSer("$M,6,13,215,215,");     //fr3d colonne 6 ligne 13 
-          SendSer("LOW VOLTAGE ALERT");
-          SendSerln();                  
+      SendSer("$M,6,13,215,215,");     //fr3d colonne 6 ligne 13 
+      SendSer("LOW VOLTAGE ALERT");
+      SendSer(",");
+      SendSerln();                  
 
-          SendSer ("$M,1,14,215,00,");   //fr3d colonne 1 ligne 14 
-          SendSer(battery_voltage,1); 
-          SendSerln();
-
+      SendSer ("$M,1,14,215,00,");   //fr3d colonne 1 ligne 14 
+      SendSer(battery_voltage, 1); 
+      SendSer(",");
+      SendSerln();
     }
     else
     {
-//        SendSerln("$CLS");
-//        SendSer("$M,1,4,0,0,");         //fr3d colonne 1 ligne 4 
-//        SendSer("                 ");
-
-        SendSer ("$M,1,14,213,00,");     //fr3d colonne 1 ligne 14
-        SendSer(battery_voltage,1);
-        SendSerln();         
-
+      SendSer ("$M,1,14,213,00,");     //fr3d colonne 1 ligne 14
+      SendSer(battery_voltage, 1);
+      SendSer(",");
+      SendSerln();         
     }
   #endif
-        SendSer ("$M,1,4,0,0, "); //fr3d write flight mode column 1 ligne 3
-	switch (control_mode){
+  SendSer ("$M,1,4,0,0,"); //fr3d write flight mode column 1 ligne 4
+	switch (control_mode)
+	{
 		case STABILIZE:
-			SendSer("STABILIZE       ");
-                        break;
+			SendSer("Stable          ");
+    break;
+    
 		case ACRO:
-			SendSer("ACRO            ");
-                        break;
+			SendSer("Acro            ");
+    break;
+    
 		case ALT_HOLD:
-			SendSer("ALT_HOLD        ");
-                        break;
+			SendSer("Alt Hold        ");
+    break;
+    
 		case AUTO:
-			SendSer("WP");
-                        SendSer((int)(wp_distance*nMult));
-                        SendSer("   ");
-                        break;
+			SendSer("WP:");
+      // wp_distance is in cm
+      SendSer((int)wp_distance*nMult, DEC);
+      SendSer("   ");
+    break;
+      
 		case GUIDED:
-			SendSer("GUIDED          ");
-                        break;
+			SendSer("Guided          ");
+    break;
+    
 		case LOITER:
-			SendSer("LOITER          ");
-                        break;
+			SendSer("Loiter          ");
+    break;
+    
 		case RTL:
-			SendSer("RTL:");
-                        SendSer((int)(wp_distance*nMult));
-                        SendSer("   ");
-                        break;
+			SendSer("RTH:");
+      // wp_distance is in cm
+      SendSer((int)(wp_distance*nMult), DEC);
+      SendSer("   ");
+    break;
+    
 		case CIRCLE:
-			SendSer("CIRCLE          ");
-                        break;
+			SendSer("Circle          ");
+    break;
+    
 		case POSITION:
-			SendSer("POSITION        ");
-                        break;
+			SendSer("Position        ");
+    break;
 	}
-  SendSerln("");
+	SendSer(",");
+  SendSerln();
 }
 
 void osd_heartbeat_50Hz(void)
 {
+  // Horizon artificiel
 	SendSer("$I,");
-	SendSer(ahrs.roll_sensor/100,DEC); //Roll
+	SendSer(ahrs.roll_sensor/100, DEC); //Roll
 	SendSer(",");
-	SendSer(ahrs.pitch_sensor/100,DEC); //Pitch
+	SendSer(ahrs.pitch_sensor/100, DEC); //Pitch
 	SendSer(",");
 	SendSerln();
 } 
@@ -172,21 +195,26 @@ void osd_init_home(void)
 	SendSerln();
 	SendSer("$CLS");
 	SendSerln(); 
+	
+	// Doing it a second time: trying to prevent remaining caracters glitches after home distance has been initiliazed
+	SendSer("$CLS");
+	SendSerln(); 
 }
 
-void set_osd_mode(int mode){
-		switch(mode)
-		{
-			case 1: // On
-				SendSerln("$CLS");
-        SendSerln("$L1");
-			break;
+void set_osd_mode(int mode)
+{
+  switch(mode)
+  {
+    case 1: // On
+      SendSerln("$CLS");
+      SendSerln("$L1");
+    break;
 
-			case 0: // Off
-				SendSerln("$L0");
-        SendSerln("$CLS");
-			break;
-		}
+    case 0: // Off
+      SendSerln("$L0");
+      SendSerln("$CLS");
+    break;
+  }
 }
 
 #endif
