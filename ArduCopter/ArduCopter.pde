@@ -10,6 +10,7 @@
  *    Aleksey Kharlanov aka Sir Alex (rsoft@tut.by)
  *    SovGVD (sovgvd@gmail.com)
  *    Syberian (libraries from MegaPirate r741)
+ *    Baptiste Vial (Remzibi OSD)
  *
  *  Lead author:	Jason Short
  *  Based on code and ideas from the Arducopter team: Randy Mackay, Pat Hickey, Jose Julio, Jani Hirvinen, Andrew Tridgell, Justin Beech, Adam Rivera, Jean-Louis Naudin, Roberto Navoni

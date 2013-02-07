@@ -199,6 +199,11 @@ static void init_home()
     // -------------
     guided_WP = home;
     guided_WP.alt += g.rtl_altitude;
+    
+    // auto init OSD home to match Arcucopter home
+    #if OSD_PROTOCOL == OSD_PROTOCOL_REMZIBI
+      osd_init_home();
+    #endif
 }
 
 
