@@ -1,4 +1,4 @@
-Release Notes for MegaPirateNG 2.9 R5 (ArduCopter 2.9.1)
+Release Notes for MegaPirateNG 2.9 R6 (ArduCopter 2.9.1)
 
 === How to compile MegaPirateNG ===
 
@@ -56,13 +56,14 @@ motor mapping (maximize your text viewer or disable word wrapping to avoid line 
 Pin     D2    D3    D5    D6    D7    D8    D11   D12   - Arduino pins
 CH      3     4     1     2     7     8     10    11    - MegaPirate output channel
 MOT_*   3     4     1     2     5     6     7     8     - Arducopter motor mixer mapping
+TIMER   3     3     3     4     4     4     1     1     - ATMEGA Timer used to generate PWM signal
 ======================================================
-TRI     -     BC    RC    LC    S     -     -     -
+TRI     LC    BC    RC    -     S     -     -     -
 QuadX   LFW   RBW   RFC   LBC   -     -     -     -
 Quad+   FW    BW    RC    LC    -     -     -     -
 Hexa+   BLW   FRC   FW    BC    FLC   BRW   -     -
 HexaX   FLW   BRC   RW    LC    FRC   BLW   -     -
-Y6      LDC   BDW   RDC   LUW   RUW   BUC  
+Y6      LDC   BDW   RDC   LUW   RUW   BUC   -     -
 Octo+   FRC   BRC   FW    BW    FLC   BLC   LW    RW
 OctoX   RFC   BRC   FRW   BLW   FLC   LBC   LFW   RBW
 OctoV   BLC   BBRC  FLW   BRW   FFLC  FRC   FFRW  BBLW
@@ -85,6 +86,12 @@ Example: FLDW - front-left lower motor with clockwise rotation (Y6 or Y4)
 
 
 === MPNG History ===
+--- 2.9 R6
+Changed motor mapping for Tri. Now Motors connected to D2,D3,D5 and servo to D7
+Fixed some bugs in PPM Decoder (spikes in channel readings)
+Added Jitter and Average filter to PPM SUM decoder
+Set 20Hz LPF for MPU6050 by default
+
 --- 2.8 R4
 FAILSAFE support for receivers without it (Trigger on signal lost (When receiver stops to send signal to the board)
 
