@@ -4,10 +4,18 @@
 #define MIN_PULSEWIDTH 900
 #define MAX_PULSEWIDTH 2100
 
+#define FILTER_DISABLED 0
+#define FILTER_AVERAGE 1
+#define FILTER_JITTER 2
+
+#define FS_THRESHOLD 60
+#define FS_THROTTLE_VALUE MIN_PULSEWIDTH
+#define FS_OTHER_CHANNELS_VALUE 1500
+
 #include "APM_RC.h"
 #include "../Arduino_Mega_ISR_Registry/Arduino_Mega_ISR_Registry.h"
 
-class APM_RC_PIRATES : public APM_RC_Class
+class APM_RC_PIRATES: public APM_RC_Class
 {
   public:
 	APM_RC_PIRATES(int _use_ppm, int _bv_mode, uint8_t *_pin_map);

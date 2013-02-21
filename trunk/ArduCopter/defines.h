@@ -103,7 +103,7 @@
 
 // GPS type codes - use the names, not the numbers
 #define GPS_PROTOCOL_NONE	-1
-#define GPS_PROTOCOL_NMEA	0
+#define GPS_PROTOCOL_NMEA	10
 #define GPS_PROTOCOL_SIRF	1
 #define GPS_PROTOCOL_UBLOX	2
 #define GPS_PROTOCOL_IMU	3

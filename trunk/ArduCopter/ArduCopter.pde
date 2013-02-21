@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.9 R5"
+#define THISFIRMWARE "MegaPirateNG V2.9 R6"
 /*
  *  ArduCopter Version 2.9.1
  *
@@ -1091,18 +1091,13 @@ static void fast_loop()
     }
 #endif  // OPTFLOW == ENABLED
 
-    // Read radio and 3-position switch on radio
-    // -----------------------------------------
-    read_radio();
-    read_control_switch();
-
 	// custom code/exceptions for flight modes
 	// ---------------------------------------
 	update_yaw_mode();
 	update_roll_pitch_mode();
 
-    // update targets to rate controllers
-    update_rate_contoller_targets();
+	// update targets to rate controllers
+	update_rate_contoller_targets();
 
 // agmatthews - USERHOOKS
 #ifdef USERHOOK_FASTLOOP
@@ -1113,6 +1108,11 @@ static void fast_loop()
 
 static void medium_loop()
 {
+	// Read radio and 3-position switch on radio
+	// -----------------------------------------
+	read_radio();
+	read_control_switch();
+
 	// OSD heartbeat at 50Hz
 	#if OSD_PROTOCOL != OSD_PROTOCOL_NONE
  		osd_heartbeat_50Hz();
