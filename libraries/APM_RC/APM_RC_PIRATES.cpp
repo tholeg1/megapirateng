@@ -59,16 +59,23 @@ volatile uint16_t rcPinValue[NUM_CHANNELS]; // Default RC values
 volatile uint16_t rcPinValueRAW[NUM_CHANNELS]; // Default RC values
 volatile bool good_sync_received = false;
 volatile uint8_t pps_num=0;
+typedef void (*ISRFuncPtr)(void);
+static volatile ISRFuncPtr FireISRRoutine = 0; 
+
+ISR(PCINT2_vect) {
+	if (FireISRRoutine)
+		FireISRRoutine();
+}
+
+volatile uint16_t ICR5_old;
 
 // Serial PPM support on PL1(ICP5) pin
 void APM_RC_PIRATES::_timer5_capt_cb(void)
 {
-	static uint16_t ICR5_old;
-	static uint8_t pps_num=0;
-	static uint16_t Pulse;
-	static uint16_t dTime;
+	uint16_t Pulse;
+	uint16_t dTime;
 	
-	Pulse=ICR5;
+	Pulse = ICR5;
 	// Calculating pulse width
 	if (Pulse<ICR5_old) { 
 		dTime = ((0xFFFF - ICR5_old)+Pulse) >> 1; 
@@ -76,6 +83,7 @@ void APM_RC_PIRATES::_timer5_capt_cb(void)
 	else {
 		dTime = (Pulse-ICR5_old) >> 1;
 	}
+	ICR5_old = Pulse;
 	
 	if (dTime < MAX_PULSEWIDTH  && dTime > MIN_PULSEWIDTH) {
 		// Ignore more than NUM_CHANNELS channels
@@ -108,111 +116,124 @@ void APM_RC_PIRATES::_timer5_capt_cb(void)
 		}
 		pps_num = 0; // Reset packet to Channel 0
 	}
-
-	ICR5_old = Pulse;
 }
 
-ISR(PCINT2_vect) { //this ISR is common to every receiver channel, it is call everytime a change state occurs on a digital pin [D2-D7]
-	static uint8_t mask;
-	static uint8_t pin;
-	static uint16_t cTime,dTime;
-	static uint16_t edgeTime[8];
-	static uint8_t PCintLast;
+volatile uint16_t pps_etime=0;
+volatile uint8_t PCintLast;
+
+void APM_RC_PIRATES::_ppmsum_mode_isr(void)
+{ 
+//	digitalWrite(46,1);
+	uint16_t cTime,dTime;
+	uint8_t mask;
+	uint8_t pin;
+
+	cTime = TCNT5; // 0.5us resolution
+	pin = PINK;             // PINK indicates the state of each PIN for the arduino port dealing with [A8-A15] digital pins (8 bits variable)
+	mask = pin ^ PCintLast;   // doing a ^ between the current interruption and the last one indicates wich pin changed
+	PCintLast = pin;          // we memorize the current state of all PINs [D0-D7]
+
+	// Rising edge detection
+	if (pin & 1) { 
+		// Calculate pulse width
+		if (cTime < pps_etime)
+			dTime = ((0xFFFF-pps_etime)+cTime) >> 1;
+		else
+			dTime = (cTime-pps_etime) >> 1; 
+		pps_etime = cTime; // Save edge time
+			
+		// Valid pulse channel?
+		if (dTime < MAX_PULSEWIDTH && dTime > MIN_PULSEWIDTH) {
+			// Ignore more than NUM_CHANNELS channels
+			if (pps_num < NUM_CHANNELS) {
+				#if FILTER == FILTER_DISABLED
+					rcPinValueRAW[pps_num] = dTime;
+				#elif FILTER == FILTER_AVERAGE 
+					dTime += rcPinValueRAW[pps_num];
+					rcPinValueRAW[pps_num] = dTime>>1;
+				#elif FILTER == FILTER_JITTER 
+					if (abs(rcPinValueRAW[pps_num]-dTime) > JITTER_THRESHOLD)
+						rcPinValueRAW[pps_num] = dTime;
+				#endif
+				pps_num++;
+			}
+		// Sync signal ?
+		} else if (dTime > MAX_PULSEWIDTH) {
+			// Skip all data before first good sync received
+			if (pps_num > 3) {
+				if (good_sync_received) {
+					for (uint8_t i=0; i<NUM_CHANNELS; i++) {
+						rcPinValue[i] = rcPinValueRAW[i];
+					}
+					// If we read at least 4 channel - reset failsafe counter
+					failsafeCnt = 0;
+					valid_frame = true;
+					_last_update = millis();
+				}
+				good_sync_received = true;
+			}
+			pps_num = 0; // Reset packet to Channel 0
+		}
+	}
+//	digitalWrite(46,0);
+}
+
+volatile uint16_t edgeTime[8];
+
+void APM_RC_PIRATES::_pwm_mode_isr(void)
+{ //this ISR is common to every receiver channel, it is call everytime a change state occurs on a digital pin [D2-D7]
+	uint8_t mask;
+	uint8_t pin;
+	uint16_t cTime,dTime;
 
 	cTime = TCNT5;         // from sonar
 	pin = PINK;             // PINK indicates the state of each PIN for the arduino port dealing with [A8-A15] digital pins (8 bits variable)
 	mask = pin ^ PCintLast;   // doing a ^ between the current interruption and the last one indicates wich pin changed
 	PCintLast = pin;          // we memorize the current state of all PINs [D0-D7]
 
-	if (use_ppm==1) {
-		static uint16_t pps_etime=0;
-	
-		if (pin & 1) { // Rising edge detection on A8
-			// Calculate pulse width
-			if (cTime < pps_etime)
-				dTime = ((0xFFFF-pps_etime)+cTime) >> 1;
-			else
-				dTime = (cTime-pps_etime) >> 1; 
-				
-			// Valid pulse channel?
-			if (dTime < MAX_PULSEWIDTH  && dTime > MIN_PULSEWIDTH) {
-				// Ignore more than NUM_CHANNELS channels
-				if (pps_num < NUM_CHANNELS) {
-					#if FILTER == FILTER_DISABLED
-						rcPinValueRAW[pps_num] = dTime;
-					#elif FILTER == FILTER_AVERAGE 
-						dTime += rcPinValueRAW[pps_num];
-						rcPinValueRAW[pps_num] = dTime>>1;
-					#elif FILTER == FILTER_JITTER 
-						if (abs(rcPinValueRAW[pps_num]-dTime) > JITTER_THRESHOLD)
-							rcPinValueRAW[pps_num] = dTime;
-					#endif
-					pps_num++;
-				}
-			// Sync signal ?
-			} else if (dTime > MAX_PULSEWIDTH) {
-				// Skip all data before first good sync received
-				if (pps_num > 3) {
-					if (good_sync_received) {
-						for (uint8_t i=0; i<NUM_CHANNELS; i++) {
-							rcPinValue[i] = rcPinValueRAW[i];
-						}
-						// If we read at least 4 channel - reset failsafe counter
-						failsafeCnt = 0;
-						valid_frame = true;
-						_last_update = millis();
-					}
-					good_sync_received = true;
-				}
-				pps_num = 0; // Reset packet to Channel 0
-			}
-			pps_etime = cTime; // Save edge time
-		}
-	} else {
-		if (mask != 0)
-			valid_frame = true;
-			
-		// generic split PPM  
-		// mask is pins [D0-D7] that have changed // the principle is the same on the MEGA for PORTK and [A8-A15] PINs
-		// chan = pin sequence of the port. chan begins at D2 and ends at D7
-		if (mask & 1<<0)
-			if (!(pin & 1<<0)) {
-				dTime = (cTime-edgeTime[0])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[0] = dTime;
-			} else edgeTime[0] = cTime;
-		if (mask & 1<<1)
-			if (!(pin & 1<<1)) {
-				dTime = (cTime-edgeTime[1])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[1] = dTime;
-			} else edgeTime[1] = cTime;
-		if (mask & 1<<2) 
-			if (!(pin & 1<<2)) {
-				dTime = (cTime-edgeTime[2])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[2] = dTime;
-			} else edgeTime[2] = cTime;
-		if (mask & 1<<3)
-			if (!(pin & 1<<3)) {
-				dTime = (cTime-edgeTime[3])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[3] = dTime;
-			} else edgeTime[3] = cTime;
-		if (mask & 1<<4) 
-			if (!(pin & 1<<4)) {
-				dTime = (cTime-edgeTime[4])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[4] = dTime;
-			} else edgeTime[4] = cTime;
-		if (mask & 1<<5)
-			if (!(pin & 1<<5)) {
-				dTime = (cTime-edgeTime[5])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[5] = dTime;
-			} else edgeTime[5] = cTime;
-		if (mask & 1<<6)
-			if (!(pin & 1<<6)) {
-				dTime = (cTime-edgeTime[6])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[6] = dTime;
-			} else edgeTime[6] = cTime;
-		if (mask & 1<<7)
-			if (!(pin & 1<<7)) {
-				dTime = (cTime-edgeTime[7])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[7] = dTime;
-			} else edgeTime[7] = cTime;
+	if (mask != 0)
+		valid_frame = true;
 		
-		// failsafe counter must be zero if all ok  
-		if (mask & 1<<pinRcChannel[2]) {    // If pulse present on THROTTLE pin, clear FailSafe counter  - added by MIS fow multiwii (copy by SovGVD to megapirateNG)
-			failsafeCnt = 0;
-			_last_update = millis();
-		}
+	// generic split PPM  
+	// mask is pins [D0-D7] that have changed // the principle is the same on the MEGA for PORTK and [A8-A15] PINs
+	// chan = pin sequence of the port. chan begins at D2 and ends at D7
+	if (mask & 1<<0)
+		if (!(pin & 1<<0)) {
+			dTime = (cTime-edgeTime[0])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[0] = dTime;
+		} else edgeTime[0] = cTime;
+	if (mask & 1<<1)
+		if (!(pin & 1<<1)) {
+			dTime = (cTime-edgeTime[1])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[1] = dTime;
+		} else edgeTime[1] = cTime;
+	if (mask & 1<<2) 
+		if (!(pin & 1<<2)) {
+			dTime = (cTime-edgeTime[2])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[2] = dTime;
+		} else edgeTime[2] = cTime;
+	if (mask & 1<<3)
+		if (!(pin & 1<<3)) {
+			dTime = (cTime-edgeTime[3])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[3] = dTime;
+		} else edgeTime[3] = cTime;
+	if (mask & 1<<4) 
+		if (!(pin & 1<<4)) {
+			dTime = (cTime-edgeTime[4])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[4] = dTime;
+		} else edgeTime[4] = cTime;
+	if (mask & 1<<5)
+		if (!(pin & 1<<5)) {
+			dTime = (cTime-edgeTime[5])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[5] = dTime;
+		} else edgeTime[5] = cTime;
+	if (mask & 1<<6)
+		if (!(pin & 1<<6)) {
+			dTime = (cTime-edgeTime[6])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[6] = dTime;
+		} else edgeTime[6] = cTime;
+	if (mask & 1<<7)
+		if (!(pin & 1<<7)) {
+			dTime = (cTime-edgeTime[7])>>1; if (MIN_PULSEWIDTH<dTime && dTime<MAX_PULSEWIDTH) rcPinValue[7] = dTime;
+		} else edgeTime[7] = cTime;
+	
+	// failsafe counter must be zero if all ok  
+	if (mask & 1<<pinRcChannel[2]) {    // If pulse present on THROTTLE pin, clear FailSafe counter  - added by MIS fow multiwii (copy by SovGVD to megapirateNG)
+		failsafeCnt = 0;
+		_last_update = millis();
 	}
 }
 
@@ -253,11 +274,9 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
 	}
 
 	//general servo
-	TCCR5A =0; //standard mode with overflow at A and OC B and C interrupts
+	TCCR5A = 0; //standard mode with overflow at A and OC B and C interrupts
 	TCCR5B = (1<<CS11); //Prescaler set to 8, resolution of 0.5us
-	TIMSK5=B00000111; // ints: overflow, capture, compareA
-	OCR5A=65510; 
-	OCR5B=3000; // Init OCR registers to nil output signal
+	OCR5B = 3000; // Init OCR registers to nil output signal
 
 	//motors
 	digitalWrite(11,HIGH);
@@ -304,30 +323,31 @@ void APM_RC_PIRATES::Init( Arduino_Mega_ISR_Registry * isr_reg )
 	OCR4C = 0xFFFF; 
 	ICR4 = 40000; //50hz freq
 
-	// PCINT activated only for specific pin inside [A8-A15]
 	DDRK = 0;  // defined PORTK as a digital port ([A8-A15] are consired as digital PINs and not analogical)
 	switch (use_ppm)
 	{
 		case 0:
+					FireISRRoutine = _pwm_mode_isr;
 					PORTK = (1<<0) | (1<<1) | (1<<2) | (1<<3) | (1<<4) | (1<<5) | (1<<6) | (1<<7); //enable internal pull ups on the PINs of PORTK
-					PCMSK2 = 255;
-					PCICR = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
+					PCMSK2 = (1<<0) | (1<<1) | (1<<2) | (1<<3) | (1<<4) | (1<<5) | (1<<6) | (1<<7); // enable interrupts on A8-A15 pins;
+					PCICR |= (1 << PCIE2); // PCINT2 Interrupt enable
 					break;
 		case 1:  
-					PORTK   = (1<<0); //enable internal pull up on the SERIAL SUM pin A8
-					PCMSK2	= 1;	// Enable int for pin A8
-					PCICR = B101; // PCINT activated only for PORTK dealing with [A8-A15] PINs
+					FireISRRoutine = _ppmsum_mode_isr;
+					PORTK = (1<<PCINT16); //enable internal pull up on the SERIAL SUM pin A8
+					PCMSK2 |= (1 << PCINT16); // Enable int for pin A8(PCINT16)
+					PCICR |= (1 << PCIE2); // PCINT2 Interrupt enable
 					break;
 		case 2:
+					FireISRRoutine = 0;
 					pinMode(48, INPUT); // ICP5 pin (PL1) (PPM input) CRIUS v2
 					isr_reg->register_signal(ISR_REGISTRY_TIMER5_CAPT, _timer5_capt_cb );
 					TCCR5B = (1<<CS11) | (1<<ICES5); //Prescaler set to 8, resolution of 0.5us, input capture on rising edge 
 					TIMSK5 |= (1<<ICIE5); // Enable Input Capture interrupt. Timer interrupt mask  
-					PCMSK2	= 0;	// Disable INT for pin A8-A15
-					PCICR = 0; // PCINT activated only for PORTK dealing with [A8-A15] PINs
+					PCMSK2 = 0;	// Disable INT for pin A8-A15
 					break;
 	}
-	PCMSK0 = B00010000; // sonar port B4 - d10 echo
+	TIMSK5 |= (1 << OCIE5B); // Enable compareB interrupt, used in Gimbal PWM generator
 }
 
 uint16_t OCRxx1[8]={1800,1800,1800,1800,1800,1800,1800,1800,};
