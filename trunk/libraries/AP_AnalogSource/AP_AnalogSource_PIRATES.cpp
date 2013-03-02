@@ -56,15 +56,11 @@ void AP_AnalogSource_PIRATES::init(void)
 	PORTB&=B11101111; // B4 -d10 - sonar Echo
 	DDRB &=B11101111;
 	
-	// Timer5 initialized in APM_RC library
-/*
-	// div64 = 0.5 us/bit
-	// Using timer5, warning! Timer5 also share with RC PPM decoder
 	TCCR5A = 0; //standard mode with overflow at A and OC B and C interrupts
 	TCCR5B |= (1<<CS11); //Prescaler set to 8, resolution of 0.5us
-	TIMSK5 |= B00000111; // ints: overflow, capture, compareA
-	OCR5A = 65510; // approx 10m limit, 33ms period
-	OCR5B = 3000;*/
+	OCR5A = 65510; // Set overflow value
+	TIMSK5 |= (1 << OCIE5A) | (1 << TOIE5); // ints: overflow, compareA
+	PCMSK0 = (1 << PCINT4); // Enable interrup o sonar ECHO pin: B4 - D10
 }
 
 float AP_AnalogSource_PIRATES::read(void)
