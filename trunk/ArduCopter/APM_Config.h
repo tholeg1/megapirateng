@@ -25,7 +25,7 @@
 	SERIAL_PPM_ENABLED_PL1		// Use for CRIUS AIOP Pro v2,
 */
 
-#define TX_CHANNEL_SET	TX_mwi
+#define TX_CHANNEL_SET	TX_standard
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
