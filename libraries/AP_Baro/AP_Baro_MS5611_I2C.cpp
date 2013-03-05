@@ -70,8 +70,6 @@ bool AP_Baro_MS5611_I2C::init( AP_PeriodicProcess *scheduler )
 
 void AP_Baro_MS5611_I2C::init_hardware()
 {
-	byte buff[22];
-
 	if (I2c.write(MS5611_ADDRESS, CMD_MS5611_RESET, 0) != 0) {
 		delay(10);
 		if (I2c.write(MS5611_ADDRESS, CMD_MS5611_RESET, 0) != 0) {
