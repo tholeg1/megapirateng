@@ -125,8 +125,8 @@
 #include "GCS.h"
 
 #if PIRATES_SENSOR_BOARD == PIRATES_CRIUS_AIO_PRO_V2
-	#include <SPI.h>			// Arduino SPI lib
-	#include <DataFlash.h>      // ArduPilot Mega Flash Memory Library
+#include <SPI.h>			// Arduino SPI lib
+#include <DataFlash.h>      // ArduPilot Mega Flash Memory Library
 #endif
 
 #include <AP_Declination.h> // ArduPilot Mega Declination Helper Library
