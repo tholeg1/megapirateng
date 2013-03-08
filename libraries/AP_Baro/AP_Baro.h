@@ -48,9 +48,6 @@ class AP_Baro
         return _ground_pressure.get();
     }
 
-    // get last time sample was taken
-    uint32_t        get_last_update() { return _last_update; };
-
 	static const struct AP_Param::GroupInfo var_info[];
 
 protected:

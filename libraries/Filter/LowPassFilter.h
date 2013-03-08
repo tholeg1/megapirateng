@@ -23,10 +23,7 @@ class LowPassFilter : public Filter<T>
 {
 public:
     // constructor
-    LowPassFilter();
-
-    virtual void    set_cutoff_frequency(float time_step, float cutoff_freq);
-    virtual void    set_time_constant(float time_step, float time_constant);
+    LowPassFilter(float gain);
 
     // apply - Add a new raw value to the filter, retrieve the filtered result
     virtual T        apply(T sample);
@@ -42,7 +39,7 @@ public:
     };
 
 private:
-    float           _alpha;             // gain value  (like 0.02) applied to each new value
+    float           _gain;                      // gain value  (like 0.02) applied to each new value
     bool            _base_value_set;    // true if the base value has been set
     float           _base_value;        // the number of samples in the filter, maxes out at size of the filter
 };
@@ -62,35 +59,23 @@ typedef LowPassFilter<float> LowPassFilterFloat;
 // Constructor    //////////////////////////////////////////////////////////////
 
 template <class T>
-LowPassFilter<T>::LowPassFilter() :
+LowPassFilter<T>::LowPassFilter(float gain) :
     Filter<T>(),
-    _alpha(1),
+    _gain(gain),
     _base_value_set(false)
-{};
-
-//    F_Cut = 1; % Hz
-//RC = 1/(2*pi*F_Cut);
-//Alpha = Ts/(Ts + RC);
+{
+    // bounds checking on _gain
+    if( _gain > 1.0) {
+        _gain = 1.0;
+    }else if( _gain < 0.0 ) {
+        _gain = 0.0;
+    }
+};
 
 // Public Methods //////////////////////////////////////////////////////////////
 
 template <class T>
-void LowPassFilter<T>::set_cutoff_frequency(float time_step, float cutoff_freq)
-{
-    // calculate alpha
-    float rc = 1/(2*M_PI*cutoff_freq);
-    _alpha = time_step / (time_step + rc);
-}
-
-template <class T>
-void LowPassFilter<T>::set_time_constant(float time_step, float time_constant)
-{
-    // calculate alpha
-    _alpha = time_step / (time_constant + time_step);
-}
-
-template <class T>
-T LowPassFilter<T>::apply(T sample)
+T LowPassFilter<T>::        apply(T sample)
 {
     // initailise _base_value if required
     if( !_base_value_set ) {
@@ -99,8 +84,7 @@ T LowPassFilter<T>::apply(T sample)
     }
 
     // do the filtering
-    //_base_value = _alpha * (float)sample + (1.0 - _alpha) * _base_value;
-    _base_value = _base_value + _alpha * ((float)sample - _base_value);
+    _base_value = _gain * (float)sample + (1.0 - _gain) * _base_value;
 
     // return the value.  Should be no need to check limits
     return (T)_base_value;

@@ -70,6 +70,8 @@ bool AP_Baro_MS5611_I2C::init( AP_PeriodicProcess *scheduler )
 
 void AP_Baro_MS5611_I2C::init_hardware()
 {
+	byte buff[22];
+
 	if (I2c.write(MS5611_ADDRESS, CMD_MS5611_RESET, 0) != 0) {
 		delay(10);
 		if (I2c.write(MS5611_ADDRESS, CMD_MS5611_RESET, 0) != 0) {
@@ -146,10 +148,12 @@ uint32_t AP_Baro_MS5611_I2C::_i2c_read_adc()
 // Read the sensor. This is a state machine
 // We read one time Temperature (state=1) and Pressure (states!=1)
 // temperature does not change so quickly...
-bool AP_Baro_MS5611_I2C::_update(uint32_t tnow)
+void AP_Baro_MS5611_I2C::_update(uint32_t tnow)
 {
-    if (_sync_access || (tnow - _timer < 9900)) {
-	    return false; // wait for more than 7.4-9.04ms (Page 2 - MS5611-01BA03.pdf)
+    if (_sync_access) return;
+
+    if (tnow - _timer < 9500) {
+	    return; // wait for more than 10ms
     }
 
     _timer = tnow;
@@ -167,7 +171,7 @@ bool AP_Baro_MS5611_I2C::_update(uint32_t tnow)
 	    _state++;
 			if (I2c.write(MS5611_ADDRESS, CMD_CONVERT_D1_OSR4096) != 0) {
 				healthy = false;
-				return true;
+				return;
 			}
     } else {
 	    _s_D1 += _i2c_read_adc();
@@ -184,17 +188,16 @@ bool AP_Baro_MS5611_I2C::_update(uint32_t tnow)
       if (_state == 5) {
 				if (I2c.write(MS5611_ADDRESS, CMD_CONVERT_D2_OSR4096) != 0) {
 					healthy = false;
-					return true ;
+					return;
 				}
 				_state = 0;
       } else {
 			if (I2c.write(MS5611_ADDRESS, CMD_CONVERT_D1_OSR4096) != 0) {
 				healthy = false;
-				return true;
+				return;
 			}
       }
     }
-	return true;
 }
 
 uint8_t AP_Baro_MS5611_I2C::read()
@@ -207,14 +210,13 @@ uint8_t AP_Baro_MS5611_I2C::read()
         uint8_t d1count, d2count;
         // we need to disable interrupts to access
         // _s_D1 and _s_D2 as they are not atomic
-        uint8_t oldSREG = SREG;
         cli();
         sD1 = _s_D1; _s_D1 = 0;
         sD2 = _s_D2; _s_D2 = 0;
         d1count = _d1_count; _d1_count = 0;
         d2count = _d2_count; _d2_count = 0;
         _updated = false;
-        SREG = oldSREG;
+        sei();
         if (d1count != 0) {
             D1 = ((float)sD1) / d1count;
         }
@@ -272,7 +274,7 @@ void AP_Baro_MS5611_I2C::_calculate()
 
 float AP_Baro_MS5611_I2C::get_pressure()
 {
-    return Press;
+	return(Press);
 }
 
 float AP_Baro_MS5611_I2C::get_temperature()

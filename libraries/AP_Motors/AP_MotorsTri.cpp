@@ -27,7 +27,7 @@ void AP_MotorsTri::set_update_rate( uint16_t speed_hz )
     _speed_hz = speed_hz;
 
     // set update rate for the 3 motors (but not the servo on channel 7)
-    _rc->SetFastOutputChannels(_BV(_motor_to_channel_map[AP_MOTORS_MOT_1]) | _BV(_motor_to_channel_map[AP_MOTORS_MOT_3]) | _BV(_motor_to_channel_map[AP_MOTORS_MOT_4]), _speed_hz);
+    _rc->SetFastOutputChannels(_BV(_motor_to_channel_map[AP_MOTORS_MOT_1]) | _BV(_motor_to_channel_map[AP_MOTORS_MOT_2]) | _BV(_motor_to_channel_map[AP_MOTORS_MOT_4]), _speed_hz);
 }
 
 // enable - starts allowing signals to be sent to motors
@@ -35,7 +35,7 @@ void AP_MotorsTri::enable()
 {
     // enable output channels
     _rc->enable_out(_motor_to_channel_map[AP_MOTORS_MOT_1]);
-    _rc->enable_out(_motor_to_channel_map[AP_MOTORS_MOT_3]);
+    _rc->enable_out(_motor_to_channel_map[AP_MOTORS_MOT_2]);
     _rc->enable_out(_motor_to_channel_map[AP_MOTORS_MOT_4]);
     _rc->enable_out(AP_MOTORS_CH_TRI_YAW);
 }
@@ -45,14 +45,14 @@ void AP_MotorsTri::output_min()
 {
     // fill the motor_out[] array for HIL use
     motor_out[AP_MOTORS_MOT_1] = _rc_throttle->radio_min;
-    motor_out[AP_MOTORS_MOT_3] = _rc_throttle->radio_min;
+    motor_out[AP_MOTORS_MOT_2] = _rc_throttle->radio_min;
     motor_out[AP_MOTORS_MOT_4] = _rc_throttle->radio_min;
 
     // send minimum value to each motor
     _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], _rc_throttle->radio_min);
-    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], _rc_throttle->radio_min);
+    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], _rc_throttle->radio_min);
     _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], _rc_throttle->radio_min);
-    _rc->OutputCh(AP_MOTORS_CH_TRI_YAW, _rc_yaw->radio_trim);
+    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_CH_TRI_YAW], _rc_yaw->radio_trim);
 }
 
 // output_armed - sends commands to the motors
@@ -77,7 +77,7 @@ void AP_MotorsTri::output_armed()
     int pitch_out           = _rc_pitch->pwm_out / 2;
 
     //left front
-    motor_out[AP_MOTORS_MOT_3] = _rc_throttle->radio_out + roll_out + pitch_out;
+    motor_out[AP_MOTORS_MOT_2] = _rc_throttle->radio_out + roll_out + pitch_out;
     //right front
     motor_out[AP_MOTORS_MOT_1] = _rc_throttle->radio_out - roll_out + pitch_out;
     // rear
@@ -85,47 +85,47 @@ void AP_MotorsTri::output_armed()
 
     // Tridge's stability patch
     if(motor_out[AP_MOTORS_MOT_1] > out_max) {
-        motor_out[AP_MOTORS_MOT_3] -= (motor_out[AP_MOTORS_MOT_1] - out_max) >> 1;
+        motor_out[AP_MOTORS_MOT_2] -= (motor_out[AP_MOTORS_MOT_1] - out_max) >> 1;
         motor_out[AP_MOTORS_MOT_4] -= (motor_out[AP_MOTORS_MOT_1] - out_max) >> 1;
         motor_out[AP_MOTORS_MOT_1] = out_max;
     }
 
-    if(motor_out[AP_MOTORS_MOT_3] > out_max) {
-        motor_out[AP_MOTORS_MOT_1] -= (motor_out[AP_MOTORS_MOT_3] - out_max) >> 1;
-        motor_out[AP_MOTORS_MOT_4] -= (motor_out[AP_MOTORS_MOT_3] - out_max) >> 1;
-        motor_out[AP_MOTORS_MOT_3] = out_max;
+    if(motor_out[AP_MOTORS_MOT_2] > out_max) {
+        motor_out[AP_MOTORS_MOT_1] -= (motor_out[AP_MOTORS_MOT_2] - out_max) >> 1;
+        motor_out[AP_MOTORS_MOT_4] -= (motor_out[AP_MOTORS_MOT_2] - out_max) >> 1;
+        motor_out[AP_MOTORS_MOT_2] = out_max;
     }
 
     if(motor_out[AP_MOTORS_MOT_4] > out_max) {
         motor_out[AP_MOTORS_MOT_1] -= (motor_out[AP_MOTORS_MOT_4] - out_max) >> 1;
-        motor_out[AP_MOTORS_MOT_3] -= (motor_out[AP_MOTORS_MOT_4] - out_max) >> 1;
+        motor_out[AP_MOTORS_MOT_2] -= (motor_out[AP_MOTORS_MOT_4] - out_max) >> 1;
         motor_out[AP_MOTORS_MOT_4] = out_max;
     }
 
     // adjust for throttle curve
     if( _throttle_curve_enabled ) {
         motor_out[AP_MOTORS_MOT_1] = _throttle_curve.get_y(motor_out[AP_MOTORS_MOT_1]);
-        motor_out[AP_MOTORS_MOT_3] = _throttle_curve.get_y(motor_out[AP_MOTORS_MOT_3]);
+        motor_out[AP_MOTORS_MOT_2] = _throttle_curve.get_y(motor_out[AP_MOTORS_MOT_2]);
         motor_out[AP_MOTORS_MOT_4] = _throttle_curve.get_y(motor_out[AP_MOTORS_MOT_4]);
     }
 
     // ensure motors don't drop below a minimum value and stop
     motor_out[AP_MOTORS_MOT_1] = max(motor_out[AP_MOTORS_MOT_1],    out_min);
-    motor_out[AP_MOTORS_MOT_3] = max(motor_out[AP_MOTORS_MOT_3],    out_min);
+    motor_out[AP_MOTORS_MOT_2] = max(motor_out[AP_MOTORS_MOT_2],    out_min);
     motor_out[AP_MOTORS_MOT_4] = max(motor_out[AP_MOTORS_MOT_4],    out_min);
 
 #if CUT_MOTORS == ENABLED
     // if we are not sending a throttle output, we cut the motors
     if(_rc_throttle->servo_out == 0) {
         motor_out[AP_MOTORS_MOT_1]      = _rc_throttle->radio_min;
-        motor_out[AP_MOTORS_MOT_3]      = _rc_throttle->radio_min;
+        motor_out[AP_MOTORS_MOT_2]      = _rc_throttle->radio_min;
         motor_out[AP_MOTORS_MOT_4] = _rc_throttle->radio_min;
     }
 #endif
 
     // send output to each motor
     _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], motor_out[AP_MOTORS_MOT_1]);
-    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], motor_out[AP_MOTORS_MOT_3]);
+    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], motor_out[AP_MOTORS_MOT_2]);
     _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], motor_out[AP_MOTORS_MOT_4]);
 
     // also send out to tail command (we rely on any auto pilot to have updated the rc_yaw->radio_out to the correct value)
@@ -163,7 +163,7 @@ void AP_MotorsTri::output_test()
     // Send minimum values to all motors
     output_min();
 
-    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], _rc_throttle->radio_min);
+    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], _rc_throttle->radio_min);
     delay(4000);
     _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], _rc_throttle->radio_min + 100);
     delay(300);
@@ -175,10 +175,10 @@ void AP_MotorsTri::output_test()
 
     _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], _rc_throttle->radio_min);
     delay(2000);
-    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], _rc_throttle->radio_min + 100);
+    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], _rc_throttle->radio_min + 100);
     delay(300);
 
     _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], motor_out[AP_MOTORS_MOT_1]);
-    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], motor_out[AP_MOTORS_MOT_3]);
+    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], motor_out[AP_MOTORS_MOT_2]);
     _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], motor_out[AP_MOTORS_MOT_4]);
 }

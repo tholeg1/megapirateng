@@ -10,7 +10,7 @@ FastSerialPort2(Serial2);
 void setup(void)
 {
 	// Computer <-> Arduino speed
-	Serial.begin(115200);
+	Serial.begin(38400);
 
 	// Arduino <-> your device
 	Serial2.begin(9600);

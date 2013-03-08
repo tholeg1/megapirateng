@@ -4,18 +4,10 @@
 #define MIN_PULSEWIDTH 900
 #define MAX_PULSEWIDTH 2100
 
-#define FILTER_DISABLED 0
-#define FILTER_AVERAGE 1
-#define FILTER_JITTER 2
-
-#define FS_THRESHOLD 60
-#define FS_THROTTLE_VALUE MIN_PULSEWIDTH
-#define FS_OTHER_CHANNELS_VALUE 1500
-
 #include "APM_RC.h"
 #include "../Arduino_Mega_ISR_Registry/Arduino_Mega_ISR_Registry.h"
 
-class APM_RC_PIRATES: public APM_RC_Class
+class APM_RC_PIRATES : public APM_RC_Class
 {
   public:
 	APM_RC_PIRATES(int _use_ppm, int _bv_mode, uint8_t *_pin_map);
@@ -24,6 +16,7 @@ class APM_RC_PIRATES: public APM_RC_Class
 	uint16_t OutputCh_current(uint8_t ch);
 	uint16_t InputCh(uint8_t ch);
 	uint8_t GetState();
+	uint8_t GetFailSafeState();
 	bool setHIL(int16_t v[NUM_CHANNELS]);
 	void clearOverride(void);
 	void Force_Out(void);
@@ -36,13 +29,9 @@ class APM_RC_PIRATES: public APM_RC_Class
 	void Force_Out2_Out3(void);
 	void Force_Out6_Out7(void);
 
-	uint32_t get_last_update();
-		
   private:
 	int16_t _HIL_override[NUM_CHANNELS];
 	static void _timer5_capt_cb(void);
-	static void _ppmsum_mode_isr(void);
-	static void _pwm_mode_isr(void);
 };
 
 #endif

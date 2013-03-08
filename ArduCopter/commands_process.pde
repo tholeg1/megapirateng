@@ -4,14 +4,14 @@
 //----------------------------------------
 static void change_command(uint8_t cmd_index)
 {
-    //cliSerial->printf("change_command: %d\n",cmd_index );
+    //Serial.printf("change_command: %d\n",cmd_index );
     // limit range
     cmd_index = min(g.command_total - 1, cmd_index);
 
     // load command
     struct Location temp = get_cmd_with_index(cmd_index);
 
-    //cliSerial->printf("loading cmd: %d with id:%d\n", cmd_index, temp.id);
+    //Serial.printf("loading cmd: %d with id:%d\n", cmd_index, temp.id);
 
     // verify it's a nav command
     if(temp.id > MAV_CMD_NAV_LAST) {
@@ -28,16 +28,16 @@ static void change_command(uint8_t cmd_index)
     }
 }
 
-// update_commands - initiates new navigation commands if we have completed the previous command
 // called by 10 Hz loop
+// --------------------
 static void update_commands()
 {
-    //cliSerial->printf("update_commands: %d\n",increment );
+    //Serial.printf("update_commands: %d\n",increment );
     // A: if we do not have any commands there is nothing to do
     // B: We have completed the mission, don't redo the mission
     // XXX debug
     //uint8_t tmp = g.command_index.get();
-    //cliSerial->printf("command_index %u \n", tmp);
+    //Serial.printf("command_index %u \n", tmp);
 
     if(g.command_total <= 1 || g.command_index >= 255)
         return;
@@ -77,16 +77,16 @@ static void update_commands()
                 Location tmp_loc = get_cmd_with_index(tmp_index);
 
                 if(tmp_loc.lat == 0) {
-                    ap.fast_corner = false;
+                    fast_corner = false;
                 }else{
-                    int32_t temp = get_bearing_cd(&next_WP, &tmp_loc) - original_wp_bearing;
+                    int32_t temp = get_bearing_cd(&next_WP, &tmp_loc) - original_target_bearing;
                     temp = wrap_180(temp);
-                    ap.fast_corner = labs(temp) < 6000;
+                    fast_corner = labs(temp) < 6000;
                 }
 
                 // If we try and stop at a corner, lets reset our desired speed to prevent
                 // too much jerkyness.
-				if(false == ap.fast_corner){
+				if(false == fast_corner){
 					reset_desired_speed();
 				}
             }
@@ -148,7 +148,6 @@ static void update_commands()
     }
 }
 
-// execute_nav_command - performs minor initialisation and logging before next navigation command in the queue is executed
 static void execute_nav_command(void)
 {
     // This is what we report to MAVLINK
@@ -169,12 +168,11 @@ static void execute_nav_command(void)
     command_cond_index      = NO_COMMAND;
 }
 
-// verify_commands - high level function to check if navigation and conditional commands have completed
-// called after GPS navigation update - not constantly
+// called with GPS navigation update - not constantly
 static void verify_commands(void)
 {
     if(verify_must()) {
-        //cliSerial->printf("verified must cmd %d\n" , command_nav_index);
+        //Serial.printf("verified must cmd %d\n" , command_nav_index);
         command_nav_queue.id    = NO_COMMAND;
 
         // store our most recent executed nav command
@@ -185,11 +183,11 @@ static void verify_commands(void)
         command_cond_queue.id   = NO_COMMAND;
 
     }else{
-        //cliSerial->printf("verified must false %d\n" , command_nav_index);
+        //Serial.printf("verified must false %d\n" , command_nav_index);
     }
 
     if(verify_may()) {
-        //cliSerial->printf("verified may cmd %d\n" , command_cond_index);
+        //Serial.printf("verified may cmd %d\n" , command_cond_index);
         command_cond_queue.id = NO_COMMAND;
     }
 }
@@ -215,15 +213,15 @@ static void exit_mission()
     g.command_index = 255;
 
     // if we are on the ground, enter stabilize, else Land
-    if(ap.land_complete) {
+    if(land_complete == true) {
         // we will disarm the motors after landing.
     }else{
         // If the approach altitude is valid (above 1m), do approach, else land
-        if(g.rtl_alt_final == 0) {
+        if(g.rtl_approach_alt == 0) {
             set_mode(LAND);
         }else{
             set_mode(LOITER);
-            set_new_altitude(g.rtl_alt_final);
+            set_new_altitude(g.rtl_approach_alt);
         }
     }
 

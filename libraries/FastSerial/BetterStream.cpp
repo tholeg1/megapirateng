@@ -44,19 +44,13 @@ BetterStream::printf(const char *fmt, ...)
 }
 
 void
-BetterStream::_printf_P(const prog_char_t *fmt, ...)
+BetterStream::_printf_P(const prog_char *fmt, ...)
 {
         va_list ap;
 
         va_start(ap, fmt);
-        _vprintf(1, (const char *)fmt, ap);
+        _vprintf(1, fmt, ap);
         va_end(ap);
-}
-
-void
-BetterStream::vprintf_P(const prog_char_t *fmt, va_list ap)
-{
-        _vprintf(1, (const char *)fmt, ap);
 }
 
 int

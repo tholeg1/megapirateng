@@ -7,29 +7,30 @@
  *      Author: Amilcar Lucas
  */
 
-#include <AP_Common.h>
-#include <DigitalWriteFast.h>
+#include <avr/io.h>
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include "Arduino.h"
+#else
+#include "wiring.h"
+#endif
 
 #include "AP_Relay.h"
 
 void AP_Relay::on()
 {
-	digitalWriteFast(Relay_Pin,1);
+	PORTL |= B00000100;
 }
 
 
 void AP_Relay::off()
 {
-	digitalWriteFast(Relay_Pin,0);
+	PORTL &= ~B00000100;
 }
 
 
 void AP_Relay::toggle()
 {
-	if (digitalReadFast(Relay_Pin) == 0)
-		on();
-	else
-		off();
+	PORTL ^= B00000100;
 }
 
 
@@ -44,5 +45,5 @@ void AP_Relay::set(bool status)
 
 bool AP_Relay::get()
 {
-	return digitalReadFast(Relay_Pin);
+	return PORTL & B00000100;
 }

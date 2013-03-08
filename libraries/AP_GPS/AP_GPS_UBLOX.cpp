@@ -39,8 +39,6 @@ AP_GPS_UBLOX::init(enum GPS_Engine_Setting nav_setting)
     // XXX it might make sense to send some CFG_MSG,CFG_NMEA messages to get the
     // right reporting configuration.
 
-	Debug("uBlox nav_setting=%u\n", nav_setting);
-
     _port->flush();
 
     _epoch = TIME_OF_WEEK;
@@ -182,7 +180,6 @@ AP_GPS_UBLOX::_parse_gps(void)
 	}
 
 	if (_class == CLASS_CFG && _msg_id == MSG_CFG_NAV_SETTINGS) {
-		Debug("Got engine settings %u\n", (unsigned)_buffer.nav_settings.dynModel);
 		if (_nav_setting != GPS_ENGINE_NONE && 
 			_buffer.nav_settings.dynModel != _nav_setting) {
 			// we've received the current nav settings, change the engine
@@ -264,12 +261,6 @@ AP_GPS_UBLOX::_parse_gps(void)
 	// this ensures we don't use stale data
 	if (_new_position && _new_speed) {
 		_new_speed = _new_position = false;
-		_fix_count++;
-		if (_fix_count == 100) {
-			// ask for nav settings every 20 seconds
-			Debug("Asking for engine setting\n");
-			_send_message(CLASS_CFG, MSG_CFG_NAV_SETTINGS, NULL, 0);
-		}
 		return true;
 	}
 	return false;
@@ -331,7 +322,7 @@ AP_GPS_UBLOX::_configure_message_rate(uint8_t msg_class, uint8_t msg_id, uint8_t
 }
 
 /*
- *  configure a UBlox GPS for the given message rate
+  configure a UBlox GPS for the given message rate
  */
 void
 AP_GPS_UBLOX::_configure_gps(void)
@@ -362,7 +353,6 @@ AP_GPS_UBLOX::_configure_gps(void)
 	_configure_message_rate(CLASS_NAV, MSG_VELNED, 1);
 
 	// ask for the current navigation settings
-	Debug("Asking for engine setting\n");
 	_send_message(CLASS_CFG, MSG_CFG_NAV_SETTINGS, NULL, 0);	
 }
 

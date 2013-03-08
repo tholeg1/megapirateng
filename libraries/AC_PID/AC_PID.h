@@ -34,9 +34,6 @@ public:
         _ki = initial_i;
         _kd = initial_d;
         _imax = abs(initial_imax);
-
-		// derivative is invalid on startup
-		_last_derivative = NAN;
     }
 
     /// Iterate the PID, return the new control value
@@ -57,7 +54,6 @@ public:
     int32_t         get_p(int32_t error);
     int32_t         get_i(int32_t error, float dt);
     int32_t         get_d(int32_t error, float dt);
-	int32_t 		get_leaky_i(int32_t error, float dt, float leak_rate);
 
 
     /// Reset the PID integrator
@@ -127,6 +123,8 @@ private:
     float           _integrator;                                ///< integrator value
     int32_t         _last_input;                                ///< last input for derivative
     float           _last_derivative;                           ///< last derivative for low-pass filter
+    float           _output;
+    float           _derivative;
 
     /// Low pass filter cut frequency for derivative calculation.
     ///
