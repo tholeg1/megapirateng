@@ -61,7 +61,7 @@ static int8_t
 setup_mode(uint8_t argc, const Menu::arg *argv)
 {
 	// Give the user some guidance
-    cliSerial->printf_P(PSTR("Setup Mode\n\n\n"));
+	Serial.printf_P(PSTR("Setup Mode\n\n\n"));
 						 //"\n"
 						 //"IMPORTANT: if you have not previously set this system up, use the\n"
 						 //"'reset' command to initialize the EEPROM to sensible default values\n"
@@ -70,9 +70,9 @@ setup_mode(uint8_t argc, const Menu::arg *argv)
 
 	if(g.rc_1.radio_min >= 1300){
 		delay(1000);
-        cliSerial->printf_P(PSTR("\n!Warning, radio not configured!"));
+		Serial.printf_P(PSTR("\n!Warning, radio not configured!"));
 		delay(1000);
-        cliSerial->printf_P(PSTR("\n Type 'radio' now.\n\n"));
+		Serial.printf_P(PSTR("\n Type 'radio' now.\n\n"));
 	}
 
 	// Run the setup menu.  When the menu exits, we will return to the main menu.
@@ -97,7 +97,7 @@ setup_show(uint8_t argc, const Menu::arg *argv)
 	//report_xtrack();
 	//report_throttle();
 	report_flight_modes();
-    report_ins();
+	report_imu();
 	report_compass();
 	report_optflow();
 
@@ -118,17 +118,17 @@ setup_factory(uint8_t argc, const Menu::arg *argv)
 {
     int16_t c;
 
-    cliSerial->printf_P(PSTR("\n'Y' = factory reset, any other key to abort:\n"));
+	Serial.printf_P(PSTR("\n'Y' = factory reset, any other key to abort:\n"));
 
 	do {
-        c = cliSerial->read();
+		c = Serial.read();
 	} while (-1 == c);
 
 	if (('y' != c) && ('Y' != c))
 		return(-1);
 
 	AP_Param::erase_all();
-    cliSerial->printf_P(PSTR("\nReboot APM"));
+	Serial.printf_P(PSTR("\nReboot APM"));
 
 	delay(1000);
 	//default_gains();
@@ -144,7 +144,7 @@ setup_factory(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_radio(uint8_t argc, const Menu::arg *argv)
 {
-    cliSerial->println_P(PSTR("\n\nRadio Setup:"));
+    Serial.println_P(PSTR("\n\nRadio Setup:"));
 	uint8_t i;
 
 	for(i = 0; i < 100;i++){
@@ -154,7 +154,7 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 
 	if(g.rc_1.radio_in < 500){
 		while(1){
-            //cliSerial->printf_P(PSTR("\nNo radio; Check connectors."));
+			//Serial.printf_P(PSTR("\nNo radio; Check connectors."));
 			delay(1000);
 			// stop here
 		}
@@ -188,7 +188,7 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 	g.rc_8.radio_trim = 1500;
 
 
-    cliSerial->printf_P(PSTR("\nMove all controls to extremes. Enter to save: "));
+	Serial.printf_P(PSTR("\nMove all controls to extremes. Enter to save: "));
 	while(1){
 
 		delay(20);
@@ -205,9 +205,9 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 		g.rc_7.update_min_max();
 		g.rc_8.update_min_max();
 
-        if(cliSerial->available() > 0) {
+		if(Serial.available() > 0){
 			delay(20);
-            cliSerial->flush();
+			Serial.flush();
 
 			g.rc_1.save_eeprom();
 			g.rc_2.save_eeprom();
@@ -229,7 +229,7 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_motors(uint8_t argc, const Menu::arg *argv)
 {
-    cliSerial->printf_P(PSTR(
+  Serial.printf_P(PSTR(
         "Now connect the main lipo and follow the instruction on the wiki for your frame setup.\n"
         "For security remember to disconnect the main lipo after the test, then hit any key to exit.\n"
         "Any key to exit.\n"));
@@ -237,7 +237,7 @@ setup_motors(uint8_t argc, const Menu::arg *argv)
 		delay(20);
 		read_radio();
 		motors.output_test();
-        if(cliSerial->available() > 0) {
+		if(Serial.available() > 0){
 			g.esc_calibrate.set_and_save(0);
 			return(0);
 		}
@@ -247,57 +247,81 @@ setup_motors(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_accel(uint8_t argc, const Menu::arg *argv)
 {
-    ins.init(AP_InertialSensor::COLD_START, 
-             ins_sample_rate,
-             delay, flash_leds, &timer_scheduler);
-    ins.init_accel(delay, flash_leds);  // level accelerometer values
-    ahrs.set_trim(Vector3f(0,0,0));     // clear out saved trim
-    report_ins();
+    imu.init(IMU::COLD_START, delay, flash_leds, &timer_scheduler);
+	imu.init_accel(delay, flash_leds);
+	print_accel_offsets();
+	report_imu();
 	return(0);
 }
-
-/*
-  handle full accelerometer calibration via user dialog
- */
-
-static void setup_printf_P(const prog_char_t *fmt, ...)
-{
-    va_list arg_list;
-    va_start(arg_list, fmt);
-    cliSerial->vprintf_P(fmt, arg_list);
-    va_end(arg_list);
-}
-
-static void setup_wait_key(void)
-{
-    // wait for user input
-    while (!cliSerial->available()) {
-        delay(20);
-    }
-    // clear input buffer
-    while( cliSerial->available() ) {
-        cliSerial->read();
-    }
-	}
 
 
 static int8_t
 setup_accel_scale(uint8_t argc, const Menu::arg *argv)
 {
-    float trim_roll, trim_pitch;
+	#if CONFIG_ADC == ENABLED && HIL_MODE == HIL_MODE_DISABLED
+	int8_t accel_num;
+	float accel_avg = 0;
 
-    cliSerial->println_P(PSTR("Initialising gyros"));
-    ins.init(AP_InertialSensor::COLD_START, 
-             ins_sample_rate,
-             delay, flash_leds, &timer_scheduler);
-    ins.calibrate_accel(delay, flash_leds, setup_printf_P, setup_wait_key, trim_roll, trim_pitch);
-    // reset ahrs's trim to suggested values from calibration routine
-    trim_roll = constrain(trim_roll, ToRad(-10.0f), ToRad(10.0f));
-    trim_pitch = constrain(trim_pitch, ToRad(-10.0f), ToRad(10.0f));
-    ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
-    report_ins();
+	if (!strcmp_P(argv[1].str, PSTR("x"))) {
+		accel_num = 4;
+	}else if (!strcmp_P(argv[1].str, PSTR("y"))) {
+		accel_num = 5;
+	}else if (!strcmp_P(argv[1].str, PSTR("z"))) {
+		accel_num = 6;
+	}else{
+		Serial.printf_P(PSTR("x, y, or z\n"));
+		return 0;
+	}
+	print_hit_enter();
+	Serial.printf_P(PSTR("ADC\n"));
+
+			adc.Init(&timer_scheduler);       // APM ADC library initialization
+
+	int16_t low, high;
+
+	delay(1000);
+	accel_avg = adc.Ch(accel_num);
+	low = high = accel_avg;
+
+	while(1){
+		delay(50);
+		accel_avg = accel_avg * .95 + adc.Ch(accel_num) * .05;
+
+		if(accel_avg > high)
+			high = ceil(accel_avg);
+
+		if(accel_avg < low)
+			low = floor(accel_avg);
+
+		Serial.printf_P(PSTR("%1.2f, %d, %d\n"), accel_avg, low, high);
+
+		if(Serial.available() > 0){
+			if(wait_for_yes()){
+				if(accel_num == 4){
+					ins._x_high 	= high;
+					ins._x_low 		= low;
+					ins._x_high.save();
+					ins._x_low.save();
+				}else if(accel_num == 5){
+					ins._y_high 	= high;
+					ins._y_low 		= low;
+					ins._y_high.save();
+					ins._y_low.save();
+				}else{
+					ins._z_high 	= high;
+					ins._z_low 		= low;
+					ins._z_high.save();
+					ins._z_low.save();
+				}
+				print_done();
+			}
 			return (0);
 		}
+	}
+	#else
+	return 0;
+	#endif // CONFIG_ADC
+}
 
 static int8_t
 setup_frame(uint8_t argc, const Menu::arg *argv)
@@ -311,7 +335,7 @@ setup_frame(uint8_t argc, const Menu::arg *argv)
 	} else if (!strcmp_P(argv[1].str, PSTR("v"))) {
 		g.frame_orientation.set_and_save(V_FRAME);
 	}else{
-        cliSerial->printf_P(PSTR("\nOp:[x,+,v]\n"));
+		Serial.printf_P(PSTR("\nOp:[x,+,v]\n"));
 		report_frame();
 		return 0;
 	}
@@ -327,7 +351,7 @@ setup_flightmodes(uint8_t argc, const Menu::arg *argv)
 	byte _oldSwitchPosition = 0;
 	int8_t mode = 0;
 
-    cliSerial->printf_P(PSTR("\nMode switch to edit, aileron: select modes, rudder: Simple on/off\n"));
+	Serial.printf_P(PSTR("\nMode switch to edit, aileron: select modes, rudder: Simple on/off\n"));
 	print_hit_enter();
 
 	while(1){
@@ -380,7 +404,7 @@ setup_flightmodes(uint8_t argc, const Menu::arg *argv)
 		}
 
 		// escape hatch
-        if(cliSerial->available() > 0) {
+		if(Serial.available() > 0){
             for (mode=0; mode<6; mode++)
                 flight_modes[mode].save();
 
@@ -413,7 +437,7 @@ setup_tune(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_range(uint8_t argc, const Menu::arg *argv)
 {
-    cliSerial->printf_P(PSTR("\nCH 6 Ranges are divided by 1000: [low, high]\n"));
+	Serial.printf_P(PSTR("\nCH 6 Ranges are divided by 1000: [low, high]\n"));
 
 	g.radio_tuning_low.set_and_save(argv[1].i);
 	g.radio_tuning_high.set_and_save(argv[2].i);
@@ -442,7 +466,7 @@ setup_compass(uint8_t argc, const Menu::arg *argv)
 		g.compass_enabled.set_and_save(false);
 
 	}else{
-        cliSerial->printf_P(PSTR("\nOp:[on,off]\n"));
+		Serial.printf_P(PSTR("\nOp:[on,off]\n"));
 		report_compass();
 		return 0;
 	}
@@ -462,7 +486,7 @@ setup_batt_monitor(uint8_t argc, const Menu::arg *argv)
 		g.battery_monitoring.set_and_save(argv[1].i);
 
 	} else {
-        cliSerial->printf_P(PSTR("\nOp: off, 3-4"));
+		Serial.printf_P(PSTR("\nOp: off, 3-4"));
 	}
 
 	report_batt_monitor();
@@ -483,7 +507,7 @@ setup_sonar(uint8_t argc, const Menu::arg *argv)
 		g.sonar_type.set_and_save(argv[1].i);
 
 	}else{
-        cliSerial->printf_P(PSTR("\nOp:[on, off, 0-3]\n"));
+		Serial.printf_P(PSTR("\nOp:[on, off, 0-3]\n"));
 		report_sonar();
 		return 0;
 	}
@@ -516,18 +540,18 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 	report_heli();
 
 	// display help
-	cliSerial->printf_P(PSTR("Instructions:"));
+	Serial.printf_P(PSTR("Instructions:"));
 	print_divider();
-	cliSerial->printf_P(PSTR("\td\t\tdisplay settings\n"));
-	cliSerial->printf_P(PSTR("\t1~4\t\tselect servo\n"));
-	cliSerial->printf_P(PSTR("\ta or z\t\tmove mid up/down\n"));
-	cliSerial->printf_P(PSTR("\tc\t\tset coll when blade pitch zero\n"));
-	cliSerial->printf_P(PSTR("\tm\t\tset roll, pitch, coll min/max\n"));
-	cliSerial->printf_P(PSTR("\tp<angle>\tset pos (i.e. p0 = front, p90 = right)\n"));
-	cliSerial->printf_P(PSTR("\tr\t\treverse servo\n"));
-	cliSerial->printf_P(PSTR("\tu a|d\t\tupdate rate (a=analog servo, d=digital)\n"));
-	cliSerial->printf_P(PSTR("\tt<angle>\tset trim (-500 ~ 500)\n"));
-	cliSerial->printf_P(PSTR("\tx\t\texit & save\n"));
+	Serial.printf_P(PSTR("\td\t\tdisplay settings\n"));
+	Serial.printf_P(PSTR("\t1~4\t\tselect servo\n"));
+	Serial.printf_P(PSTR("\ta or z\t\tmove mid up/down\n"));
+	Serial.printf_P(PSTR("\tc\t\tset coll when blade pitch zero\n"));
+	Serial.printf_P(PSTR("\tm\t\tset roll, pitch, coll min/max\n"));
+	Serial.printf_P(PSTR("\tp<angle>\tset pos (i.e. p0 = front, p90 = right)\n"));
+	Serial.printf_P(PSTR("\tr\t\treverse servo\n"));
+	Serial.printf_P(PSTR("\tu a|d\t\tupdate rate (a=analog servo, d=digital)\n"));
+	Serial.printf_P(PSTR("\tt<angle>\tset trim (-500 ~ 500)\n"));
+	Serial.printf_P(PSTR("\tx\t\texit & save\n"));
 
 	// start capturing
 	while( value != 'x' ) {
@@ -552,8 +576,8 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 			max_tail = max(g.rc_4.radio_out, max_tail);
 		}
 
-	    if( cliSerial->available() ) {
-		    value = cliSerial->read();
+	    if( Serial.available() ) {
+		    value = Serial.read();
 
 			// process the user's input
 			switch( value ) {
@@ -577,7 +601,7 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 				case 'C':
 				    if( g.rc_3.radio_out >= 900 && g.rc_3.radio_out <= 2100 ) {
 						motors.collective_mid = g.rc_3.radio_out;
-						cliSerial->printf_P(PSTR("Collective when blade pitch at zero: %d\n"),(int)motors.collective_mid);
+						Serial.printf_P(PSTR("Collective when blade pitch at zero: %d\n"),(int)motors.collective_mid);
 					}
 					break;
 				case 'd':
@@ -589,7 +613,7 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 				case 'M':
 				    if( state == 0 ) {
 					    state = 1;  // switch to capture min/max mode
-						cliSerial->printf_P(PSTR("Move coll, roll, pitch and tail to extremes, press 'm' when done\n"));
+						Serial.printf_P(PSTR("Move coll, roll, pitch and tail to extremes, press 'm' when done\n"));
 
 						// reset servo ranges
 						motors.roll_max = motors.pitch_max = 4500;
@@ -608,7 +632,7 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 					    state = 0;  // switch back to normal mode
 						// double check values aren't totally terrible
 						if( max_roll <= 1000 || max_pitch <= 1000 || (max_collective - min_collective < 200) || (max_tail - min_tail < 200) || min_tail < 1000 || max_tail > 2000 )
-						    cliSerial->printf_P(PSTR("Invalid min/max captured roll:%d,  pitch:%d,  collective min: %d max: %d,  tail min:%d max:%d\n"),max_roll,max_pitch,min_collective,max_collective,min_tail,max_tail);
+						    Serial.printf_P(PSTR("Invalid min/max captured roll:%d,  pitch:%d,  collective min: %d max: %d,  tail min:%d max:%d\n"),max_roll,max_pitch,min_collective,max_collective,min_tail,max_tail);
 						else{
 						    motors.roll_max = max_roll;
 							motors.pitch_max = max_pitch;
@@ -636,7 +660,7 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 						if( active_servo == CH_3 )
 							motors.servo3_pos = temp;
 						motors.init_swash();
-						cliSerial->printf_P(PSTR("Servo %d\t\tpos:%d\n"),active_servo+1, temp);
+						Serial.printf_P(PSTR("Servo %d\t\tpos:%d\n"),active_servo+1, temp);
 					}
 					break;
 				case 'r':
@@ -651,28 +675,28 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
 					if( temp > -500 && temp < 500 ) {
 					    heli_get_servo(active_servo)->radio_trim = 1500 + temp;
 						motors.init_swash();
-						cliSerial->printf_P(PSTR("Servo %d\t\ttrim:%d\n"),active_servo+1, 1500 + temp);
+						Serial.printf_P(PSTR("Servo %d\t\ttrim:%d\n"),active_servo+1, 1500 + temp);
 					}
 					break;
 				case 'u':
 				case 'U':
 				    temp = 0;
 					// delay up to 2 seconds for servo type from user
-					while( !cliSerial->available() && temp < 20 ) {
+					while( !Serial.available() && temp < 20 ) {
 					    temp++;
 					    delay(100);
 					}
-					if( cliSerial->available() ) {
-					    value = cliSerial->read();
+					if( Serial.available() ) {
+					    value = Serial.read();
 						if( value == 'a' || value == 'A' ) {
 							g.rc_speed.set_and_save(AP_MOTORS_HELI_SPEED_ANALOG_SERVOS);
 							//motors._speed_hz = AP_MOTORS_HELI_SPEED_ANALOG_SERVOS;  // need to force this update to take effect immediately
-							cliSerial->printf_P(PSTR("Analog Servo %dhz\n"),(int)g.rc_speed);
+							Serial.printf_P(PSTR("Analog Servo %dhz\n"),(int)g.rc_speed);
 						}
 						if( value == 'd' || value == 'D' ) {
 							g.rc_speed.set_and_save(AP_MOTORS_HELI_SPEED_ANALOG_SERVOS);
 							//motors._speed_hz = AP_MOTORS_HELI_SPEED_ANALOG_SERVOS;  // need to force this update to take effect immediately
-							cliSerial->printf_P(PSTR("Digital Servo %dhz\n"),(int)g.rc_speed);
+							Serial.printf_P(PSTR("Digital Servo %dhz\n"),(int)g.rc_speed);
 						}
 					}
 					break;
@@ -732,7 +756,7 @@ setup_gyro(uint8_t argc, const Menu::arg *argv)
 		motors.ext_gyro_gain.save();
 
 	}else{
-		cliSerial->printf_P(PSTR("\nOp:[on, off] gain\n"));
+		Serial.printf_P(PSTR("\nOp:[on, off] gain\n"));
 	}
 
 	report_gyro();
@@ -751,7 +775,7 @@ static void clear_offsets()
 static int8_t
 setup_optflow(uint8_t argc, const Menu::arg *argv)
 {
- #if OPTFLOW == ENABLED
+	#ifdef OPTFLOW_ENABLED
 	if (!strcmp_P(argv[1].str, PSTR("on"))) {
 		g.optflow_enabled = true;
 		init_optflow();
@@ -760,14 +784,14 @@ setup_optflow(uint8_t argc, const Menu::arg *argv)
 		g.optflow_enabled = false;
 
 	}else{
-		cliSerial->printf_P(PSTR("\nOp:[on, off]\n"));
+		Serial.printf_P(PSTR("\nOp:[on, off]\n"));
 		report_optflow();
 		return 0;
 	}
 
 	g.optflow_enabled.save();
 	report_optflow();
- #endif     // OPTFLOW == ENABLED
+	#endif
 	return 0;
 }
 
@@ -779,11 +803,11 @@ setup_optflow(uint8_t argc, const Menu::arg *argv)
 
 static void report_batt_monitor()
 {
-	cliSerial->printf_P(PSTR("\nBatt Mon:\n"));
+	Serial.printf_P(PSTR("\nBatt Mon:\n"));
 	print_divider();
 	if(g.battery_monitoring == 0)	print_enabled(false);
-	if(g.battery_monitoring == 3)	cliSerial->printf_P(PSTR("volts"));
-	if(g.battery_monitoring == 4)	cliSerial->printf_P(PSTR("volts and cur"));
+	if(g.battery_monitoring == 3)	Serial.printf_P(PSTR("volts"));
+	if(g.battery_monitoring == 4)	Serial.printf_P(PSTR("volts and cur"));
 	print_blanks(2);
 }
 
@@ -802,39 +826,39 @@ static void report_wp(byte index = 255)
 
 static void report_sonar()
 {
-	cliSerial->printf_P(PSTR("Sonar\n"));
+	Serial.printf_P(PSTR("Sonar\n"));
 	print_divider();
 	print_enabled(g.sonar_enabled.get());
-	cliSerial->printf_P(PSTR("Type: %d (0=XL, 1=LV, 2=XLL, 3=HRLV)"), (int)g.sonar_type);
+	Serial.printf_P(PSTR("Type: %d (0=XL, 1=LV, 2=XLL, 3=HRLV)"), (int)g.sonar_type);
 	print_blanks(2);
 }
 
 static void report_frame()
 {
-	cliSerial->printf_P(PSTR("Frame\n"));
+	Serial.printf_P(PSTR("Frame\n"));
 	print_divider();
 
 #if FRAME_CONFIG == QUAD_FRAME
-	cliSerial->printf_P(PSTR("Quad frame\n"));
+	Serial.printf_P(PSTR("Quad frame\n"));
 #elif FRAME_CONFIG == TRI_FRAME
-	cliSerial->printf_P(PSTR("TRI frame\n"));
+	Serial.printf_P(PSTR("TRI frame\n"));
 #elif FRAME_CONFIG == HEXA_FRAME
-	cliSerial->printf_P(PSTR("Hexa frame\n"));
+	Serial.printf_P(PSTR("Hexa frame\n"));
 #elif FRAME_CONFIG == Y6_FRAME
-	cliSerial->printf_P(PSTR("Y6 frame\n"));
+	Serial.printf_P(PSTR("Y6 frame\n"));
 #elif FRAME_CONFIG == OCTA_FRAME
-	cliSerial->printf_P(PSTR("Octa frame\n"));
+	Serial.printf_P(PSTR("Octa frame\n"));
 #elif FRAME_CONFIG == HELI_FRAME
-	cliSerial->printf_P(PSTR("Heli frame\n"));
+	Serial.printf_P(PSTR("Heli frame\n"));
 #endif
 
 #if FRAME_CONFIG != HELI_FRAME
 	if(g.frame_orientation == X_FRAME)
-		cliSerial->printf_P(PSTR("X mode\n"));
+		Serial.printf_P(PSTR("X mode\n"));
 	else if(g.frame_orientation == PLUS_FRAME)
-		cliSerial->printf_P(PSTR("+ mode\n"));
+		Serial.printf_P(PSTR("+ mode\n"));
 	else if(g.frame_orientation == V_FRAME)
-		cliSerial->printf_P(PSTR("V mode\n"));
+		Serial.printf_P(PSTR("V mode\n"));
 #endif
 
 	print_blanks(2);
@@ -842,38 +866,38 @@ static void report_frame()
 
 static void report_radio()
 {
-	cliSerial->printf_P(PSTR("Radio\n"));
+	Serial.printf_P(PSTR("Radio\n"));
 	print_divider();
 	// radio
 	print_radio_values();
 	print_blanks(2);
 }
 
-static void report_ins()
+static void report_imu()
 {
-    cliSerial->printf_P(PSTR("INS\n"));
+	Serial.printf_P(PSTR("IMU\n"));
 	print_divider();
 
 	print_gyro_offsets();
-    print_accel_offsets_and_scaling();
+	print_accel_offsets();
 	print_blanks(2);
 }
 
 static void report_compass()
 {
-	cliSerial->printf_P(PSTR("Compass\n"));
+	Serial.printf_P(PSTR("Compass\n"));
 	print_divider();
 
 	print_enabled(g.compass_enabled);
 
 	// mag declination
-	cliSerial->printf_P(PSTR("Mag Dec: %4.4f\n"),
+	Serial.printf_P(PSTR("Mag Dec: %4.4f\n"),
 							degrees(compass.get_declination()));
 
 	Vector3f offsets = compass.get_offsets();
 
 	// mag offsets
-	cliSerial->printf_P(PSTR("Mag off: %4.4f, %4.4f, %4.4f"),
+	Serial.printf_P(PSTR("Mag off: %4.4f, %4.4f, %4.4f"),
 							offsets.x,
 							offsets.y,
 							offsets.z);
@@ -882,7 +906,7 @@ static void report_compass()
 
 static void report_flight_modes()
 {
-	cliSerial->printf_P(PSTR("Flight modes\n"));
+	Serial.printf_P(PSTR("Flight modes\n"));
 	print_divider();
 
     for(int16_t i = 0; i < 6; i++ ) {
@@ -893,39 +917,39 @@ static void report_flight_modes()
 
 void report_optflow()
 {
- #if OPTFLOW == ENABLED
-	cliSerial->printf_P(PSTR("OptFlow\n"));
+	#ifdef OPTFLOW_ENABLED
+	Serial.printf_P(PSTR("OptFlow\n"));
 	print_divider();
 
 	print_enabled(g.optflow_enabled);
 
 	// field of view
-	//cliSerial->printf_P(PSTR("FOV: %4.0f\n"),
+	//Serial.printf_P(PSTR("FOV: %4.0f\n"),
 	//						degrees(g.optflow_fov));
 
 	print_blanks(2);
- #endif     // OPTFLOW == ENABLED
+#endif
 }
 
 #if FRAME_CONFIG == HELI_FRAME
 static void report_heli()
 {
-	cliSerial->printf_P(PSTR("Heli\n"));
+	Serial.printf_P(PSTR("Heli\n"));
 	print_divider();
 
 	// main servo settings
-	cliSerial->printf_P(PSTR("Servo \tpos \tmin \tmax \trev\n"));
-	cliSerial->printf_P(PSTR("1:\t%d \t%d \t%d \t%d\n"),(int)motors.servo1_pos, (int)motors._servo_1->radio_min, (int)motors._servo_1->radio_max, (int)motors._servo_1->get_reverse());
-	cliSerial->printf_P(PSTR("2:\t%d \t%d \t%d \t%d\n"),(int)motors.servo2_pos, (int)motors._servo_2->radio_min, (int)motors._servo_2->radio_max, (int)motors._servo_2->get_reverse());
-	cliSerial->printf_P(PSTR("3:\t%d \t%d \t%d \t%d\n"),(int)motors.servo3_pos, (int)motors._servo_3->radio_min, (int)motors._servo_3->radio_max, (int)motors._servo_3->get_reverse());
-	cliSerial->printf_P(PSTR("tail:\t\t%d \t%d \t%d\n"), (int)motors._servo_4->radio_min, (int)motors._servo_4->radio_max, (int)motors._servo_4->get_reverse());
+	Serial.printf_P(PSTR("Servo \tpos \tmin \tmax \trev\n"));
+	Serial.printf_P(PSTR("1:\t%d \t%d \t%d \t%d\n"),(int)motors.servo1_pos, (int)motors._servo_1->radio_min, (int)motors._servo_1->radio_max, (int)motors._servo_1->get_reverse());
+	Serial.printf_P(PSTR("2:\t%d \t%d \t%d \t%d\n"),(int)motors.servo2_pos, (int)motors._servo_2->radio_min, (int)motors._servo_2->radio_max, (int)motors._servo_2->get_reverse());
+	Serial.printf_P(PSTR("3:\t%d \t%d \t%d \t%d\n"),(int)motors.servo3_pos, (int)motors._servo_3->radio_min, (int)motors._servo_3->radio_max, (int)motors._servo_3->get_reverse());
+	Serial.printf_P(PSTR("tail:\t\t%d \t%d \t%d\n"), (int)motors._servo_4->radio_min, (int)motors._servo_4->radio_max, (int)motors._servo_4->get_reverse());
 
-	cliSerial->printf_P(PSTR("roll max: \t%d\n"), (int)motors.roll_max);
-	cliSerial->printf_P(PSTR("pitch max: \t%d\n"), (int)motors.pitch_max);
-	cliSerial->printf_P(PSTR("coll min:\t%d\t mid:%d\t max:%d\n"),(int)motors.collective_min, (int)motors.collective_mid, (int)motors.collective_max);
+	Serial.printf_P(PSTR("roll max: \t%d\n"), (int)motors.roll_max);
+	Serial.printf_P(PSTR("pitch max: \t%d\n"), (int)motors.pitch_max);
+	Serial.printf_P(PSTR("coll min:\t%d\t mid:%d\t max:%d\n"),(int)motors.collective_min, (int)motors.collective_mid, (int)motors.collective_max);
 
 	// calculate and print servo rate
-	cliSerial->printf_P(PSTR("servo rate:\t%d hz\n"),(int)g.rc_speed);
+	Serial.printf_P(PSTR("servo rate:\t%d hz\n"),(int)g.rc_speed);
 
 	print_blanks(2);
 }
@@ -933,12 +957,12 @@ static void report_heli()
 static void report_gyro()
 {
 
-	cliSerial->printf_P(PSTR("Gyro:\n"));
+	Serial.printf_P(PSTR("Gyro:\n"));
 	print_divider();
 
 	print_enabled( motors.ext_gyro_enabled );
 	if( motors.ext_gyro_enabled )
-	    cliSerial->printf_P(PSTR("gain: %d"),(int)motors.ext_gyro_gain);
+	    Serial.printf_P(PSTR("gain: %d"),(int)motors.ext_gyro_gain);
 
 	print_blanks(2);
 }
@@ -952,7 +976,7 @@ static void report_gyro()
 /*static void
  *  print_PID(PI * pid)
  *  {
- *       cliSerial->printf_P(PSTR("P: %4.2f, I:%4.2f, IMAX:%ld\n"),
+ *       Serial.printf_P(PSTR("P: %4.2f, I:%4.2f, IMAX:%ld\n"),
  *                                               pid->kP(),
  *                                               pid->kI(),
  *                                               (long)pid->imax());
@@ -962,32 +986,32 @@ static void report_gyro()
 static void
 print_radio_values()
 {
-	cliSerial->printf_P(PSTR("CH1: %d | %d\n"), (int)g.rc_1.radio_min, (int)g.rc_1.radio_max);
-	cliSerial->printf_P(PSTR("CH2: %d | %d\n"), (int)g.rc_2.radio_min, (int)g.rc_2.radio_max);
-	cliSerial->printf_P(PSTR("CH3: %d | %d\n"), (int)g.rc_3.radio_min, (int)g.rc_3.radio_max);
-	cliSerial->printf_P(PSTR("CH4: %d | %d\n"), (int)g.rc_4.radio_min, (int)g.rc_4.radio_max);
-	cliSerial->printf_P(PSTR("CH5: %d | %d\n"), (int)g.rc_5.radio_min, (int)g.rc_5.radio_max);
-	cliSerial->printf_P(PSTR("CH6: %d | %d\n"), (int)g.rc_6.radio_min, (int)g.rc_6.radio_max);
-	cliSerial->printf_P(PSTR("CH7: %d | %d\n"), (int)g.rc_7.radio_min, (int)g.rc_7.radio_max);
-	//cliSerial->printf_P(PSTR("CH8: %d | %d\n"), (int)g.rc_8.radio_min, (int)g.rc_8.radio_max);
+	Serial.printf_P(PSTR("CH1: %d | %d\n"), (int)g.rc_1.radio_min, (int)g.rc_1.radio_max);
+	Serial.printf_P(PSTR("CH2: %d | %d\n"), (int)g.rc_2.radio_min, (int)g.rc_2.radio_max);
+	Serial.printf_P(PSTR("CH3: %d | %d\n"), (int)g.rc_3.radio_min, (int)g.rc_3.radio_max);
+	Serial.printf_P(PSTR("CH4: %d | %d\n"), (int)g.rc_4.radio_min, (int)g.rc_4.radio_max);
+	Serial.printf_P(PSTR("CH5: %d | %d\n"), (int)g.rc_5.radio_min, (int)g.rc_5.radio_max);
+	Serial.printf_P(PSTR("CH6: %d | %d\n"), (int)g.rc_6.radio_min, (int)g.rc_6.radio_max);
+	Serial.printf_P(PSTR("CH7: %d | %d\n"), (int)g.rc_7.radio_min, (int)g.rc_7.radio_max);
+	//Serial.printf_P(PSTR("CH8: %d | %d\n"), (int)g.rc_8.radio_min, (int)g.rc_8.radio_max);
 }
 
 static void
 print_switch(byte p, byte m, bool b)
 {
-	cliSerial->printf_P(PSTR("Pos %d:\t"),p);
+	Serial.printf_P(PSTR("Pos %d:\t"),p);
     print_flight_mode(m);
-	cliSerial->printf_P(PSTR(",\t\tSimple: "));
+	Serial.printf_P(PSTR(",\t\tSimple: "));
 	if(b)
-		cliSerial->printf_P(PSTR("ON\n"));
+		Serial.printf_P(PSTR("ON\n"));
 	else
-		cliSerial->printf_P(PSTR("OFF\n"));
+		Serial.printf_P(PSTR("OFF\n"));
 }
 
 static void
 print_done()
 {
-	cliSerial->printf_P(PSTR("\nSaved\n"));
+	Serial.printf_P(PSTR("\nSaved\n"));
 }
 
 
@@ -995,37 +1019,31 @@ static void zero_eeprom(void)
 {
 	byte b = 0;
 
-	cliSerial->printf_P(PSTR("\nErasing EEPROM\n"));
+	Serial.printf_P(PSTR("\nErasing EEPROM\n"));
 
-    for (uintptr_t i = 0; i < EEPROM_MAX_ADDR; i++) {
+    for (int16_t i = 0; i < EEPROM_MAX_ADDR; i++) {
 		eeprom_write_byte((uint8_t *) i, b);
 	}
 
-	cliSerial->printf_P(PSTR("done\n"));
+	Serial.printf_P(PSTR("done\n"));
 }
 
 static void
-print_accel_offsets_and_scaling(void)
+print_accel_offsets(void)
 {
-    Vector3f accel_offsets = ins.get_accel_offsets();
-    Vector3f accel_scale = ins.get_accel_scale();
-    cliSerial->printf_P(PSTR("A_off: %4.2f, %4.2f, %4.2f\tA_scale: %4.2f, %4.2f, %4.2f\n"),
-                    (float)accel_offsets.x,                           // Pitch
-                    (float)accel_offsets.y,                           // Roll
-                    (float)accel_offsets.z,                           // YAW
-                    (float)accel_scale.x,                             // Pitch
-                    (float)accel_scale.y,                             // Roll
-                    (float)accel_scale.z);                            // YAW
+	Serial.printf_P(PSTR("A_off: %4.2f, %4.2f, %4.2f\n"),
+						(float)imu.ax(),	// Pitch
+						(float)imu.ay(),	// Roll
+						(float)imu.az());	// YAW
 }
 
 static void
 print_gyro_offsets(void)
 {
-    Vector3f gyro_offsets = ins.get_gyro_offsets();
-	cliSerial->printf_P(PSTR("G_off: %4.2f, %4.2f, %4.2f\n"),
-                    (float)gyro_offsets.x,
-                    (float)gyro_offsets.y,
-                    (float)gyro_offsets.z);
+	Serial.printf_P(PSTR("G_off: %4.2f, %4.2f, %4.2f\n"),
+						(float)imu.gx(),
+						(float)imu.gy(),
+						(float)imu.gz());
 }
 
 #if FRAME_CONFIG == HELI_FRAME
@@ -1050,11 +1068,11 @@ static int16_t read_num_from_serial() {
 	char data[5] = "";
 
 	do {
-		if (cliSerial->available() == 0) {
+		if (Serial.available() == 0) {
 			delay(10);
 			timeout++;
 		}else{
-			data[index] = cliSerial->read();
+			data[index] = Serial.read();
 			timeout = 0;
 			index++;
 		}
@@ -1071,34 +1089,50 @@ print_blanks(int16_t num)
 {
 	while(num > 0){
 		num--;
-		cliSerial->println("");
+		Serial.println("");
 	}
+}
+
+
+static bool
+wait_for_yes()
+{
+	int c;
+	Serial.flush();
+	Serial.printf_P(PSTR("Y to save\n"));
+
+	do {
+		c = Serial.read();
+	} while (-1 == c);
+
+	if (('y' == c) || ('Y' == c))
+		return true;
+	else
+		return false;
 }
 
 static void
 print_divider(void)
 {
 	for (int i = 0; i < 40; i++) {
-        cliSerial->print_P(PSTR("-"));
+        Serial.print_P(PSTR("-"));
 	}
-    cliSerial->println();
+    Serial.println();
 }
 
-static void print_enabled(bool b)
+static void print_enabled(boolean b)
 {
 	if(b)
-        cliSerial->print_P(PSTR("en"));
+        Serial.print_P(PSTR("en"));
 	else
-        cliSerial->print_P(PSTR("dis"));
-    cliSerial->print_P(PSTR("abled\n"));
+        Serial.print_P(PSTR("dis"));
+    Serial.print_P(PSTR("abled\n"));
 }
 
 
 static void
 init_esc()
 {
-    // reduce update rate to motors to 50Hz
-    motors.set_update_rate(50);
 	motors.enable();
 	motors.armed(true);
 	while(1){
@@ -1114,7 +1148,7 @@ static void print_wp(struct Location *cmd, byte index)
    	//float t1 = (float)cmd->lat / t7;
     //float t2 = (float)cmd->lng / t7;
 
-    cliSerial->printf_P(PSTR("cmd#: %d | %d, %d, %d, %ld, %ld, %ld\n"),
+    Serial.printf_P(PSTR("cmd#: %d | %d, %d, %d, %ld, %ld, %ld\n"),
                     index,
                     cmd->id,
                     cmd->options,
@@ -1124,7 +1158,7 @@ static void print_wp(struct Location *cmd, byte index)
                     cmd->lng);
 
 	/*
-	cliSerial->printf_P(PSTR("cmd#: %d id:%d op:%d p1:%d p2:%ld p3:%4.7f p4:%4.7f \n"),
+	Serial.printf_P(PSTR("cmd#: %d id:%d op:%d p1:%d p2:%ld p3:%4.7f p4:%4.7f \n"),
 		(int)index,
 		(int)cmd->id,
 		(int)cmd->options,
@@ -1137,7 +1171,7 @@ static void print_wp(struct Location *cmd, byte index)
 
 static void report_version()
 {
-    cliSerial->printf_P(PSTR("FW Ver: %d\n"),(int)g.k_format_version);
+    Serial.printf_P(PSTR("FW Ver: %d\n"),(int)g.k_format_version);
 	print_divider();
 	print_blanks(2);
 }
@@ -1145,14 +1179,14 @@ static void report_version()
 
 static void report_tuning()
 {
-	cliSerial->printf_P(PSTR("\nTUNE:\n"));
+	Serial.printf_P(PSTR("\nTUNE:\n"));
 	print_divider();
 	if (g.radio_tuning == 0){
 		print_enabled(g.radio_tuning.get());
 	}else{
 		float low  = (float)g.radio_tuning_low.get() / 1000;
 		float high = (float)g.radio_tuning_high.get() / 1000;
-		cliSerial->printf_P(PSTR(" %d, Low:%1.4f, High:%1.4f\n"),(int)g.radio_tuning.get(), low, high);
+		Serial.printf_P(PSTR(" %d, Low:%1.4f, High:%1.4f\n"),(int)g.radio_tuning.get(), low, high);
 	}
 	print_blanks(2);
 }

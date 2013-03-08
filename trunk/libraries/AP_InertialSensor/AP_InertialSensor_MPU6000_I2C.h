@@ -12,34 +12,48 @@
 
 class AP_InertialSensor_MPU6000_I2C : public AP_InertialSensor
 {
-public:
+  public:
 
   AP_InertialSensor_MPU6000_I2C(uint8_t addr, uint8_t brd);
 
-  uint16_t _init_sensor( AP_PeriodicProcess * scheduler, Sample_rate sample_rate );
+  uint16_t init( AP_PeriodicProcess * scheduler );
 
   /* Concrete implementation of AP_InertialSensor functions: */
-  bool	update();
-  bool	new_data_available();
-  float	get_gyro_drift_rate();
-  
+  bool update();
+  bool new_data_available();
+  float gx();
+  float gy();
+  float gz();
+  void get_gyros( float * );
+  float ax();
+  float ay();
+  float az();
+  void get_accels( float * );
+  void get_sensors( float * );
+  float temperature();
+  uint32_t sample_time();
+  void reset_sample_time();
+  float get_gyro_drift_rate();
+
+  private:
+
+  static void read(uint32_t);
+  static void hardware_init();
+
+  Vector3f _gyro;
+  Vector3f _accel;
+  float _temp;
+
   // get number of samples read from the sensors
-  uint16_t	num_samples_available();
-  // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-  uint32_t	get_delta_time_micros();
-
-private:
-
-  static bool read(uint32_t);
-  void hardware_init(Sample_rate sample_rate);
-
+  uint16_t     num_samples_available();
+  
   uint32_t _last_sample_micros;
-  static uint32_t _micros_per_sample;
-  static uint32_t _micros_per_sample_pre;
 
   float _temp_to_celsius( uint16_t );
 
+  static const float _accel_scale;
   static const float _gyro_scale;
+
   static uint8_t _gyro_data_index[3];
   static int8_t _gyro_data_sign[3];
 

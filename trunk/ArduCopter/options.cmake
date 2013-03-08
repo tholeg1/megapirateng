@@ -47,7 +47,7 @@ apm_option("GPS_PROTOCOL" TYPE STRING
         "GPS_PROTOCOL_NONE"
         "GPS_PROTOCOL_IMU"
         "GPS_PROTOCOL_MTK"
-        "GPS_PROTOCOL_MTK19"
+        "GPS_PROTOCOL_MTK16"
         "GPS_PROTOCOL_UBLOX"
         "GPS_PROTOCOL_SIRF"
         "GPS_PROTOCOL_NMEA")
@@ -147,20 +147,16 @@ apm_option("FRAME_ORIENTATION" TYPE STRING
     )
 
 apm_option("CH7_OPTION" TYPE STRING
-    DESCRIPTION "Channel 7 option?"
+    DESCRIPTION "Channel 7 option? (ADC_FILTER is experimental)"
     DEFAULT "CH7_SAVE_WP" 
     OPTIONS 
         "CH7_DO_NOTHING"
-        "CH7_DO_NOTHING"
+        "CH7_SET_HOVER"
         "CH7_FLIP"
-        "CH7_SIMPLE_MODE"
         "CH7_RTL"
-        "CH7_SAVE_TRIM"
-        "CH7_DO_NOTHING"
-        "CH7_SAVE_WP"
-        "CH7_DO_NOTHING"
-        "CH7_CAMERA_TRIGGER"
-        "CH7_SONAR")
+        "CH7_AUTO_TRIM"
+        "CH7_ADC_FILTER"
+        "CH7_SAVE_WP")
 
 apm_option("ACCEL_ALT_HOLD" TYPE BOOL ADVANCED
     DESCRIPTION "Disabled by default, work in progress."

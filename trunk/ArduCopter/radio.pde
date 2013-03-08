@@ -1,7 +1,9 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-// Function that will read the radio data, limit servos and trigger a failsafe
+//Function that will read the radio data, limit servos and trigger a failsafe
 // ----------------------------------------------------------------------------
+static int8_t failsafeCounter = 0;              // we wait a second to take over the throttle and send the plane circling
+
 
 extern RC_Channel* rc_ch[NUM_CHANNELS];
 
@@ -21,8 +23,8 @@ static void default_dead_zones()
 static void init_rc_in()
 {
     // set rc channel ranges
-    g.rc_1.set_angle(MAX_INPUT_ROLL_ANGLE);
-    g.rc_2.set_angle(MAX_INPUT_PITCH_ANGLE);
+    g.rc_1.set_angle(4500);
+    g.rc_2.set_angle(4500);
 #if FRAME_CONFIG == HELI_FRAME
     // we do not want to limit the movment of the heli's swash plate
     g.rc_3.set_range(0, 1000);
@@ -34,9 +36,9 @@ static void init_rc_in()
     // reverse: CW = left
     // normal:  CW = left???
 
-    g.rc_1.set_type(RC_CHANNEL_TYPE_ANGLE_RAW);
-    g.rc_2.set_type(RC_CHANNEL_TYPE_ANGLE_RAW);
-    g.rc_4.set_type(RC_CHANNEL_TYPE_ANGLE_RAW);
+    g.rc_1.set_type(RC_CHANNEL_ANGLE_RAW);
+    g.rc_2.set_type(RC_CHANNEL_ANGLE_RAW);
+    g.rc_4.set_type(RC_CHANNEL_ANGLE_RAW);
 
     rc_ch[CH_1] = &g.rc_1;
     rc_ch[CH_2] = &g.rc_2;
@@ -86,20 +88,20 @@ static void init_rc_out()
         if(g.esc_calibrate == 0) {
             // we will enter esc_calibrate mode on next reboot
             g.esc_calibrate.set_and_save(1);
-            // send minimum throttle out to ESC
+            // send miinimum throttle out to ESC
             motors.output_min();
             // display message on console
-            cliSerial->printf_P(PSTR("Entering ESC Calibration: please restart APM.\n"));
+            Serial.printf_P(PSTR("Entering ESC Calibration: please restart APM.\n"));
             // block until we restart
             while(1) {
                 delay(200);
                 dancing_light();
             }
         }else{
-            cliSerial->printf_P(PSTR("ESC Calibration active: passing throttle through to ESCs.\n"));
+            Serial.printf_P(PSTR("ESC Calibration active: passing throttle through to ESCs.\n"));
             // clear esc flag
             g.esc_calibrate.set_and_save(0);
-            // pass through user throttle to escs
+            // block until we restart
             init_esc();
         }
     }else{
@@ -124,17 +126,13 @@ void output_min()
     motors.enable();
     motors.output_min();
 }
-
-#define RADIO_FS_TIMEOUT_MS 2000       // 2 seconds
 static void read_radio()
 {
     if (APM_RC.GetState() == 1) {
-        ap_system.new_radio_frame = true;
+        new_radio_frame = true;
         g.rc_1.set_pwm(APM_RC.InputCh(CH_1));
         g.rc_2.set_pwm(APM_RC.InputCh(CH_2));
-
-        set_throttle_and_failsafe(APM_RC.InputCh(CH_3));
-
+        g.rc_3.set_pwm(APM_RC.InputCh(CH_3));
         g.rc_4.set_pwm(APM_RC.InputCh(CH_4));
         g.rc_5.set_pwm(APM_RC.InputCh(CH_5));
         g.rc_6.set_pwm(APM_RC.InputCh(CH_6));
@@ -145,57 +143,54 @@ static void read_radio()
         // limit our input to 800 so we can still pitch and roll
         g.rc_3.control_in = min(g.rc_3.control_in, MAXIMUM_THROTTLE);
 #endif
-    }else{
-        // turn on throttle failsafe if no update from ppm encoder for 2 seconds
-        uint32_t last_rc_update = APM_RC.get_last_update();
-        if ((millis() - last_rc_update >= RADIO_FS_TIMEOUT_MS) && g.failsafe_throttle && motors.armed() && !ap.failsafe) {
-            Log_Write_Error(ERROR_SUBSYSTEM_RADIO, ERROR_CODE_RADIO_LATE_FRAME);
-            set_failsafe(true);
-        }
+
+        throttle_failsafe(g.rc_3.radio_in);
     }
 }
-
 #define FS_COUNTER 3
-static void set_throttle_and_failsafe(uint16_t throttle_pwm)
+static void throttle_failsafe(uint16_t pwm)
 {
-    static int8_t failsafe_counter = 0;
-
-    // if failsafe not enabled pass through throttle and exit
-    if(g.failsafe_throttle == FS_THR_DISABLED) {
-        g.rc_3.set_pwm(throttle_pwm);
+    // Don't enter Failsafe if not enabled by user
+    if(g.throttle_fs_enabled == 0)
         return;
-    }
 
-    //check for low throttle value
-    if (throttle_pwm < (uint16_t)g.failsafe_throttle_value) {
-
-        // if we are already in failsafe or motors not armed pass through throttle and exit
-        if (ap.failsafe || !motors.armed()) {
-            g.rc_3.set_pwm(throttle_pwm);
-            return;
-        }
-
-        // check for 3 low throttle values
-        // Note: we do not pass through the low throttle until 3 low throttle values are recieved
-        failsafe_counter++;
-        if( failsafe_counter >= FS_COUNTER ) {
-            failsafe_counter = FS_COUNTER;  // check to ensure we don't overflow the counter
-            set_failsafe(true);
-            g.rc_3.set_pwm(throttle_pwm);   // pass through failsafe throttle
-        }
-    }else{
-        // we have a good throttle so reduce failsafe counter
-        failsafe_counter--;
-        if( failsafe_counter <= 0 ) {
-            failsafe_counter = 0;   // check to ensure we don't underflow the counter
-
-            // disengage failsafe after three (nearly) consecutive valid throttle values
-            if (ap.failsafe) {
-                set_failsafe(false);
+    //check for failsafe and debounce funky reads
+    // ------------------------------------------
+    if (pwm < (unsigned)g.throttle_fs_value) {
+        // we detect a failsafe from radio
+        // throttle has dropped below the mark
+        failsafeCounter++;
+        if (failsafeCounter == FS_COUNTER-1) {
+            // called right before trigger
+            // do nothing
+        }else if(failsafeCounter == FS_COUNTER) {
+            // Don't enter Failsafe if we are not armed
+            // home distance is in meters
+            // This is to prevent accidental RTL
+            if(motors.armed() && takeoff_complete) {
+                Serial.print_P(PSTR("MSG FS ON "));
+                Serial.println(pwm, DEC);
+                set_failsafe(true);
             }
+        }else if (failsafeCounter > FS_COUNTER) {
+            failsafeCounter = FS_COUNTER+1;
         }
-        // pass through throttle
-        g.rc_3.set_pwm(throttle_pwm);
+
+    }else if(failsafeCounter > 0) {
+        // we are no longer in failsafe condition
+        // but we need to recover quickly
+        failsafeCounter--;
+        if (failsafeCounter > 3) {
+            failsafeCounter = 3;
+        }
+        if (failsafeCounter == 1) {
+            Serial.print_P(PSTR("MSG FS OFF "));
+            Serial.println(pwm, DEC);
+        }else if(failsafeCounter == 0) {
+            set_failsafe(false);
+        }else if (failsafeCounter <0) {
+            failsafeCounter = -1;
+        }
     }
 }
 

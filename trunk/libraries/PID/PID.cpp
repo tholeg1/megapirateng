@@ -30,7 +30,7 @@ PID::get_pid(int32_t error, float scaler)
 		// the intergator term. This prevents I buildup from a
 		// previous fight mode from causing a massive return before
 		// the integrator gets a chance to correct itself
-		reset_I();
+		_integrator = 0;
     }
     _last_t = tnow;
 
@@ -41,17 +41,7 @@ PID::get_pid(int32_t error, float scaler)
 
     // Compute derivative component if time has elapsed
     if ((fabs(_kd) > 0) && (dt > 0)) {
-        float derivative;
-
-		if (isnan(_last_derivative)) {
-			// we've just done a reset, suppress the first derivative
-			// term as we don't want a sudden change in input to cause
-			// a large D output change			
-			derivative = 0;
-			_last_derivative = 0;
-		} else {
-			derivative = (error - _last_error) / delta_time;
-		}
+        float derivative = (error - _last_error) / delta_time;
 
         // discrete low pass filter, cuts out the
         // high frequency noise that can drive the controller crazy
@@ -88,9 +78,8 @@ void
 PID::reset_I()
 {
     _integrator = 0;
-	// we use NAN (Not A Number) to indicate that the last 
-	// derivative value is not valid
-    _last_derivative = NAN;
+    _last_error = 0;
+    _last_derivative = 0;
 }
 
 void

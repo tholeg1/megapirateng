@@ -13,16 +13,10 @@
 #ifndef AP_RELAY_H_
 #define AP_RELAY_H_
 
-#include <DigitalWriteFast.h>
-
 /// @class	AP_Relay
 /// @brief	Class to manage the APM relay
 class AP_Relay{
 public:
-	AP_Relay(uint8_t port): Relay_Pin(port) {
-		pinMode(Relay_Pin, OUTPUT); 
-	}
-	
 	// activate the relay
 	void on();
 
@@ -37,8 +31,6 @@ public:
 
 	// get the relay status (on/off)
 	bool get();
-	
-	uint8_t Relay_Pin;
 };
 
 

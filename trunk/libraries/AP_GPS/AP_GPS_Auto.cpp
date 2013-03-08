@@ -79,7 +79,7 @@ AP_GPS_Auto::_detect(void)
 {
 	static uint32_t detect_started_ms;
 
-	if (detect_started_ms == 0 && _port->available() > 0) {
+	if (detect_started_ms == 0) {
 		detect_started_ms = millis();
             }
 
@@ -89,9 +89,9 @@ AP_GPS_Auto::_detect(void)
 			Serial.print_P(PSTR(" ublox "));
 			return new AP_GPS_UBLOX(_port);
 			}
-		if (AP_GPS_MTK19::_detect(data)) {
-			Serial.print_P(PSTR(" MTK19 "));
-			return new AP_GPS_MTK19(_port);
+		if (AP_GPS_MTK16::_detect(data)) {
+			Serial.print_P(PSTR(" MTK16 "));
+			return new AP_GPS_MTK16(_port);
 		}
 #if !defined( __AVR_ATmega1280__ )
 		// save a bit of code space on a 1280

@@ -119,7 +119,7 @@
       check_FrSky_stuffing(Data_send);
    }
    
-   void check_FrSky_stuffing(uint8_t Data) 
+   void check_FrSky_stuffing(uint8_t Data) //byte stuffing
    {
       if (Data == 0x5E)   
       {

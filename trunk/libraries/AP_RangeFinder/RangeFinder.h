@@ -1,9 +1,10 @@
 #ifndef RangeFinder_h
 #define RangeFinder_h
 
-#include <AP_Common.h>
-#include <AP_AnalogSource.h>
-#include <Filter.h> // Filter library
+#include <stdlib.h>
+#include <inttypes.h>
+#include "../AP_AnalogSource/AP_AnalogSource.h"
+#include "../Filter/Filter.h" // Filter library
 
 /*
  * #define AP_RANGEFINDER_ORIENTATION_FRONT		  0, 10,  0

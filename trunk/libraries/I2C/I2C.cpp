@@ -31,8 +31,13 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <AP_Common.h>
+#include <inttypes.h>
 #include "I2C.h"
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include "Arduino.h"
+#else
+	#include "WProgram.h"
+#endif
 
 
 
@@ -387,56 +392,32 @@ uint8_t I2C::read(uint8_t address, uint8_t registerAddress, uint8_t numberBytes,
   nack = numberBytes - 1;
   returnStatus = 0;
   returnStatus = start();
-    if (returnStatus) {
-	    _lockup_count++;
-	    return(returnStatus); 
-    }
+  if(returnStatus){return(returnStatus);}
   returnStatus = sendAddress(SLA_W(address));
-    if(returnStatus) {
-	    _lockup_count++;
-	    return(returnStatus);
-    }
+  if(returnStatus){return(returnStatus);}
   returnStatus = sendByte(registerAddress);
-    if(returnStatus) {
-	    _lockup_count++;
-	    return(returnStatus); 
-    }
+  if(returnStatus){return(returnStatus);}
   returnStatus = start();
-    if(returnStatus) {
-	    _lockup_count++;
-	    return(returnStatus); 
-    }
+  if(returnStatus){return(returnStatus);}
   returnStatus = sendAddress(SLA_R(address));
-    if(returnStatus) {
-	    _lockup_count++;
-	    return(returnStatus); 
-    }
+  if(returnStatus){return(returnStatus);}
   for(uint8_t i = 0; i < numberBytes; i++)
   {
     if( i == nack )
     {
       returnStatus = receiveByte(0);
-            if (returnStatus != MR_DATA_NACK) {
-		    _lockup_count++;
-		    return(returnStatus); 
-	    }
+      if(returnStatus != MR_DATA_NACK){return(returnStatus);}
     }
     else
     {
       returnStatus = receiveByte(1);
-            if (returnStatus != MR_DATA_ACK) {
-		    _lockup_count++;
-		    return(returnStatus); 
-	    }
+      if(returnStatus != MR_DATA_ACK){return(returnStatus);}
     }
     dataBuffer[i] = TWDR;
     bytesAvailable = i+1;
     totalBytes = i+1;
   }
   returnStatus = stop();
-    if (returnStatus) {
-	    _lockup_count++;
-    }
   return(returnStatus);
 }
 
