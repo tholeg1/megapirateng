@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "MegaPirateNG V2.9 R6"
+#define THISFIRMWARE "MegaPirateNG V2.9 R7"
 /*
  *  ArduCopter Version 2.9.1
  *
@@ -191,7 +191,7 @@ static void update_events(void);
 	#elif TX_CHANNEL_SET == TX_mwi
 		static uint8_t pinRcChannel[8] = {1, 2, 0, 3, 4,5,6,7}; // mapped multiwii to APM layout
 	#elif TX_CHANNEL_SET == TX_JR
-  	static uint8_t pinRcChannel[8] = {1, 2, 0, 3, 5,6,4,7}; // mapped JR to APM layout
+  	static uint8_t pinRcChannel[8] = {1, 2, 0, 3, 5,7,4,6}; // mapped JR to APM layout
 	#endif
 	
 	#if PIRATES_SENSOR_BOARD == PIRATES_BLACKVORTEX

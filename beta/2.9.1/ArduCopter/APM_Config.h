@@ -3,7 +3,7 @@
 #define __ARDUCOPTER_APMCONFIG_H__ 
 
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_BLACKVORTEX
+#define PIRATES_SENSOR_BOARD PIRATES_CRIUS_AIO_PRO_V1
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -25,7 +25,7 @@
 	SERIAL_PPM_ENABLED_PL1		// Use for CRIUS AIOP Pro v2,
 */
 
-#define TX_CHANNEL_SET	TX_standard
+#define TX_CHANNEL_SET	TX_mwi
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
