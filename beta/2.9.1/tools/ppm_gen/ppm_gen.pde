@@ -9,6 +9,7 @@ It can be used to test PPM decoders
 #define OUTPIN 46
 // Frame size in us
 #define FRAME_SIZE 18000 
+//#define FRAME_SIZE 27000 
 // Low pulse width
 #define LOW_WIDTH 330
 // Output channels count
@@ -20,7 +21,7 @@ void setup(void)
 	digitalWrite(OUTPIN, 1);
 }
 
-uint16_t packet[8]={1500,1500,1500,1500,1500,1500,1500,1500};
+uint16_t packet[16]={1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500};
 
 void
 loop(void)
