@@ -3,7 +3,7 @@
 #define __ARDUCOPTER_APMCONFIG_H__ 
 
 // Select your sensor board
-#define PIRATES_SENSOR_BOARD PIRATES_CRIUS_AIO_PRO_V1
+#define PIRATES_SENSOR_BOARD PIRATES_CRIUS_AIO_PRO_V2
 /*
 	PIRATES_ALLINONE
 	PIRATES_FFIMU
@@ -18,14 +18,14 @@
 // RC configuration
 
 // PPM_SUM(CPPM) Signal processing
-#define SERIAL_PPM SERIAL_PPM_DISABLED
+#define SERIAL_PPM SERIAL_PPM_ENABLED
 /*
 	SERIAL_PPM_DISABLED
 	SERIAL_PPM_ENABLED				// For all boards, PPM_SUM pin is A8
 	SERIAL_PPM_ENABLED_PL1		// Use for CRIUS AIOP Pro v2,
 */
 
-#define TX_CHANNEL_SET	TX_mwi
+#define TX_CHANNEL_SET	TX_standard
 /*
 	TX_set1							//Graupner/Spektrum												PITCH,YAW,THROTTLE,ROLL,AUX1,AUX2,CAMPITCH,CAMROLL
 	TX_standard					//standard  PPM layout Robbe/Hitec/Sanwa	ROLL,PITCH,THROTTLE,YAW,MODE,AUX2,CAMPITCH,CAMROLL
@@ -58,7 +58,7 @@
 */
 
 // For BlackVortex, just set PIRATES_SENSOR_BOARD as PIRATES_BLACKVORTEX, GPS will be selected automatically
-#define GPS_PROTOCOL GPS_PROTOCOL_NONE 
+#define GPS_PROTOCOL GPS_PROTOCOL_UBLOX 
 //GPS_PROTOCOL_NONE
 /*
 	GPS_PROTOCOL_NONE 	without GPS
