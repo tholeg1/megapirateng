@@ -118,6 +118,13 @@
 # define RECEIVER_RSSI_PIN -1
 #endif
 
+#ifndef RECEIVER_RSSI_MIN
+# define RECEIVER_RSSI_MIN 51
+#endif
+#ifndef RECEIVER_RSSI_MAX
+# define RECEIVER_RSSI_MAX 150
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 // APM2 HARDWARE DEFAULTS
 //
