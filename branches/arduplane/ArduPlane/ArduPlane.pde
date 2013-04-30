@@ -377,6 +377,10 @@ ModeFilterInt16_Size5 sonar_mode_filter(2);
 // Barometer filter
 AverageFilterInt32_Size5 baro_filter;	// filtered pitch acceleration
 
+#if RECEIVER_RSSI_PIN != -1
+AP_AnalogSource_Arduino RSSI_pin(RECEIVER_RSSI_PIN, 0.25);
+#endif
+
 AP_Relay relay;
 
 ////////////////////////////////////////////////////////////////////////////////
