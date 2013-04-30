@@ -468,6 +468,10 @@ static uint32_t rc_override_fs_timer = 0;
 // A timer used to track how long we have been in a "short failsafe" condition due to loss of RC signal
 static uint32_t ch3_failsafe_timer = 0;
 
+// receiver RSSI
+static uint8_t receiver_rssi;
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // LED output
 ////////////////////////////////////////////////////////////////////////////////
@@ -1060,6 +1064,8 @@ Serial.println(tempaccel.z, DEC);
 			if (g.battery_monitoring != 0){
 				read_battery();
 			}
+
+            read_receiver_rssi();
 
 			read_trim_switch();
 

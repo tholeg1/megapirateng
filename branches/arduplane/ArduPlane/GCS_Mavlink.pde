@@ -396,7 +396,7 @@ static void NOINLINE send_servo_out(mavlink_channel_t chan)
         10000 * g.channel_pitch.norm_output(),
         10000 * g.channel_throttle.norm_output(),
         10000 * g.channel_rudder.norm_output(),
-	receiver_rssi());
+	receiver_rssi);
 #else
     mavlink_msg_rc_channels_scaled_send(
         chan,
@@ -410,7 +410,7 @@ static void NOINLINE send_servo_out(mavlink_channel_t chan)
         0,
         0,
         0,
-        receiver_rssi());
+        receiver_rssi);
 #endif
 }
 
@@ -428,7 +428,7 @@ static void NOINLINE send_radio_in(mavlink_channel_t chan)
         g.rc_6.radio_in,
         g.rc_7.radio_in,
         g.rc_8.radio_in,
-        receiver_rssi());
+        receiver_rssi);
 }
 
 static void NOINLINE send_radio_out(mavlink_channel_t chan)
