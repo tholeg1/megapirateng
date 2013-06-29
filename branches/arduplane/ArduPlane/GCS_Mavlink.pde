@@ -358,7 +358,7 @@ static void NOINLINE send_gps_raw(mavlink_channel_t chan)
         65535,
         g_gps->ground_speed,  // cm/s
         g_gps->ground_course, // 1/100 degrees,
-#if RECEIVER_RSSI_PIN != -1
+#if RECEIVER_RSSI_GPS
         receiver_rssi
 #else
         g_gps->num_sats
@@ -564,7 +564,7 @@ static void NOINLINE send_gps_status(mavlink_channel_t chan)
 {
     mavlink_msg_gps_status_send(
         chan,
-#if RECEIVER_RSSI_PIN != -1
+#if RECEIVER_RSSI_GPS
         receiver_rssi,
 #else
         g_gps->num_sats,

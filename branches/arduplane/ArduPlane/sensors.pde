@@ -134,19 +134,21 @@ void read_receiver_rssi(void)
     float ret = RSSI_pin.read();
     receiver_rssi = constrain(ret, 0, 255);
 
+# if RECEIVER_RSSI_GPS
     /* ArduPlaneNG: Receiver RSSI is then passed to MAVLink as GPS num_sats.  */
-    if (receiver_rssi > RECEIVER_RSSI_MAX)
-        receiver_rssi = RECEIVER_RSSI_MAX;
-    if (receiver_rssi < RECEIVER_RSSI_MIN)
-        receiver_rssi = RECEIVER_RSSI_MIN;
+    if (receiver_rssi > RECEIVER_RSSI_GPS_MAX)
+        receiver_rssi = RECEIVER_RSSI_GPS_MAX;
+    if (receiver_rssi < RECEIVER_RSSI_GPS_MIN)
+        receiver_rssi = RECEIVER_RSSI_GPS_MIN;
 
-    receiver_rssi -= RECEIVER_RSSI_MIN;
+    receiver_rssi -= RECEIVER_RSSI_GPS_MIN;
 
     /* We have only two decimal positions in MinimOSD to display sat count,
        scale to 0..99 range.  */
-#if (RECEIVER_RSSI_MAX - RECEIVER_RSSI_MIN) > 99
-    receiver_rssi = (float) receiver_rssi * 99 / (RECEIVER_RSSI_MAX - RECEIVER_RSSI_MIN);
-#endif
+#  if (RECEIVER_RSSI_GPS_MAX - RECEIVER_RSSI_GPS_MIN) > 99
+    receiver_rssi = (float) receiver_rssi * 99 / (RECEIVER_RSSI_GPS_MAX - RECEIVER_RSSI_GPS_MIN);
+#  endif
+# endif
 #endif
 }
 

@@ -118,11 +118,15 @@
 # define RECEIVER_RSSI_PIN -1
 #endif
 
-#ifndef RECEIVER_RSSI_MIN
-# define RECEIVER_RSSI_MIN 51
+// Whether substitute GPS sat count with RSSI
+#ifndef RECEIVER_RSSI_GPS
+# define RECEIVER_RSSI_GPS DISABLED
 #endif
-#ifndef RECEIVER_RSSI_MAX
-# define RECEIVER_RSSI_MAX 150
+#ifndef RECEIVER_RSSI_GPS_MIN
+# define RECEIVER_RSSI_GPS_MIN 31
+#endif
+#ifndef RECEIVER_RSSI_GPS_MAX
+# define RECEIVER_RSSI_GPS_MAX 130
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
