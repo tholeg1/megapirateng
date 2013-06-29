@@ -1026,7 +1026,7 @@ Serial.println(tempaccel.z, DEC);
 #endif
 			// altitude smoothing
 			// ------------------
-			if (control_mode != FLY_BY_WIRE_B)
+			if (control_mode != FLY_BY_WIRE_B || FBWB_BEARING_ALTITUDE)
 				calc_altitude_error();
 
 			// perform next command
@@ -1283,6 +1283,7 @@ static void update_current_flight_mode(void)
 				break;
 
 			case FLY_BY_WIRE_B:
+#if !FBWB_BEARING_ALTITUDE
 				// Substitute stick inputs for Navigation control output
 				// We use g.pitch_limit_min because its magnitude is
 				// normally greater than g.pitch_limit_max
@@ -1296,6 +1297,33 @@ static void update_current_flight_mode(void)
 						altitude_error =( (home.alt + g.FBWB_min_altitude) - current_loc.alt) + g.channel_pitch.norm_input() * g.pitch_limit_min ;
 					else altitude_error =( (home.alt + g.FBWB_min_altitude) - current_loc.alt) ;
 				}
+#else
+				hold_course = -1;
+                {
+                    static long fbw_bearing;
+                    long change = g.channel_roll.norm_input() * 20;
+                    if (abs(change) > 20/2)
+                        {
+                            fbw_bearing += change;
+                            fbw_bearing = wrap_360(fbw_bearing);
+                        }
+                    nav_bearing = fbw_bearing;
+                }
+                {
+                    static long fbw_altitude = g.FBWB_min_altitude;
+                    long change = g.channel_pitch.norm_input() * 10;
+                    if (abs(change) > 10/2)
+                        {
+                            fbw_altitude += change;
+                        }
+                    target_altitude = home.alt + fbw_altitude;
+                }
+
+                calc_bearing_error();
+                calc_altitude_error();
+
+                calc_nav_roll();
+#endif
 				calc_throttle();
 				calc_nav_pitch();
 				break;
