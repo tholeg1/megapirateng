@@ -138,7 +138,8 @@ static void calc_altitude_error()
 		}else{
 			target_altitude = constrain(target_altitude, prev_WP.alt, next_WP.alt);
 		}
-	} else if (non_nav_command_ID != MAV_CMD_CONDITION_CHANGE_ALT) {
+	} else if (non_nav_command_ID != MAV_CMD_CONDITION_CHANGE_ALT
+               && (control_mode != FLY_BY_WIRE_B || !FBWB_BEARING_ALTITUDE)) {
 		target_altitude = next_WP.alt;
 	}
 

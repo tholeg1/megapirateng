@@ -774,6 +774,9 @@
 #endif
 #define ALT_HOLD_FBW_CM ALT_HOLD_FBW*100
 
+#ifndef FBWB_BEARING_ALTITUDE
+# define FBWB_BEARING_ALTITUDE DISABLED
+#endif
 
 
 /*  The following parameters have no corresponding control implementation
