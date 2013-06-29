@@ -137,7 +137,7 @@ static void decrement_cmd_index()
 static long read_alt_to_hold()
 {
 	if(g.RTL_altitude < 0)
-		return current_loc.alt;
+        return max(current_loc.alt, home.alt - g.RTL_altitude);
 	else
 		return g.RTL_altitude + home.alt;
 }
